@@ -1,0 +1,27 @@
+[build-system]
+requires = ["flit"]
+build-backend = "flit.buildapi"
+
+[tool.flit.metadata]
+module = "dirtywater2"
+author = "Kale Kundert"
+author-email = "kale@thekunderts.net"
+home-page = 'https://github.com/kalekundert/dirtywater2'
+requires-python = "~=3.7"
+requires = []
+classifiers = [
+  'Programming Language :: Python :: 3',
+  'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+]
+
+[tool.flit.scripts]
+dirtywater2 = "dirtywater2:main"
+
+[tool.flit.metadata.urls]
+'Documentation' = 'https://dirtywater2.readthedocs.io/en/latest/'
+'Version Control' = 'https://github.com/kalekundert/dirtywater2'
+'Bug Tracker' = 'https://github.com/kalekundert/dirtywater2/issues'
+'Continuous Integration' = 'https://travis-ci.org/kalekundert/dirtywater2'
+'Test Coverage' = 'https://coveralls.io/github/kalekundert/dirtywater2'
+
+
