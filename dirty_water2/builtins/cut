@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+"""\
+Create impromptu protocols by using delimiters to spearate steps specified on 
+the command line.
+
+Usage:
+    cut <protocol> [-d CHAR]
+
+Options:
+    -d --delimiter CHAR  [default: ;]
+        Indicate that the steps of the protocol are separated by the given 
+        character (or characters).
+"""
+
+from docopt import docopt
+from dirtywater2 import Protocol
+
+args = docopt(__doc__)
+p = Protocol()
+p.steps = args['<protocol>'].split(args['--delimiter'])
+print(p)
