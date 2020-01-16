@@ -17,12 +17,4 @@ Dirty Water
 .. image:: https://img.shields.io/coveralls/kalekundert/dirtywater2.svg
    :target: https://coveralls.io/github/kalekundert/dirtywater2?branch=master
 
-Installation
-============
-Use ``pip`` to install::
-
-    $ pip install dirtywater2
-
-Usage
-=====
-Coming soon...
+- Unix philosophy

@@ -1,0 +1,5 @@
+************
+Contributing
+************
+
+- Bugs, PRs
