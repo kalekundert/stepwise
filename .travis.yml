@@ -8,8 +8,10 @@ python:
 # package (as of version 19.2), because pip cannot use `pyproject.toml` for 
 # editable installs.  Instead it requires `setup.py`, which we don't have.  
 # This means we need to use `flit` directly to install the package.
+
+# 'coverage<5' won't be necessary once coveralls-python #203 is fixed.
 install:
-    - pip install -U flit flit coverage pytest pytest-cov python-coveralls
+    - pip install -U flit flit 'coverage<5' pytest pytest-cov python-coveralls
     - flit install --symlink
 
 script: 
