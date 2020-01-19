@@ -14,7 +14,7 @@ Options:
 """
 
 from docopt import docopt
-from dirtywater2 import Protocol
+from stepwise import Protocol
 
 args = docopt(__doc__)
 p = Protocol()

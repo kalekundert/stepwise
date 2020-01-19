@@ -8,7 +8,18 @@ author = "Kale Kundert"
 author-email = "kale@thekunderts.net"
 home-page = 'https://github.com/kalekundert/stepwise'
 requires-python = "~=3.8"
-requires = []
+requires = [
+  'appdirs',
+  'arrow',
+  'autoprop',
+  'configurator',
+  'docopt',
+  'more_itertools',
+  'nonstdlib',
+  'pandas',
+  'setuptools',
+  'voluptuous',
+]
 classifiers = [
   'Programming Language :: Python :: 3',
   'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
@@ -25,10 +36,10 @@ ls = "stepwise.cli:ls"
 builtins = "stepwise:protocol_dirs"
 
 [tool.flit.metadata.urls]
-'Documentation' = 'https://dirtywater2.readthedocs.io/en/latest/'
-'Version Control' = 'https://github.com/kalekundert/dirtywater2'
-'Bug Tracker' = 'https://github.com/kalekundert/dirtywater2/issues'
-'Continuous Integration' = 'https://travis-ci.org/kalekundert/dirtywater2'
-'Test Coverage' = 'https://coveralls.io/github/kalekundert/dirtywater2'
+'Documentation' = 'https://stepwise.readthedocs.io/en/latest/'
+'Version Control' = 'https://github.com/kalekundert/stepwise'
+'Bug Tracker' = 'https://github.com/kalekundert/stepwise/issues'
+'Continuous Integration' = 'https://travis-ci.org/kalekundert/stepwise'
+'Test Coverage' = 'https://coveralls.io/github/kalekundert/stepwise'
 
 
