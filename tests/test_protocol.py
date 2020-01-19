@@ -2,42 +2,508 @@
 
 import pytest, arrow
 from pytest import raises
-from dirtywater2 import parse, merge, Protocol, UserError
+from dirty_water2 import parse, merge, Protocol, UserError
 
-def test_dump_empty():
+def test_repr():
     p = Protocol()
-    assert p.dump() == ''
+    assert repr(p) == 'Protocol(date=None, commands=[], steps=[], footnotes={})'
 
-def test_dump_date():
+@pytest.mark.parametrize(
+        'input,steps', [
+            ("Step 1",                   ["Step 1"]),
+            (["Step 1", "Step 2"],       ["Step 1", "Step 2"]),
+            (Protocol(steps=["Step 1"]), ["Step 1"]),
+        ]
+)
+def test_from_anything(input, steps):
+    p = Protocol.from_anything(input)
+    assert p.steps == steps
+
+@pytest.mark.parametrize(
+        'inputs,output', [
+
+            ####################################
+            # Empty
+            ####################################
+            ([
+                Protocol(),
+            ],
+                Protocol(),
+            ),
+            ####################################
+            ([
+                Protocol(),
+                Protocol(),
+            ],
+                Protocol(),
+            ),
+
+            ####################################
+            # Dates
+            ####################################
+            ([
+                Protocol(
+                    date=arrow.get(1988, 11, 8),
+                ),
+            ],
+                Protocol(
+                    date=arrow.get(1988, 11, 8),
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    date=arrow.get(1988, 11, 8),
+                ),
+                Protocol(
+                    date=arrow.get(1989, 9, 19),
+                ),
+            ],
+                Protocol(
+                    date=arrow.get(1989, 9, 19),
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(),
+                Protocol(
+                    date=arrow.get(1988, 11, 8),
+                ),
+            ],
+                Protocol(
+                    date=arrow.get(1988, 11, 8),
+                ),
+            ),
+
+            ####################################
+            # Commands
+            ####################################
+            ([
+                Protocol(
+                    commands=['command-1']
+                ),
+            ],
+                Protocol(
+                    commands=['command-1']
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(),
+                Protocol(
+                    commands=['command-1']
+                ),
+            ],
+                Protocol(
+                    commands=['command-1']
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    commands=['command-1']
+                ),
+                Protocol(
+                    commands=['command-2']
+                ),
+            ],
+                Protocol(
+                    commands=['command-1', 'command-2']
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    commands=['command-1', 'command-2']
+                ),
+                Protocol(
+                    commands=['command-3', 'command-4']
+                ),
+            ],
+                Protocol(
+                    commands=['command-1', 'command-2', 'command-3', 'command-4']
+                ),
+            ),
+
+            ####################################
+            # Steps
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step 1'],
+                ),
+            ],
+                Protocol(
+                    steps=['Step 1'],
+                ),
+            ),
+            ####################################
+            ([
+                'Step 1'
+            ],
+                Protocol(
+                    steps=['Step 1'],
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(),
+                Protocol(
+                    steps=['Step 1'],
+                ),
+            ],
+                Protocol(
+                    steps=['Step 1'],
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(),
+                'Step 1',
+            ],
+                Protocol(
+                    steps=['Step 1'],
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step 1'],
+                ),
+                Protocol(
+                    steps=['Step 2'],
+                ),
+            ],
+                Protocol(
+                    steps=['Step 1', 'Step 2'],
+                ),
+            ),
+            ####################################
+            ([
+                'Step 1',
+                'Step 2',
+            ],
+                Protocol(
+                    steps=['Step 1', 'Step 2'],
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step 1', 'Step 2'],
+                ),
+                Protocol(
+                    steps=['Step 3', 'Step 4'],
+                ),
+            ],
+                Protocol(
+                    steps=['Step 1', 'Step 2', 'Step 3', 'Step 4'],
+                ),
+            ),
+            ####################################
+            ([
+                ['Step 1', 'Step 2'],
+                ['Step 3', 'Step 4'],
+            ],
+                Protocol(
+                    steps=['Step 1', 'Step 2', 'Step 3', 'Step 4'],
+                ),
+            ),
+
+            ####################################
+            # Footnotes
+            ####################################
+            ([
+                Protocol(
+                    footnotes={1: 'Footnote A'},
+                ),
+            ],
+                Protocol(
+                    footnotes={1: 'Footnote A'},
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(),
+                Protocol(
+                    footnotes={1: 'Footnote A'},
+                ),
+            ],
+                Protocol(
+                    footnotes={1: 'Footnote A'},
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    footnotes={1: 'Footnote A'},
+                ),
+                Protocol(
+                    footnotes={1: 'Footnote B'},
+                ),
+            ],
+                Protocol(
+                    footnotes={1: 'Footnote A', 2: 'Footnote B'},
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    footnotes={2: 'Footnote A'},
+                ),
+                Protocol(
+                    footnotes={1: 'Footnote B'},
+                ),
+            ],
+                Protocol(
+                    footnotes={1: 'Footnote A', 2: 'Footnote B'},
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    footnotes={1: 'Footnote A', 2: 'Footnote B'},
+                ),
+                Protocol(
+                    footnotes={1: 'Footnote C', 2: 'Footnote D'},
+                ),
+            ],
+                Protocol(
+                    footnotes={1: 'Footnote A', 2: 'Footnote B',
+                               3: 'Footnote C', 4: 'Footnote D'},
+                ),
+            ),
+            ####################################
+        ]
+)
+def test_merge(inputs, output):
+    merged = merge(*inputs)
+    assert merged.date == output.date
+    assert merged.commands == output.commands
+    assert merged.steps == output.steps
+    assert merged.footnotes == output.footnotes
+
+def test_append():
+    a = Protocol(
+            date=arrow.get(1988, 11, 8),
+            commands=['command-1'],
+            steps=['Step 1'],
+            footnotes={1: 'Footnote A'},
+    )
+    b = Protocol(
+            date=arrow.get(1989, 9, 19),
+            commands=['command-2'],
+            steps=['Step 2'],
+            footnotes={1: 'Footnote B'},
+    )
+    a.append(b)
+
+    assert a.date == arrow.get(1989, 9, 19)
+    assert a.commands == ['command-1', 'command-2']
+    assert a.steps == ['Step 1', 'Step 2']
+    assert a.footnotes == {1: 'Footnote A', 2: 'Footnote B'}
+
+def test_prepend():
+    a = Protocol(
+            date=arrow.get(1988, 11, 8),
+            commands=['command-1'],
+            steps=['Step 1'],
+            footnotes={1: 'Footnote A'},
+    )
+    b = Protocol(
+            date=arrow.get(1989, 9, 19),
+            commands=['command-2'],
+            steps=['Step 2'],
+            footnotes={1: 'Footnote B'},
+    )
+    b.prepend(a)
+
+    assert b.date == arrow.get(1989, 9, 19)
+    assert b.commands == ['command-1', 'command-2']
+    assert b.steps == ['Step 1', 'Step 2']
+    assert b.footnotes == {1: 'Footnote A', 2: 'Footnote B'}
+
+def test_iadd():
+    p = Protocol()
+    assert p.steps == []
+
+    p += "Step 1"
+    assert p.steps == ["Step 1"]
+
+    # Do it again just to make sure the first addition didn't put the protocol 
+    # into some kind of broken state.
+    p += "Step 2"
+    assert p.steps == ["Step 1", "Step 2"]
+
+    p += ["Step 3", "Step 4"]
+    assert p.steps == ["Step 1", "Step 2", "Step 3", "Step 4"]
+
+    p += Protocol(steps=["Step 5"], footnotes={1: "Footnote 1"})
+    assert p.steps == ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"]
+    assert p.footnotes == {1: "Footnote 1"}
+
+@pytest.mark.parametrize(
+        'err,steps,footnotes', [
+            (False, [], {}),
+            (False, ['[1]'], {1: 'Footnote 1'}),
+            (False, ['[1]'], {1: 'Footnote 1', 2: 'Footnote 2'}),
+            (True,  ['[2]'], {1: 'Footnote 1'}),
+            (False, ['[2]'], {1: 'Footnote 1', 2: 'Footnote 2'}),
+            (True,  ['[1] [2]'], {1: 'Footnote 1'}),
+            (False, ['[1] [2]'], {1: 'Footnote 1', 2: 'Footnote 2'}),
+        ]
+)
+def test_check_footnotes(err, steps, footnotes):
+    p = Protocol()
+    p.steps = steps
+    p.footnotes = footnotes
+
+    if not err:
+        p.check_footnotes()
+    else:
+        with raises(UserError):
+            p.check_footnotes()
+
+@pytest.mark.parametrize(
+        'start,steps_before,footnotes_before,steps_after,footnotes_after', [(
+            1,
+            [], {},
+            [], {},
+        ), (
+            1,
+            ['[1]'], {1: 'Footnote 1'},
+            ['[1]'], {1: 'Footnote 1'},
+        ), (
+            2,
+            ['[1]'], {1: 'Footnote 1'},
+            ['[2]'], {2: 'Footnote 1'},
+        ), (
+            1,
+            ['[2]'], {2: 'Footnote 1'},
+            ['[1]'], {1: 'Footnote 1'},
+        ), (
+            2,
+            ['[2]'], {2: 'Footnote 1'},
+            ['[2]'], {2: 'Footnote 1'},
+        ), (
+            1,
+            ['[1] [3]'], {1: 'Footnote 1', 3: 'Footnote 3'},
+            ['[1] [2]'], {1: 'Footnote 1', 2: 'Footnote 3'},
+        ), (
+            2,
+            ['[1] [3]'], {1: 'Footnote 1', 3: 'Footnote 3'},
+            ['[2] [3]'], {2: 'Footnote 1', 3: 'Footnote 3'},
+        ), (
+            3,
+            ['[1] [3]'], {1: 'Footnote 1', 3: 'Footnote 3'},
+            ['[3] [4]'], {3: 'Footnote 1', 4: 'Footnote 3'},
+        ), (
+            1,
+            ['[2] [3]'], {2: 'Footnote 2', 3: 'Footnote 3'},
+            ['[1] [2]'], {1: 'Footnote 2', 2: 'Footnote 3'},
+        ), (
+            1,
+            ['[3] [1]'], {1: 'Footnote 1', 3: 'Footnote 3'},
+            ['[2] [1]'], {1: 'Footnote 1', 2: 'Footnote 3'},
+        )]
+)
+def test_renumber_footnotes(start, steps_before, footnotes_before, steps_after, footnotes_after):
+    p = Protocol()
+    p.steps = steps_before
+    p.footnotes = footnotes_before
+    p.renumber_footnotes(start=start)
+    assert p.steps == steps_after
+    assert p.footnotes == footnotes_after
+
+@pytest.mark.parametrize(
+        'steps_before,footnotes_before,steps_after,footnotes_after', [(
+            [], {},
+            [], {},
+        ), (
+            ['[1]'], {1: 'Footnote 1'},
+            ['[1]'], {1: 'Footnote 1'},
+        ), (
+            ['[1]'], {1: 'Footnote 1', 2: 'Footnote 2'},
+            ['[1]'], {1: 'Footnote 1'},
+        ), (
+            ['[2]'], {1: 'Footnote 1', 2: 'Footnote 2'},
+            ['[1]'], {1: 'Footnote 2'},
+        )]
+)
+def test_prune_footnotes(steps_before, footnotes_before, steps_after, footnotes_after):
+    p = Protocol()
+    p.steps = steps_before
+    p.footnotes = footnotes_before
+    p.prune_footnotes()
+    assert p.steps == steps_after
+    assert p.footnotes == footnotes_after
+
+@pytest.mark.parametrize(
+        'date, commands, expected', [(
+            None,
+            [],
+            'protocol',
+        ), (
+            None,
+            ['command1 args'],
+            'command1',
+        ), (
+            None,
+            ['command1 args', 'command2 args'],
+            'command1_command2',
+        ), (
+            arrow.get(1988, 11, 8),
+            [],
+            '19881108',
+        ), (
+            arrow.get(1988, 11, 8),
+            ['command1 args'],
+            '19881108_command1',
+        ), (
+            arrow.get(1988, 11, 8),
+            ['command1 args', 'command2 args'],
+            '19881108_command1_command2',
+        )]
+)
+def test_pick_slug(date, commands, expected):
+    p = Protocol(date=date, commands=commands)
+    assert p.pick_slug() == expected
+
+
+def test_show_empty():
+    p = Protocol()
+    assert p.show() == ''
+
+def test_show_date():
     p = Protocol()
     p.date = arrow.get(1988, 11, 8)
-    assert p.dump() == """\
+    assert p.show() == """\
 November 8, 1988
 """
 
-def test_dump_commands():
+def test_show_commands():
     p = Protocol()
     p.commands.append('dw pcr')
-    assert p.dump() == """\
+    assert p.show() == """\
 $ dw pcr
 """
 
     p.commands.append('dw kld')
-    assert p.dump() == """\
+    assert p.show() == """\
 $ dw pcr
 $ dw kld
 """
 
-def test_dump_steps():
+def test_show_steps():
     p = Protocol()
     p.steps.append('Step 1\nLine break')
-    assert p.dump() == """\
+    assert p.show() == """\
 1. Step 1
    Line break
 """
 
     p.steps.append('Step 2\nAnother line break')
-    assert p.dump() == """\
+    assert p.show() == """\
 1. Step 1
    Line break
 
@@ -46,7 +512,7 @@ def test_dump_steps():
 """
 
     p.steps = ['A\nB' for _ in range(10)]
-    assert p.dump() == """\
+    assert p.show() == """\
  1. A
     B
 
@@ -125,12 +591,12 @@ Notes:
      Another line wrap
 """)
 ])
-def test_dump_footnotes(footnotes, expected):
+def test_show_footnotes(footnotes, expected):
     p = Protocol()
     p.footnotes = footnotes
-    assert p.dump() == expected
+    assert p.show() == expected
 
-def test_dump_everything():
+def test_show_everything():
     """
     Just make sure the spacing between all the elements looks right.
     """
@@ -139,8 +605,8 @@ def test_dump_everything():
     p.commands = ['dw pcr', 'dw kld']
     p.steps = ['Step 1', 'Step 2']
     p.footnotes = {1: 'Footnote 1', 2: 'Footnote 2'}
-    assert p.dump() == str(p)
-    assert p.dump() == """\
+    assert p.show() == str(p)
+    assert p.show() == """\
 November 8, 1988
 
 $ dw pcr
@@ -291,6 +757,12 @@ def test_parse_steps():
 
     p = parse("""\
 - Step 1
+  - Substep 1
+""")
+    assert p.steps == ['Step 1\n- Substep 1']
+
+    p = parse("""\
+- Step 1
 - Step 2
 """)
     assert p.steps == ['Step 1', 'Step 2']
@@ -429,369 +901,4 @@ Notes:
     assert p.footnotes == {1: 'Footnote 1', 2: 'Footnote 2'}
 
 
-@pytest.mark.parametrize(
-        'err,steps,footnotes', [
-            (False, [], {}),
-            (False, ['[1]'], {1: 'Footnote 1'}),
-            (False, ['[1]'], {1: 'Footnote 1', 2: 'Footnote 2'}),
-            (True,  ['[2]'], {1: 'Footnote 1'}),
-            (False, ['[2]'], {1: 'Footnote 1', 2: 'Footnote 2'}),
-            (True,  ['[1] [2]'], {1: 'Footnote 1'}),
-            (False, ['[1] [2]'], {1: 'Footnote 1', 2: 'Footnote 2'}),
-        ]
-)
-def test_check_footnotes(err, steps, footnotes):
-    p = Protocol()
-    p.steps = steps
-    p.footnotes = footnotes
-
-    if not err:
-        p.check_footnotes()
-    else:
-        with raises(UserError):
-            p.check_footnotes()
-
-@pytest.mark.parametrize(
-        'start,steps_before,footnotes_before,steps_after,footnotes_after', [(
-            1,
-            [], {},
-            [], {},
-        ), (
-            1,
-            ['[1]'], {1: 'Footnote 1'},
-            ['[1]'], {1: 'Footnote 1'},
-        ), (
-            2,
-            ['[1]'], {1: 'Footnote 1'},
-            ['[2]'], {2: 'Footnote 1'},
-        ), (
-            1,
-            ['[2]'], {2: 'Footnote 1'},
-            ['[1]'], {1: 'Footnote 1'},
-        ), (
-            2,
-            ['[2]'], {2: 'Footnote 1'},
-            ['[2]'], {2: 'Footnote 1'},
-        ), (
-            1,
-            ['[1] [3]'], {1: 'Footnote 1', 3: 'Footnote 3'},
-            ['[1] [2]'], {1: 'Footnote 1', 2: 'Footnote 3'},
-        ), (
-            2,
-            ['[1] [3]'], {1: 'Footnote 1', 3: 'Footnote 3'},
-            ['[2] [3]'], {2: 'Footnote 1', 3: 'Footnote 3'},
-        ), (
-            3,
-            ['[1] [3]'], {1: 'Footnote 1', 3: 'Footnote 3'},
-            ['[3] [4]'], {3: 'Footnote 1', 4: 'Footnote 3'},
-        ), (
-            1,
-            ['[2] [3]'], {2: 'Footnote 2', 3: 'Footnote 3'},
-            ['[1] [2]'], {1: 'Footnote 2', 2: 'Footnote 3'},
-        ), (
-            1,
-            ['[3] [1]'], {1: 'Footnote 1', 3: 'Footnote 3'},
-            ['[2] [1]'], {1: 'Footnote 1', 2: 'Footnote 3'},
-        )]
-)
-def test_renumber_footnotes(start, steps_before, footnotes_before, steps_after, footnotes_after):
-    p = Protocol()
-    p.steps = steps_before
-    p.footnotes = footnotes_before
-    p.renumber_footnotes(start=start)
-    assert p.steps == steps_after
-    assert p.footnotes == footnotes_after
-
-@pytest.mark.parametrize(
-        'steps_before,footnotes_before,steps_after,footnotes_after', [(
-            [], {},
-            [], {},
-        ), (
-            ['[1]'], {1: 'Footnote 1'},
-            ['[1]'], {1: 'Footnote 1'},
-        ), (
-            ['[1]'], {1: 'Footnote 1', 2: 'Footnote 2'},
-            ['[1]'], {1: 'Footnote 1'},
-        ), (
-            ['[2]'], {1: 'Footnote 1', 2: 'Footnote 2'},
-            ['[1]'], {1: 'Footnote 2'},
-        )]
-)
-def test_prune_footnotes(steps_before, footnotes_before, steps_after, footnotes_after):
-    p = Protocol()
-    p.steps = steps_before
-    p.footnotes = footnotes_before
-    p.prune_footnotes()
-    assert p.steps == steps_after
-    assert p.footnotes == footnotes_after
-
-@pytest.mark.parametrize(
-        'inputs,output', [
-
-            ####################################
-            # Empty
-            ####################################
-            ([
-                Protocol(),
-            ],
-                Protocol(),
-            ),
-            ####################################
-            ([
-                Protocol(),
-                Protocol(),
-            ],
-                Protocol(),
-            ),
-
-            ####################################
-            # Dates
-            ####################################
-            ([
-                Protocol(
-                    date=arrow.get(1988, 11, 8),
-                ),
-            ],
-                Protocol(
-                    date=arrow.get(1988, 11, 8),
-                ),
-            ),
-            ####################################
-            ([
-                Protocol(
-                    date=arrow.get(1988, 11, 8),
-                ),
-                Protocol(
-                    date=arrow.get(1989, 9, 19),
-                ),
-            ],
-                Protocol(
-                    date=arrow.get(1989, 9, 19),
-                ),
-            ),
-            ####################################
-            ([
-                Protocol(),
-                Protocol(
-                    date=arrow.get(1988, 11, 8),
-                ),
-            ],
-                Protocol(
-                    date=arrow.get(1988, 11, 8),
-                ),
-            ),
-
-            ####################################
-            # Commands
-            ####################################
-            ([
-                Protocol(
-                    commands=['command-1']
-                ),
-            ],
-                Protocol(
-                    commands=['command-1']
-                ),
-            ),
-            ####################################
-            ([
-                Protocol(),
-                Protocol(
-                    commands=['command-1']
-                ),
-            ],
-                Protocol(
-                    commands=['command-1']
-                ),
-            ),
-            ####################################
-            ([
-                Protocol(
-                    commands=['command-1']
-                ),
-                Protocol(
-                    commands=['command-2']
-                ),
-            ],
-                Protocol(
-                    commands=['command-1', 'command-2']
-                ),
-            ),
-            ####################################
-            ([
-                Protocol(
-                    commands=['command-1', 'command-2']
-                ),
-                Protocol(
-                    commands=['command-3', 'command-4']
-                ),
-            ],
-                Protocol(
-                    commands=['command-1', 'command-2', 'command-3', 'command-4']
-                ),
-            ),
-
-            ####################################
-            # Steps
-            ####################################
-            ([
-                Protocol(
-                    steps=['Step 1'],
-                ),
-            ],
-                Protocol(
-                    steps=['Step 1'],
-                ),
-            ),
-            ####################################
-            ([
-                Protocol(),
-                Protocol(
-                    steps=['Step 1'],
-                ),
-            ],
-                Protocol(
-                    steps=['Step 1'],
-                ),
-            ),
-            ####################################
-            ([
-                Protocol(
-                    steps=['Step 1'],
-                ),
-                Protocol(
-                    steps=['Step 2'],
-                ),
-            ],
-                Protocol(
-                    steps=['Step 1', 'Step 2'],
-                ),
-            ),
-            ####################################
-            ([
-                Protocol(
-                    steps=['Step 1', 'Step 2'],
-                ),
-                Protocol(
-                    steps=['Step 3', 'Step 4'],
-                ),
-            ],
-                Protocol(
-                    steps=['Step 1', 'Step 2', 'Step 3', 'Step 4'],
-                ),
-            ),
-
-            ####################################
-            # Footnotes
-            ####################################
-            ([
-                Protocol(
-                    footnotes={1: 'Footnote A'},
-                ),
-            ],
-                Protocol(
-                    footnotes={1: 'Footnote A'},
-                ),
-            ),
-            ####################################
-            ([
-                Protocol(),
-                Protocol(
-                    footnotes={1: 'Footnote A'},
-                ),
-            ],
-                Protocol(
-                    footnotes={1: 'Footnote A'},
-                ),
-            ),
-            ####################################
-            ([
-                Protocol(
-                    footnotes={1: 'Footnote A'},
-                ),
-                Protocol(
-                    footnotes={1: 'Footnote B'},
-                ),
-            ],
-                Protocol(
-                    footnotes={1: 'Footnote A', 2: 'Footnote B'},
-                ),
-            ),
-            ####################################
-            ([
-                Protocol(
-                    footnotes={2: 'Footnote A'},
-                ),
-                Protocol(
-                    footnotes={1: 'Footnote B'},
-                ),
-            ],
-                Protocol(
-                    footnotes={1: 'Footnote A', 2: 'Footnote B'},
-                ),
-            ),
-            ####################################
-            ([
-                Protocol(
-                    footnotes={1: 'Footnote A', 2: 'Footnote B'},
-                ),
-                Protocol(
-                    footnotes={1: 'Footnote C', 2: 'Footnote D'},
-                ),
-            ],
-                Protocol(
-                    footnotes={1: 'Footnote A', 2: 'Footnote B',
-                               3: 'Footnote C', 4: 'Footnote D'},
-                ),
-            ),
-            ####################################
-        ]
-)
-def test_merge(inputs, output):
-    merged = merge(*inputs)
-    assert merged.date == output.date
-    assert merged.commands == output.commands
-    assert merged.steps == output.steps
-    assert merged.footnotes == output.footnotes
-
-
-def test_append():
-    a = Protocol(
-            date=arrow.get(1988, 11, 8),
-            commands=['command-1'],
-            steps=['Step 1'],
-            footnotes={1: 'Footnote A'},
-    )
-    b = Protocol(
-            date=arrow.get(1989, 9, 19),
-            commands=['command-2'],
-            steps=['Step 2'],
-            footnotes={1: 'Footnote B'},
-    )
-    a.append(b)
-
-    assert a.date == arrow.get(1989, 9, 19)
-    assert a.commands == ['command-1', 'command-2']
-    assert a.steps == ['Step 1', 'Step 2']
-    assert a.footnotes == {1: 'Footnote A', 2: 'Footnote B'}
-
-def test_prepend():
-    a = Protocol(
-            date=arrow.get(1988, 11, 8),
-            commands=['command-1'],
-            steps=['Step 1'],
-            footnotes={1: 'Footnote A'},
-    )
-    b = Protocol(
-            date=arrow.get(1989, 9, 19),
-            commands=['command-2'],
-            steps=['Step 2'],
-            footnotes={1: 'Footnote B'},
-    )
-    b.prepend(a)
-
-    assert b.date == arrow.get(1989, 9, 19)
-    assert b.commands == ['command-1', 'command-2']
-    assert b.steps == ['Step 1', 'Step 2']
-    assert b.footnotes == {1: 'Footnote A', 2: 'Footnote B'}
 

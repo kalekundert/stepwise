@@ -22,7 +22,19 @@ class Protocol:
     FOOTNOTE_HEADER_REGEX = r'Notes?:|Footnotes?:'
     FOOTNOTE_REGEX = r'\[(\d+)\]'
     FOOTNOTE_DEF_REGEX = fr'^({FOOTNOTE_REGEX} )(.+)'
-    INDENT_REGEX = lambda n: fr'^({" "*n}|\s*$)(.*)$'
+    INDENT_OR_BLANK_REGEX = lambda n: fr'^({" "*n}|\s*$)(.*)$'
+
+    @classmethod
+    def from_anything(cls, x):
+        from collections.abc import Iterable
+
+        if isinstance(x, Protocol):
+            return x
+        if isinstance(x, str):
+            return cls(steps=[x])
+        if isinstance(x, Iterable):
+            return cls(steps=x)
+
 
     def __init__(self, *, date=None, commands=None, steps=None, footnotes=None):
         self.date = date
@@ -31,18 +43,14 @@ class Protocol:
         self.footnotes = footnotes or {}
 
     def __repr__(self):
-        return f'Protocol(date={repr(self.date)}, commands={repr(self.commands)}, steps={repr(self.steps)}, footnotes={repr(self.footnotes)})'
+        return f'Protocol(date={self.date!r}, commands={self.commands!r}, steps={self.steps!r}, footnotes={self.footnotes!r})'
 
     def __str__(self):
-        return self.dump()
+        return self.show()
     
-    def __iadd__(self, step_or_steps):
-        from collections.abc import Iterable
-
-        if isinstace(step_or_steps, Iterable):
-            self.steps.extend(step_or_steps)
-        else:
-            self.steps.append(step_or_steps)
+    def __iadd__(self, other):
+        self.append(other)
+        return self
 
     @classmethod
     def parse(cls, x):
@@ -118,15 +126,12 @@ class Protocol:
                 protocol.steps.append(match.group(2) + '\n')
                 return Transition(parse_continued_step, state=state)
 
-            if re.match(cls.BLANK_REGEX, line):
-                return Transition(parse_new_step)
-
             raise UserError(f"expected '- ...' or 'Note[s]:', not '{line}'")
 
         def parse_continued_step(line, state):
             indent = state['indent']
 
-            if match := re.match(cls.INDENT_REGEX(indent), line):
+            if match := re.match(cls.INDENT_OR_BLANK_REGEX(indent), line):
                 protocol.steps[-1] += match.group(2) + '\n'
                 return Transition(parse_continued_step, state=state)
 
@@ -149,7 +154,7 @@ class Protocol:
             indent = state['indent']
             assert id in protocol.footnotes
 
-            if match := re.match(cls.INDENT_REGEX(indent), line):
+            if match := re.match(cls.INDENT_OR_BLANK_REGEX(indent), line):
                 protocol.footnotes[id] += match.group(2) + '\n'
                 return Transition(parse_continued_footnote, state=state)
 
@@ -175,12 +180,12 @@ class Protocol:
 
         return protocol
 
-    def dump(self):
+    def show(self):
         s = ''.join([
-                self.dump_date(),
-                self.dump_commands(),
-                self.dump_steps(),
-                self.dump_footnotes(),
+                self.show_date(),
+                self.show_commands(),
+                self.show_steps(),
+                self.show_footnotes(),
         ])
 
         if s.endswith('\n'):
@@ -188,14 +193,14 @@ class Protocol:
 
         return s
 
-    def dump_date(self):
+    def show_date(self):
         s = ''
         if self.date:
             s += self.date.format(self.DATE_FORMAT)
             s += '\n\n'
         return s
 
-    def dump_commands(self):
+    def show_commands(self):
         s = ''
         if self.commands:
             for cmd in self.commands:
@@ -203,7 +208,7 @@ class Protocol:
             s += '\n'
         return s
 
-    def dump_steps(self):
+    def show_steps(self):
         indent = len(str(len(self.steps))) + 2
 
         s = ''
@@ -213,7 +218,7 @@ class Protocol:
             s += '\n\n'
         return s
 
-    def dump_footnotes(self):
+    def show_footnotes(self):
         s = ''
         if self.footnotes:
             s += f'{plural(self.footnotes):Note/s}:\n'
@@ -234,7 +239,10 @@ class Protocol:
     @classmethod
     def merge(cls, *protocols, target=None):
         if target is None: target = cls()
-        protocols = [copy(x) for x in protocols]
+        protocols = [
+                cls.from_anything(copy(x) if x is target else x)
+                for x in protocols
+        ]
 
         # Use the most recent date.
         dates = [x.date for x in protocols if x.date is not None]
@@ -254,11 +262,12 @@ class Protocol:
             if not protocol.footnotes:
                 continue
 
-            protocol.renumber_footnotes(cursor + 1)
-            cursor = max(protocol.footnotes)
+            p = copy(protocol)
+            p.renumber_footnotes(cursor + 1)
+            cursor = max(p.footnotes)
 
-            assert not set(protocol.footnotes) & set(target.footnotes)
-            target.footnotes.update(protocol.footnotes)
+            assert not set(p.footnotes) & set(target.footnotes)
+            target.footnotes.update(p.footnotes)
 
         return target
 
@@ -271,7 +280,7 @@ class Protocol:
         """
         referenced_ids = {
                 int(m.group(1))
-                for m in re.finditer(self.FOOTNOTE_REGEX, self.dump_steps())
+                for m in re.finditer(self.FOOTNOTE_REGEX, self.show_steps())
         }
         self.footnotes = {
                 k: v
@@ -311,7 +320,7 @@ class Protocol:
         Complain if there are footnotes in the protocol that don't refer to 
         anything.
         """
-        lines = self.dump().split('\n')
+        lines = self.show().split('\n')
         for i, line in enumerate(lines, start=1):
             for match in re.finditer(self.FOOTNOTE_REGEX, line):
                 id = int(match.group(1))
@@ -334,7 +343,10 @@ class Protocol:
             argv = shlex.split(cmd)
             slug.append(argv[0] if argv[0] != 'dirty_water' else argv[1])
 
-        return '_'.join(slug)
+        if slug:
+            return '_'.join(slug)
+        else:
+            return 'protocol'
 
     def set_current_date(self):
         self.date = arrow.now()
