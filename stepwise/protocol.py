@@ -341,7 +341,7 @@ class Protocol:
 
         for cmd in self.commands:
             argv = shlex.split(cmd)
-            slug.append(argv[0] if argv[0] != 'dirty_water' else argv[1])
+            slug.append(argv[0] if argv[0] != 'stepwise' else argv[1])
 
         if slug:
             return '_'.join(slug)
@@ -436,7 +436,7 @@ def find_protocol_dirs():
                 dirs.append(dir)
 
     # Add directories specified by plugins.
-    for plugin in iter_entry_points('dirty_water.protocol_dirs'):
+    for plugin in iter_entry_points('stepwise.protocol_dirs'):
         dirs += plugin.load()
 
     # Remove directories blacklisted by the user.

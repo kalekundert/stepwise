@@ -2,7 +2,7 @@
 
 import pytest, arrow
 from pytest import raises
-from dirty_water2 import parse, merge, Protocol, UserError
+from stepwise import parse, merge, Protocol, UserError
 
 def test_repr():
     p = Protocol()
@@ -483,15 +483,15 @@ November 8, 1988
 
 def test_show_commands():
     p = Protocol()
-    p.commands.append('dw pcr')
+    p.commands.append('sw pcr')
     assert p.show() == """\
-$ dw pcr
+$ sw pcr
 """
 
-    p.commands.append('dw kld')
+    p.commands.append('sw kld')
     assert p.show() == """\
-$ dw pcr
-$ dw kld
+$ sw pcr
+$ sw kld
 """
 
 def test_show_steps():
@@ -602,15 +602,15 @@ def test_show_everything():
     """
     p = Protocol()
     p.date = arrow.get(1988, 11, 8)
-    p.commands = ['dw pcr', 'dw kld']
+    p.commands = ['sw pcr', 'sw kld']
     p.steps = ['Step 1', 'Step 2']
     p.footnotes = {1: 'Footnote 1', 2: 'Footnote 2'}
     assert p.show() == str(p)
     assert p.show() == """\
 November 8, 1988
 
-$ dw pcr
-$ dw kld
+$ sw pcr
+$ sw kld
 
 1. Step 1
 
@@ -662,59 +662,59 @@ November 8, 1988
 
 def test_parse_command():
     p = parse("""\
-$ dw pcr
+$ sw pcr
 """)
     assert p.commands == [
-            'dw pcr',
+            'sw pcr',
     ]
 
     p = parse("""\
 
-$ dw pcr
+$ sw pcr
 """)
     assert p.commands == [
-            'dw pcr',
+            'sw pcr',
     ]
 
     p = parse("""\
-$ dw pcr
+$ sw pcr
 
 """)
     assert p.commands == [
-            'dw pcr',
+            'sw pcr',
     ]
 
     p = parse("""\
-$ dw pcr
-$ dw kld
+$ sw pcr
+$ sw kld
 """)
     assert p.commands == [
-            'dw pcr',
-            'dw kld',
+            'sw pcr',
+            'sw kld',
     ]
 
     p = parse("""\
-$ dw pcr
-$ dw kld
+$ sw pcr
+$ sw kld
 """)
     assert p.commands == [
-            'dw pcr',
-            'dw kld',
+            'sw pcr',
+            'sw kld',
     ]
 
     p = parse("""\
-$ dw pcr
+$ sw pcr
 
-$ dw kld
+$ sw kld
 """)
     assert p.commands == [
-            'dw pcr',
-            'dw kld',
+            'sw pcr',
+            'sw kld',
     ]
 
     with raises(UserError, match="not 'unexpected text'"):
         parse("""\
-$ dw pcr
+$ sw pcr
 unexpected text
 """)
 
@@ -883,8 +883,8 @@ def test_parse_everything():
     p = parse("""\
 November 8, 1988
 
-$ dw pcr
-$ dw kld
+$ sw pcr
+$ sw kld
 
 - Step 1
 
@@ -896,7 +896,7 @@ Notes:
 [2] Footnote 2
 """)
     assert p.date == arrow.get(1988, 11, 8)
-    assert p.commands == ['dw pcr', 'dw kld' ]
+    assert p.commands == ['sw pcr', 'sw kld' ]
     assert p.steps == ['Step 1', 'Step 2']
     assert p.footnotes == {1: 'Footnote 1', 2: 'Footnote 2'}
 

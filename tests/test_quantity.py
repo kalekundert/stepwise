@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import pytest
-from dirty_water2 import Quantity, Q
+from stepwise import Quantity, Q
 from operator import *
 
 @pytest.mark.parametrize(

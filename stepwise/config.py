@@ -6,7 +6,7 @@ from appdirs import AppDirs
 from configurator import Config
 from voluptuous import Schema, All, Invalid
 
-config_dirs = AppDirs("dirty_water")
+config_dirs = AppDirs("stepwise")
 user_config_path = Path(config_dirs.user_config_dir) / 'conf.toml'
 site_config_path = Path(config_dirs.site_config_dir) / 'conf.toml'
 

@@ -16,9 +16,9 @@ def main():
 Generate and display scientific protocols.
 
 Usage:
-    dirty_water <command>
-    dirty_water -h|--help
-    dirty_water -v|--version
+    stepwise <command>
+    stepwise -h|--help
+    stepwise -v|--version
 
 Options:
     -h --help
@@ -33,12 +33,12 @@ Examples:
     Create a protocol for cloning by inverse PCR.  First do PCR, then ligate 
     with KLD, then send the full protocol to the printer.
 
-        $ alias dw=dirty_water
-        $ dw pcr | dw kld | dw lpr
+        $ alias sw=stepwise
+        $ sw pcr | sw kld | sw lpr
 
     Show all possible commands:
 
-        $ dirty_water ls
+        $ stepwise ls
 """
     try:
         args = docopt(
@@ -49,7 +49,7 @@ Examples:
         command = args['<command>']
         plugins = {
                 x.name: x
-                for x in iter_entry_points('dirty_water.commands')
+                for x in iter_entry_points('stepwise.commands')
         }
 
         if command in plugins:
@@ -77,10 +77,10 @@ Examples:
     
 def ls():
     """\
-List protocols known to dirty_water.
+List protocols known to stepwise.
 
 Usage:
-    dirty_water ls [-d|--dirs]
+    stepwise ls [-d|--dirs]
 
 Options:
     -d --dirs
@@ -104,7 +104,7 @@ def lpr():
 Write the protocol to a file and print a paper copy.
 
 Usage:
-    dirty_water lpr [options]
+    stepwise lpr [options]
 
 Options:
     -f --force

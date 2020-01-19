@@ -3,10 +3,10 @@ requires = ["flit"]
 build-backend = "flit.buildapi"
 
 [tool.flit.metadata]
-module = "dirty_water2"
+module = "stepwise"
 author = "Kale Kundert"
 author-email = "kale@thekunderts.net"
-home-page = 'https://github.com/kalekundert/dirty_water2'
+home-page = 'https://github.com/kalekundert/stepwise'
 requires-python = "~=3.8"
 requires = []
 classifiers = [
@@ -15,14 +15,14 @@ classifiers = [
 ]
 
 [tool.flit.scripts]
-dirty_water = "dirty_water2:main"
+stepwise = "stepwise:main"
 
-[tool.flit.entrypoints."dirty_water.commands"]
-lpr = "dirty_water2.cli:lpr"
-ls = "dirty_water2.cli:ls"
+[tool.flit.entrypoints."stepwise.commands"]
+lpr = "stepwise.cli:lpr"
+ls = "stepwise.cli:ls"
 
-[tool.flit.entrypoints."dirty_water.protocol_dirs"]
-builtins = "dirty_water2:protocol_dirs"
+[tool.flit.entrypoints."stepwise.protocol_dirs"]
+builtins = "stepwise:protocol_dirs"
 
 [tool.flit.metadata.urls]
 'Documentation' = 'https://dirtywater2.readthedocs.io/en/latest/'

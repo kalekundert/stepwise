@@ -2,10 +2,10 @@
 Using protocols
 ***************
 
-- dw command
+- sw command
 
 - Pipes
 
-- dw lpr
+- sw lpr
 
 - Examples

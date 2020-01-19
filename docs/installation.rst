@@ -2,9 +2,9 @@
 Installation
 ************
 
-- pip install dirty_water
+- pip install stepwise
 
-- pip install dirty_water_zsh
+- pip install stepwise_zsh
 
-- pip install dirty_water_molec_biol
-  pip install dirty_water_cell_culture
+- pip install stepwise_molec_biol
+  pip install stepwise_cell_culture

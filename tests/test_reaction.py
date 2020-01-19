@@ -3,8 +3,8 @@
 import pytest, re
 import pandas as pd
 from io import StringIO
-from dirty_water2 import MasterMix, Reaction, Reagent, Solvent, Quantity, Q
-from dirty_water2 import UserError
+from stepwise import MasterMix, Reaction, Reagent, Solvent, Quantity, Q
+from stepwise import UserError
 
 wx = 'w', '8 µL', {
         'w': ('5 µL',  ..., True),
