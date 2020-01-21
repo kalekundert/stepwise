@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 import shlex
 import arrow
 import re
@@ -369,7 +370,7 @@ class NoProtocolsFound(UserError):
     def __str__(self):
         err = f"no protocols matching '{self.name}' in:\n"
         for dir in self.search_dirs:
-            err += f"    {dir}\n"
+            err += f"    {dir['dir']}\n"
         return err
 
 class MultipleProtocolsFound(UserError):
@@ -381,7 +382,7 @@ class MultipleProtocolsFound(UserError):
     def __str__(self):
         err = f"multiple protocols matching '{self.name}':\n"
         for hit in self.hits:
-            err += f"    {hit}\n"
+            err += f"    {hit['relpath'].with_suffix('')}\n"
         return err
 
 def load(name, args):
@@ -389,27 +390,32 @@ def load(name, args):
     Find a protocol by name, then load it in a filetype-specific manner.
     """
 
-    hits = []
-    dirs = find_protocol_dirs()
+    if (p := Path(name)).exists():
+        hit = dict(
+                dir=p.parent,
+                relpath=p.relative_to(p.parent),
+                type='cwd',
+                name=p.parent,
+        )
+    else:
+        dirs = find_protocol_dirs()
+        hits = find_protocol_paths(name, dirs)
+        hit = one(
+            find_protocol_paths(name),
+            NoProtocolsFound(name, dirs),
+            MultipleProtocolsFound(name, hits),
+        )
 
-    for dir in dirs:
-        hits += list(dir.glob(f'**/{name}'))
-        hits += list(dir.glob(f'**/{name}.*'))
+    if hit['type'] != 'plugin':
+        check_version_control(hit['path'])
 
-    hit = one(
-        hits,
-        NoProtocolsFound(name, dirs),
-        MultipleProtocolsFound(name, hits),
-    )
-
-    check_version_control(hit)
-
-    if is_executable(hit):
-        p = subp.run([str(hit), *args], stdout=subp.PIPE, text=True)
+    if is_executable(hit['path']):
+        cmd = str(hit['path']), *args
+        p = subp.run(cmd, stdout=subp.PIPE, text=True)
         p.check_returncode()
         content = p.stdout
     else:
-        content = hit.read_text()
+        content = hit['path'].read_text()
 
     return parse(content)
 
@@ -425,42 +431,60 @@ def find_protocol_dirs():
     """
     dirs = []
 
+    def add_dir(dir, type, name):
+        dir, name = Path(dir), str(name)
+        if dir.exists() and name not in config.search.ignore:
+            dirs.append(dict(dir=dir, type=type, name=name))
+
     # Add specific directories specified by the user.
-    dirs += config.search.path
+    for dir in config.search.path:
+        add_dir(dir, 'path', dir)
 
     # Add directories found above the current working directory.
     for parent in Path.cwd().resolve().parents:
         for name in config.search.find:
-            dir = parent / name
-            if dir.exists():
-                dirs.append(dir)
+            add_dir(parent/name, 'parent', parent/name)
 
     # Add directories specified by plugins.
     for plugin in iter_entry_points('stepwise.protocol_dirs'):
-        dirs += plugin.load()
-
-    # Remove directories blacklisted by the user.
-    dirs = [x for x in dirs if x not in config.search.ignore]
+        for dir in plugin.load():
+            add_dir(dir, 'plugin', f'{plugin.module_name}.{plugin.name}')
 
     return dirs
 
-def find_protocol_names():
-    """
-    Return a list of all valid protocol names.
-    """
-    return sorted([
-        path.name
-        for dir in find_protocol_dirs()
-        for path in dir.glob('*')
-    ])
+def find_protocol_paths(key=None, dirs=None):
+    from itertools import chain
+
+    # This could be more configurable.
+    def hidden(name):
+        return any((
+                name.startswith('.'),
+                name.startswith('__'),
+        ))
+
+    hits = [] 
+    dirs = dirs or find_protocol_dirs()
+    key = key or ''
+
+    for dir in dirs:
+        for root, subdirs, files in os.walk(dir['dir']):
+            subdirs[:] = [d for d in subdirs if not hidden(d)]
+
+            for file in files:
+                if hidden(file): continue
+
+                path = Path(root) / file
+                relpath = path.relative_to(dir['dir'])
+                hit = dict(path=path, relpath=relpath, **dir)
+
+                if key == path.stem: return [hit]
+                if key in path.stem: hits.append(hit)
+
+    return hits
 
 def check_version_control(path):
     def warn(*args, **kwargs):
         print("Warning:", *args, **kwargs, file=sys.stderr)
-
-    # Hack to skip this check for plugins.
-    if 'site-packages' in str(path):
-        return
 
     # Check that the file is in a repository.
     p1 = subp.run(

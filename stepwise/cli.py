@@ -80,24 +80,59 @@ def ls():
 List protocols known to stepwise.
 
 Usage:
-    stepwise ls [-d|--dirs]
+    stepwise ls [-d|--dirs] [-p|--paths] [<protocol>]
 
 Options:
     -d --dirs
         Show the directories that will be search for protocols, rather than the 
         protocols themselves.
+
+    -p --paths
+        Don't organize paths by directory.
 """
-    from .protocol import find_protocol_names, find_protocol_dirs
+    from itertools import groupby
+    from operator import itemgetter
+    from .protocol import find_protocol_paths, find_protocol_dirs
 
     args = docopt(ls.__doc__)
 
-    if args['--dirs']:
-        names = find_protocol_dirs()
-    else:
-        names = find_protocol_names()
+    def by_type(x):
+        type_order = {
+                'parent': 1,
+                'path': 2,
+                'plugin': 3,
+        }
+        return type_order[x['type']]
 
-    for name in names:
-        print(name)
+    def by_name(x):
+        if x['type'] == 'parent':
+            return -len(x['name'])
+
+        if x['type'] == 'path':
+            return config.search.path.data.index(str(x['dir'])),
+
+        return x['name']
+
+    def by_type_then_name(x):
+        return by_type(x), by_name(x)
+
+    paths = find_protocol_paths(args['<protocol>'])
+    paths = sorted(paths, key=by_type_then_name)
+    indent = '' if args['--paths'] else '  '
+
+    for type, dirs in groupby(paths, by_type):
+        for name, subpaths in groupby(dirs, itemgetter('name')):
+
+            if not args['--paths']:
+                print(name)
+            if args['--dirs']:
+                continue
+
+            for path in subpaths:
+                print(f'{indent}{path["relpath"].with_suffix("")}')
+
+            if not args['--paths']:
+                print()
 
 def lpr():
     usage = f"""\
