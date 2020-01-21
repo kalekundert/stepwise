@@ -22,28 +22,9 @@ def test_str(given, expected):
 
 def test_format():
     q = Q('1 ng')
-    assert f'{q:.2f}' == '1.00 ng'
+    assert f'{q}' == '1 ng'
     assert f'{q:g}' == '1 ng'
-
-@pytest.mark.parametrize(
-        'left,right,expected', [
-            (Quantity(1, 'ng'), Quantity(1, 'ng'), True),
-            (Quantity(1, 'ng'), Quantity(2, 'ng'), False),
-            (Quantity(1, 'ng'), Quantity(1, 'µL'), False),
-
-            (Quantity(1, 'ng'),            '1 ng', True),
-            (Quantity(1, 'ng'),            '2 ng', False),
-            (Quantity(1, 'ng'),            '1 µL', False),
-
-            (           '1 ng', Quantity(1, 'ng'), True),
-            (           '2 ng', Quantity(1, 'ng'), False),
-            (           '1 µL', Quantity(1, 'ng'), False),
-])
-def test_eq(left, right, expected):
-    if expected:
-        assert left == right
-    else:
-        assert left != right
+    assert f'{q:.2f}' == '1.00 ng'
 
 def test_value():
     q = Quantity(1, 'ng')
@@ -130,6 +111,13 @@ def test_from_anything_raises(given, err):
 
 @pytest.mark.parametrize(
         'op,left,right,expected', [
+            (eq,       Q('1 ng'), Q('1 ng'),       True),
+            (eq,       Q('1 ng'), Q('2 ng'),      False),
+            (eq,       Q('1 ng'),   '1 ng' ,       True),
+            (eq,       Q('1 ng'),   '2 ng' ,      False),
+            (eq,       Q('0 ng'),    0     ,       True),
+            (eq,       Q('1 ng'),    0     ,      False),
+
             (add,      Q('1 ng'), Q('2 ng'),  Q('3 ng')),
             (add,      Q('1 ng'),   '2 ng' ,  Q('3 ng')),
             (add,        '1 ng' , Q('2 ng'),  Q('3 ng')),
@@ -149,30 +137,32 @@ def test_from_anything_raises(given, err):
             (truediv,  Q('6 ng'), Q('3 ng'),     2     ),
             (truediv,  Q('6 ng'),   '3 ng' ,     2     ),
             (truediv,    '6 ng' , Q('3 ng'),     2     ),
+            (truediv,     0     , Q('3 ng'),     0     ),
 
             (floordiv, Q('6 ng'),    4     ,  Q('1 ng')),
             (floordiv, Q('6 ng'), Q('4 ng'),     1     ),
             (floordiv, Q('6 ng'),   '4 ng' ,     1     ),
             (floordiv,   '6 ng' , Q('4 ng'),     1     ),
+            (floordiv,    0     , Q('4 ng'),     0     ),
 ])
 def test_operators(op, left, right, expected):
     assert op(left, right) == expected
 
 @pytest.mark.parametrize(
         'op,left,right,match', [
-            (add,      Q('1 ng'),    2     , 'cannot add'),
-            (add,         1     , Q('2 ng'), 'cannot add'),
+            (add,      Q('1 ng'),    2     , "cannot add '1 ng' and '2'"),
+            (add,         1     , Q('2 ng'), "cannot add '1' and '2 ng'"),
 
-            (sub,      Q('3 ng'),    2     , 'cannot sub'),
-            (sub,         3     , Q('2 ng'), 'cannot sub'),
+            (sub,      Q('3 ng'),    2     , "cannot sub '3 ng' and '2'"),
+            (sub,         3     , Q('2 ng'), "cannot sub '3' and '2 ng'"),
 
-            (mul,      Q('2 ng'), Q('3 ng'), 'cannot mul'),
+            (mul,      Q('2 ng'), Q('3 ng'), "cannot mul '2 ng' and '3 ng'"),
 
-            (truediv,     6     , Q('3 ng'), 'cannot truediv'),
+            (truediv,     6     , Q('3 ng'), "cannot truediv '6' and '3 ng'"),
 
-            (floordiv,    6     , Q('4 ng'), 'cannot floordiv'),
+            (floordiv,    6     , Q('4 ng'), "cannot floordiv '6' and '4 ng'"),
 ])
-def test_operators_raises(op, left, right, match):
+def test_operators_raise(op, left, right, match):
     with pytest.raises(ValueError, match=match):
         op(left, right)
 

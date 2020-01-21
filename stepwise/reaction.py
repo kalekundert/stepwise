@@ -5,7 +5,7 @@ import math
 import autoprop
 import functools
 import pandas as pd
-from operator import add, sub, mul, truediv, floordiv
+from operator import lt, le, eq, ne, ge, gt, add, sub, mul, truediv, floordiv
 from collections.abc import Iterable
 from nonstdlib import plural
 from . import UserError
@@ -39,6 +39,7 @@ class MasterMix:
         self.num_reactions = 1
         self.extra_fraction = 0.1
         self.extra_reactions = 0
+        self.extra_min_volume = 0
         self.show_1x = True
         self.show_master_mix = None
         self.show_totals = True
@@ -78,7 +79,6 @@ class MasterMix:
                 1,
             ))
 
-
     def __setattr__(self, attr, value):
         # We need to check if the constructor is finished without triggering 
         # `__getattr__()`, which would result in infinite recursion.
@@ -88,23 +88,31 @@ class MasterMix:
 
         return super().__setattr__(attr, value)
 
+    def get_master_mix_reagents(self):
+        yield from [x for x in self if x.master_mix]
+
     def get_extra_percent(self):
         return 100 * self.extra_fraction
 
     def set_extra_percent(self, percent):
         self.extra_fraction = percent / 100
 
-    def get_extra_factor(self):
+    def get_scale(self):
+        self.require_volumes()
+        min_volume = min(
+                (x.volume for x in self.master_mix_reagents),
+                default=None,
+        )
         return max((
             self.num_reactions * (1 + self.extra_fraction),
             self.num_reactions + self.extra_reactions,
+            self.extra_min_volume / min_volume if min_volume is not None else 0,
         ))
 
     def show(self):
-
         show_master_mix = not any([
                 # Nothing in the master mix:
-                not any(x.master_mix for x in self),
+                not any(self.master_mix_reagents),
 
                 # Only one reaction:
                 self.num_reactions == 1 and self.show_master_mix == None,  
@@ -126,10 +134,8 @@ class MasterMix:
             return cols
 
         def scale_header():
-            scale_str = f"{self.extra_factor:.1g}"
-            print(scale_str)
-            print(str(self.extra_factor))
-            prefix = '' if scale_str == str(self.extra_factor) else '≈'
+            scale_str = f"{self.scale:.1f}".rstrip('0.')
+            prefix = '' if scale_str == str(self.scale).rstrip('0.') else '≈'
             return f'{prefix}{scale_str}x'
 
         # Figure out how big the table should be.
@@ -144,13 +150,13 @@ class MasterMix:
                 '',
                 '',
                 f'{self.volume:.2f}',
-                f'{sum((x.volume for x in self.reaction if x.master_mix)):.2f}',
+                f'{sum(x.volume for x in self.master_mix_reagents):.2f}',
         )
         column_getters = cols(
                 lambda x: x.name,
-                lambda x: x.stock_conc if isinstance(x, Reagent) else '',
+                lambda x: (x.stock_conc or '') if isinstance(x, Reagent) else '',
                 lambda x: f'{x.volume:.2f}',
-                lambda x: f'{x.volume * self.extra_factor:.2f}' if x.master_mix else '',
+                lambda x: f'{x.volume * self.scale:.2f}' if x.master_mix else '',
         )
         column_widths = [
                 max(map(
@@ -189,7 +195,6 @@ class MasterMix:
             table += '/rxn'
 
         return table
-
 
 @autoprop
 class Reaction:
@@ -443,6 +448,12 @@ class Reaction:
     def require_volume(self):
         if self._volume is None:
             raise ValueError(f"no reaction volume specified")
+
+    def require_volumes(self):
+        self.require_volume()
+        for reagent in self:
+            if reagent is not self[self.solvent]:
+                reagent.require_volume()
 
     def require_solvent(self):
         if self._solvent is None:
@@ -784,10 +795,12 @@ class Quantity:
         if m := re.match(cls.QUANTITY_REGEX, string):
             return cls(float(m.group(1)), m.group(2))
         else:
-            raise ValueError(f"'{string}' cannot be interpreted as a value with a unit.")
+            raise ValueError(f"{string!r} cannot be interpreted as a value with a unit.")
 
     @classmethod
     def from_tuple(cls, tuple):
+        if len(tuple) != 2:
+            raise ValueError(f"{tuple!r} cannot be interpreted as a value with a unit.")
         return cls(*tuple)
 
 
@@ -804,100 +817,149 @@ class Quantity:
     def __format__(self, spec):
         return self.show(spec)
 
-    def __eq__(self, other):
-        other = Quantity.from_anything(other)
-        return (self.value == other.value and self.unit == other.unit)
-
     def get_value(self):
         return self._value
 
     def get_unit(self):
         return self._unit
 
-    def show(self, format='g'):
+    def show(self, format=''):
         padding = '' if self.unit in self.NO_PADDING else ' '
-        return f'{self.value:{format}}{padding}{self.unit}'
+        return f'{self.value:{format or "g"}}{padding}{self.unit}'
 
     def require_matching_unit(self, other):
-        if self.unit != other.unit:
+        if other is None or self.unit != other.unit:
             raise ValueError(f"'{self}' and '{other}' have different units.")
 
 
-    def _overload_operator(f, side, quantity='err', scalar='err'):
+    def _overload_binary_op(f, side, quantity, scalar):
 
-        def get_quantity_keep_unit(self, other):
+        def validate_quantity_same_unit(self, other):
             self.require_matching_unit(other)
-            return other.value, self.unit
+            return True
 
-        def get_quantity_drop_unit(self, other):
-            self.require_matching_unit(other)
-            return other.value, None
+        def validate_scalar_zero_only(self, other):
+            return other == 0
 
-        def get_quantity_err(self, other):
-            raise ValueError(f"cannot {f.__name__} '{self}' and '{other}'")
-
-        def get_scalar(self, other):
-            return other, self.unit
-
-        def get_scalar_zero_only(self, other):
-            f = get_scalar if other == 0 else get_scalar_err
-            return f(self, other)
-            
-        def get_scalar_err(self, other):
-            raise ValueError(f"cannot {f.__name__} '{self}' and '{other}'")
-
-
-        def quantity_or_scalar(value, unit):
-            return value if unit is None else Quantity(value, unit)
-
-        def op_left_side(self, k, unit):
-            return quantity_or_scalar(f(self.value, k), unit)
-
-        def op_right_side(self, k, unit):
-            return quantity_or_scalar(f(k, self.value), unit)
-
-        quantity_getters = {
-                'keep unit':    get_quantity_keep_unit,
-                'drop unit':    get_quantity_drop_unit,
-                'err':          get_quantity_err,
-        }
-        scalar_getters = {
-                'ok':           get_scalar,
-                '0 only':       get_scalar_zero_only,
-                'err':          get_scalar_err,
+        validators = {
+                'ok':           lambda self, other: True,
+                'error':        lambda self, other: False,
+                '0 only':       validate_scalar_zero_only,
+                'same unit':    validate_quantity_same_unit,
         }
         operators = {
-                'right':        op_right_side,
-                'left':         op_left_side,
+                'left':         lambda a, b: f(a, b),
+                'right':        lambda a, b: f(b, a),
         }
+        unit_handlers = {
+                'keep':         lambda value, unit: Quantity(value, unit),
+                'drop':         lambda value, unit: value,
+        }
+
         operator = operators[side]
 
         def wrapper(self, other):
             if isinstance(other, (int, float)):
-                getter = scalar_getters[scalar]
+                other_value = other
+                params = scalar
             else:
                 other = self.from_anything(other)
-                getter = quantity_getters[quantity]
+                other_value = other.value
+                params = quantity
 
-            k, unit = getter(self, other)
-            return operator(self, k, unit)
+            if not validators[params['validate']](self, other):
+                operands = {
+                        'left': f"'{self}' and '{other}'",
+                        'right': f"'{other}' and '{self}'",
+                }
+                raise ValueError(f"cannot {f.__name__} {operands[side]}")
+
+            value = operator(self.value, other_value)
+            return unit_handlers[params['unit']](value, self.unit)
 
         return wrapper
 
-    __add__  = _overload_operator(add, 'left',  quantity='keep unit', scalar='0 only')
-    __radd__ = _overload_operator(add, 'right', quantity='keep unit', scalar='0 only')
+    __lt__ = _overload_binary_op(
+            lt, 'left',  
+            quantity=dict(validate='same unit', unit='drop'),
+            scalar=  dict(validate='0 only',    unit='drop'),
+    )
+    __le__ = _overload_binary_op(
+            le, 'left',  
+            quantity=dict(validate='same unit', unit='drop'),
+            scalar=  dict(validate='0 only',    unit='drop'),
+    )
+    __eq__ = _overload_binary_op(
+            eq, 'left',  
+            quantity=dict(validate='same unit', unit='drop'),
+            scalar=  dict(validate='0 only',    unit='drop'),
+    )
+    __ne__ = _overload_binary_op(
+            ne, 'left',  
+            quantity=dict(validate='same unit', unit='drop'),
+            scalar=  dict(validate='0 only',    unit='drop'),
+    )
+    __ge__ = _overload_binary_op(
+            ge, 'left',  
+            quantity=dict(validate='same unit', unit='drop'),
+            scalar=  dict(validate='0 only',    unit='drop'),
+    )
+    __gt__ = _overload_binary_op(
+            gt, 'left',  
+            quantity=dict(validate='same unit', unit='drop'),
+            scalar=  dict(validate='0 only',    unit='drop'),
+    )
+    __add__ = _overload_binary_op(
+            add, 'left',  
+            quantity=dict(validate='same unit', unit='keep'),
+            scalar=  dict(validate='0 only',    unit='keep'),
+    )
+    __radd__ = _overload_binary_op(
+            add, 'right', 
+            quantity=dict(validate='same unit', unit='keep'),
+            scalar=  dict(validate='0 only',    unit='keep'),
+    )
+    __sub__ = _overload_binary_op(
+            sub, 'left',  
+            quantity=dict(validate='same unit', unit='keep'),
+            scalar=  dict(validate='0 only',    unit='keep'),
+    )
+    __rsub__ = _overload_binary_op(
+            sub, 'right', 
+            quantity=dict(validate='same unit', unit='keep'),
+            scalar=  dict(validate='0 only',    unit='keep'),
+    )
+    __mul__ = _overload_binary_op(
+            mul, 'left',  
+            quantity=dict(validate='error',                ),
+            scalar=  dict(validate='ok',        unit='keep'),   
+    )
+    __rmul__ = _overload_binary_op(
+            mul, 'right', 
+            quantity=dict(validate='error',                ),
+            scalar=  dict(validate='ok',        unit='keep'),   
+    )
+    __truediv__ = _overload_binary_op(
+            truediv, 'left',  
+            quantity=dict(validate='same unit', unit='drop'),
+            scalar=  dict(validate='ok',        unit='keep'),   
+    )
+    __rtruediv__ = _overload_binary_op(
+            truediv, 'right', 
+            quantity=dict(validate='same unit', unit='drop'),
+            scalar=  dict(validate='0 only',    unit='drop'),
+    )
+    __floordiv__ = _overload_binary_op(
+            floordiv, 'left',  
+            quantity=dict(validate='same unit', unit='drop'),
+            scalar=  dict(validate='ok',        unit='keep'),   
+    )
+    __rfloordiv__ = _overload_binary_op(
+            floordiv, 'right', 
+            quantity=dict(validate='same unit', unit='drop'),
+            scalar=  dict(validate='0 only',    unit='drop'),
+    )
 
-    __sub__  = _overload_operator(sub, 'left',  quantity='keep unit', scalar='0 only')
-    __rsub__ = _overload_operator(sub, 'right', quantity='keep unit', scalar='0 only')
-
-    __mul__  = _overload_operator(mul, 'left',  scalar='ok')
-    __rmul__ = _overload_operator(mul, 'right', scalar='ok')
-
-    __truediv__   = _overload_operator(truediv,  'left', quantity='drop unit', scalar='ok')
-    __rtruediv__  = _overload_operator(truediv,  'right', quantity='drop unit', scalar='err')
-    __floordiv__  = _overload_operator(floordiv, 'left', quantity='drop unit', scalar='ok')
-    __rfloordiv__ = _overload_operator(floordiv, 'right', quantity='drop unit', scalar='err')
-
-    del _overload_operator
+    del _overload_binary_op
 
 Q = Quantity.from_string

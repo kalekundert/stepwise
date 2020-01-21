@@ -835,20 +835,68 @@ def test_master_mix_dunder():
 
 @pytest.mark.parametrize(
         'params', [
-            dict(n=10, fraction=0.1,  reactions=0,  expected=11),
-            dict(n=10, fraction=0.0,  reactions=2,  expected=12),
-            dict(n=10, fraction=0.1,  reactions=2,  expected=12),
-            dict(n=10, fraction=0.3,  reactions=2,  expected=13),
-
-            dict(n=10, percent=10,    reactions=0,  expected=11),
-            dict(n=10, percent=0,     reactions=2,  expected=12),
-            dict(n=10, percent=10,    reactions=2,  expected=12),
-            dict(n=10, percent=30,    reactions=2,  expected=13),
+            dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                                                              expected=11,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                fraction=0.0,                                 expected=10,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                fraction=0.3,                                 expected=13,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                percent=0,                                    expected=10,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                percent=30,                                   expected=13,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                               reactions=0,                   expected=11,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                               reactions=2,                   expected=12,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                                             min_vol='0 µL',  expected=11,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                                             min_vol='30 µL', expected=15,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                fraction=0.0,  reactions=0,  min_vol='0 µL',  expected=10,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                fraction=0.3,  reactions=0,  min_vol='0 µL',  expected=13,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                fraction=0.0,  reactions=2,  min_vol='0 µL',  expected=12,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                fraction=0.3,  reactions=2,  min_vol='0 µL',  expected=13,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                fraction=0.0,  reactions=0,  min_vol='30 µL', expected=15,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                fraction=0.3,  reactions=0,  min_vol='30 µL', expected=15,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                fraction=0.0,  reactions=2,  min_vol='30 µL', expected=15,
+            ), dict(
+                n=10, vol_x='2 µL', vol_rxn='10 µL',
+                fraction=0.3,  reactions=2,  min_vol='30 µL', expected=15,
+            ), 
         ]
 )
-def test_master_mix_extra(params):
+def test_master_mix_scale(params):
     mm = MasterMix()
     mm.num_reactions = params['n']
+    mm.solvent = 'w'
+    mm.volume = params['vol_rxn']
+    mm['x'].volume = params['vol_x']
+    mm['w'].master_mix = True
+    mm['x'].master_mix = True
 
     if 'fraction' in params:
         mm.extra_fraction = params['fraction']
@@ -858,8 +906,10 @@ def test_master_mix_extra(params):
         assert mm.extra_fraction == pytest.approx(params['percent'] / 100)
     if 'reactions' in params:
         mm.extra_reactions = params['reactions']
+    if 'min_vol' in params:
+        mm.extra_min_volume = params['min_vol']
 
-    assert mm.extra_factor == pytest.approx(params['expected'])
+    assert mm.get_scale() == pytest.approx(params['expected'])
 
 def test_master_mix_show():
     mm = MasterMix.from_text("""\
