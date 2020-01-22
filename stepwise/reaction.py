@@ -800,7 +800,7 @@ class Quantity:
     @classmethod
     def from_tuple(cls, tuple):
         if len(tuple) != 2:
-            raise ValueError(f"{tuple!r} cannot be interpreted as a value with a unit.")
+            raise ValueError(f"{tuple!r} has {len(tuple)} values, expected 2.")
         return cls(*tuple)
 
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
+import sys
 import shlex
 import subprocess as subp
+from nonstdlib import pretty_range
 from .config import load_config
 
 class PrinterOptions:
