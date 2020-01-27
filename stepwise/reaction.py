@@ -14,24 +14,24 @@ from . import UserError
 class MasterMix:
 
     @classmethod
-    def from_text(cls, text):
-        return cls(Reaction.from_text(text))
+    def from_text(cls, *args, **kwargs):
+        return cls(Reaction.from_text(*args, **kwargs))
 
     @classmethod
-    def from_csv(cls, csv):
-        return cls(Reaction.from_csv(csv))
+    def from_csv(cls, *args, **kwargs):
+        return cls(Reaction.from_csv(*args, **kwargs))
 
     @classmethod
-    def from_tsv(cls, tsv):
-        return cls(Reaction.from_tsv(tsv))
+    def from_tsv(cls, *args, **kwargs):
+        return cls(Reaction.from_tsv(*args, **kwargs))
 
     @classmethod
-    def from_excel(cls, excel):
-        return cls(Reaction.from_excel(excel))
+    def from_excel(cls, *args, **kwargs):
+        return cls(Reaction.from_excel(*args, **kwargs))
 
     @classmethod
-    def from_pandas(cls, pandas):
-        return cls(Reaction.from_pandas(pandas))
+    def from_pandas(cls, *args, **kwargs):
+        return cls(Reaction.from_pandas(*args, **kwargs))
 
 
     def __init__(self, reaction=None):
@@ -760,6 +760,11 @@ class Solvent:
 
     def set_volume(self, volume):
         raise NotImplementedError("cannot directly set solvent volume, set the reaction volume instead.")
+
+    def require_volume(self):
+        self._reaction.require_volume()
+
+
 
 @autoprop
 class Quantity:
