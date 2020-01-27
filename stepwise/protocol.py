@@ -19,7 +19,7 @@ class Protocol:
     BLANK_REGEX = r'^\s*$'
     DATE_FORMAT = 'MMMM D, YYYY'
     COMMAND_REGEX = r'^[$] (.+)'
-    STEP_REGEX = r'^(- |\d+\. )(.+)'
+    STEP_REGEX = r'^(- |\s*\d+\. )(.+)'
     FOOTNOTE_HEADER_REGEX = r'Notes?:|Footnotes?:'
     FOOTNOTE_REGEX = r'\[(\d+)\]'
     FOOTNOTE_DEF_REGEX = fr'^({FOOTNOTE_REGEX} )(.+)'
@@ -252,23 +252,22 @@ class Protocol:
         # Concatenate all the commands.
         target.commands = sum([x.commands for x in protocols], [])
 
-        # Concatenate all the steps.
-        target.steps = sum([x.steps for x in protocols], [])
-
-        # Merge and renumber the footnotes.
+        # Merge the steps and footnotes.  This requires renumbering the 
+        # footnotes.
         cursor = 0
+        target.steps = []
         target.footnotes = {}
 
         for protocol in protocols:
-            if not protocol.footnotes:
-                continue
-
             p = copy(protocol)
             p.renumber_footnotes(cursor + 1)
-            cursor = max(p.footnotes)
 
             assert not set(p.footnotes) & set(target.footnotes)
+
+            target.steps.extend(p.steps)
             target.footnotes.update(p.footnotes)
+
+            cursor = max(target.footnotes, default=0)
 
         return target
 
@@ -393,6 +392,7 @@ def load(name, args):
     if (p := Path(name)).exists():
         hit = dict(
                 dir=p.parent,
+                path=p,
                 relpath=p.relative_to(p.parent),
                 type='cwd',
                 name=p.parent,

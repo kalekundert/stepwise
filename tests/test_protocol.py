@@ -215,10 +215,12 @@ def test_from_anything(input, steps):
             ####################################
             ([
                 Protocol(
+                    steps=['Step A [1]'],
                     footnotes={1: 'Footnote A'},
                 ),
             ],
                 Protocol(
+                    steps=['Step A [1]'],
                     footnotes={1: 'Footnote A'},
                 ),
             ),
@@ -226,49 +228,90 @@ def test_from_anything(input, steps):
             ([
                 Protocol(),
                 Protocol(
+                    steps=['Step A [1]'],
                     footnotes={1: 'Footnote A'},
                 ),
             ],
                 Protocol(
+                    steps=['Step A [1]'],
                     footnotes={1: 'Footnote A'},
                 ),
             ),
             ####################################
             ([
                 Protocol(
+                    steps=['Step A [1]'],
                     footnotes={1: 'Footnote A'},
                 ),
                 Protocol(
+                    steps=['Step B'],
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1]', 'Step B'],
+                    footnotes={1: 'Footnote A'},
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step A'],
+                ),
+                Protocol(
+                    steps=['Step B [1]'],
                     footnotes={1: 'Footnote B'},
                 ),
             ],
                 Protocol(
+                    steps=['Step A', 'Step B [1]'],
+                    footnotes={1: 'Footnote B'},
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step A [1]'],
+                    footnotes={1: 'Footnote A'},
+                ),
+                Protocol(
+                    steps=['Step B [1]'],
+                    footnotes={1: 'Footnote B'},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1]', 'Step B [2]'],
                     footnotes={1: 'Footnote A', 2: 'Footnote B'},
                 ),
             ),
             ####################################
             ([
                 Protocol(
+                    steps=['Step A [2]'],
                     footnotes={2: 'Footnote A'},
                 ),
                 Protocol(
+                    steps=['Step B [1]'],
                     footnotes={1: 'Footnote B'},
                 ),
             ],
                 Protocol(
+                    steps=['Step A [1]', 'Step B [2]'],
                     footnotes={1: 'Footnote A', 2: 'Footnote B'},
                 ),
             ),
             ####################################
             ([
                 Protocol(
+                    steps=['Step A [1]', 'Step B [2]'],
                     footnotes={1: 'Footnote A', 2: 'Footnote B'},
                 ),
                 Protocol(
+                    steps=['Step C [1]', 'Step D [2]'],
                     footnotes={1: 'Footnote C', 2: 'Footnote D'},
                 ),
             ],
                 Protocol(
+                    steps=['Step A [1]', 'Step B [2]', 'Step C [3]', 'Step D [4]'],
                     footnotes={1: 'Footnote A', 2: 'Footnote B',
                                3: 'Footnote C', 4: 'Footnote D'},
                 ),
