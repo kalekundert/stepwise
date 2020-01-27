@@ -19,7 +19,7 @@ def load_config():
         },
         'printer': {
             'default': {
-                'page_height': 63,
+                'page_height': 56,
                 'page_width': 78,
                 'content_width': 53,
                 'margin_width': 10,
