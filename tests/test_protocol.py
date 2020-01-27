@@ -448,6 +448,26 @@ def test_check_footnotes(err, steps, footnotes):
             1,
             ['[3] [1]'], {1: 'Footnote 1', 3: 'Footnote 3'},
             ['[2] [1]'], {1: 'Footnote 1', 2: 'Footnote 3'},
+        ), (
+            1,
+            ['[1,2]'], {1: 'Footnote 1', 2: 'Footnote 2'},
+            ['[1,2]'], {1: 'Footnote 1', 2: 'Footnote 2'},
+        ), (
+            2,
+            ['[1,2]'], {1: 'Footnote 1', 2: 'Footnote 2'},
+            ['[2,3]'], {2: 'Footnote 1', 3: 'Footnote 2'},
+        ), (
+            1,
+            ['[1-3]'], {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'},
+            ['[1-3]'], {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'},
+        ), (
+            2,
+            ['[1-3]'], {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'},
+            ['[2-4]'], {2: 'Footnote 1', 3: 'Footnote 2', 4: 'Footnote 3'},
+        ), (
+            1,
+            ['[1,2,3]'], {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'},
+            ['[1-3]'],   {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'},
         )]
 )
 def test_renumber_footnotes(start, steps_before, footnotes_before, steps_after, footnotes_after):

@@ -8,7 +8,7 @@ import re
 import textwrap
 import io
 import subprocess as subp
-from nonstdlib import plural
+from nonstdlib import plural, indices_from_str, pretty_range as str_from_indices
 from more_itertools import one
 from copy import copy
 from pathlib import Path
@@ -21,7 +21,7 @@ class Protocol:
     COMMAND_REGEX = r'^[$] (.+)'
     STEP_REGEX = r'^(- |\s*\d+\. )(.+)'
     FOOTNOTE_HEADER_REGEX = r'Notes?:|Footnotes?:'
-    FOOTNOTE_REGEX = r'\[(\d+)\]'
+    FOOTNOTE_REGEX = r'\[(\d+(?:[-,]\d+)*)\]'
     FOOTNOTE_DEF_REGEX = fr'^({FOOTNOTE_REGEX} )(.+)'
     INDENT_OR_BLANK_REGEX = lambda n: fr'^({" "*n}|\s*$)(.*)$'
 
@@ -302,9 +302,9 @@ class Protocol:
         new_ids = {j: i for i, j in enumerate(old_ids, start=start)}
 
         def update_id(m):
-            old_id = int(m.group(1))
-            new_id = new_ids[old_id]
-            return f'[{new_id}]'
+            ii = indices_from_str(m.group(1))
+            jj = [new_ids[i] for i in ii]
+            return f'[{str_from_indices(jj)}]'
 
         self.steps = [
                 re.sub(self.FOOTNOTE_REGEX, update_id, step)
