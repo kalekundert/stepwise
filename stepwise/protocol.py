@@ -389,22 +389,7 @@ def load(name, args):
     Find a protocol by name, then load it in a filetype-specific manner.
     """
 
-    if (p := Path(name)).exists():
-        hit = dict(
-                dir=p.parent,
-                path=p,
-                relpath=p.relative_to(p.parent),
-                type='cwd',
-                name=p.parent,
-        )
-    else:
-        dirs = find_protocol_dirs()
-        hits = find_protocol_paths(name, dirs)
-        hit = one(
-            find_protocol_paths(name),
-            NoProtocolsFound(name, dirs),
-            MultipleProtocolsFound(name, hits),
-        )
+    hit = find_protocol_path(name)
 
     if hit['type'] != 'plugin':
         check_version_control(hit['path'])
@@ -481,6 +466,24 @@ def find_protocol_paths(key=None, dirs=None):
                 if key in path.stem: hits.append(hit)
 
     return hits
+
+def find_protocol_path(name):
+    if (p := Path(name)).exists():
+        return dict(
+                dir=p.parent,
+                path=p,
+                relpath=p.relative_to(p.parent),
+                type='cwd',
+                name=p.parent,
+        )
+    else:
+        dirs = find_protocol_dirs()
+        hits = find_protocol_paths(name, dirs)
+        return one(
+            find_protocol_paths(name),
+            NoProtocolsFound(name, dirs),
+            MultipleProtocolsFound(name, hits),
+        )
 
 def check_version_control(path):
     def warn(*args, **kwargs):

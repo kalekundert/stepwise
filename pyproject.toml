@@ -29,9 +29,10 @@ classifiers = [
 stepwise = "stepwise:main"
 
 [tool.flit.entrypoints."stepwise.commands"]
-lpr = "stepwise.cli:lpr"
 ls = "stepwise.cli:ls"
 which = "stepwise.cli:which"
+edit = "stepwise.cli:edit"
+lpr = "stepwise.cli:lpr"
 
 [tool.flit.entrypoints."stepwise.protocol_dirs"]
 builtins = "stepwise:protocol_dirs"

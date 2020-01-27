@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 import functools
 import subprocess as subp
 from docopt import docopt
@@ -134,6 +135,20 @@ Options:
             if not args['--paths']:
                 print()
 
+def edit():
+    """\
+Edit the specified protocol using $EDITOR.
+
+Usage:
+    stepwise edit <protocol>
+"""
+    from .protocol import find_protocol_path
+
+    args = docopt(edit.__doc__)
+    path = find_protocol_path(args['<protocol>'])
+    cmd = os.environ['EDITOR'], path['path']
+    subp.run(cmd)
+
 def which():
     """\
 Show the full path to the specified protocol.
@@ -141,7 +156,7 @@ Show the full path to the specified protocol.
 Usage:
     stepwise which <protocol>
 """
-    from .protocol import find_protocol_paths, find_protocol_dirs
+    from .protocol import find_protocol_paths
 
     args = docopt(which.__doc__)
     paths = find_protocol_paths(args['<protocol>'])
