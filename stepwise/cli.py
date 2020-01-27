@@ -66,7 +66,7 @@ Examples:
 
             # Combine the two protocols and output the result to stdout.
             merged_protocol = merge(prev_protocol, curr_protocol)
-            print(merged_protocol)
+            print(merged_protocol, end='')
 
     except UserError as err:
         print("Error:", err, file=sys.stderr)
@@ -133,6 +133,21 @@ Options:
 
             if not args['--paths']:
                 print()
+
+def which():
+    """\
+Show the full path to the specified protocol.
+
+Usage:
+    stepwise which <protocol>
+"""
+    from .protocol import find_protocol_paths, find_protocol_dirs
+
+    args = docopt(which.__doc__)
+    paths = find_protocol_paths(args['<protocol>'])
+
+    for path in paths:
+        print(path['path'])
 
 def lpr():
     usage = f"""\
