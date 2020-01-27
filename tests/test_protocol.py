@@ -848,6 +848,12 @@ def test_parse_steps():
 """)
     assert p.steps == ['Step 1', 'Step 2']
 
+    p = parse("""\
+ 1. Step 1
+ 2. Step 2
+""")
+    assert p.steps == ['Step 1', 'Step 2']
+
 
     with raises(UserError, match="not 'unexpected text'"):
         parse("""\
