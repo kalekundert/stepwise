@@ -6,9 +6,9 @@ import functools
 import subprocess as subp
 from docopt import docopt
 from pathlib import Path
-from inform import warn, Inform
+from inform import Inform
 from pkg_resources import iter_entry_points
-from .protocol import load, merge, Protocol
+from .protocol import Protocol, ProtocolIO
 from .printer import print_protocol, get_default_printer
 from .config import config, user_config_path, site_config_path
 from .utils import *
@@ -19,7 +19,7 @@ def main():
 Generate and display scientific protocols.
 
 Usage:
-    stepwise <command>
+    stepwise [options] <command> [<args>...]
     stepwise -h|--help
     stepwise -v|--version
 
@@ -30,6 +30,9 @@ Options:
 
     -v --version
         Show version information and exit.
+
+    -q --quiet
+        Remove footnotes from the protocol.
 
 Examples:
 
@@ -47,8 +50,8 @@ Examples:
         Inform(stream_policy='header')
         args = docopt(
                 main.__doc__,
-                sys.argv[1:2],
                 version=__version__,
+                options_first=True,
         )
 
         command = args['<command>']
@@ -61,33 +64,15 @@ Examples:
             plugins[command].load()()
 
         else:
-            prev_protocol = None
-            curr_protocol = None
-
-            # Parse any previous protocols from stdin.
-            try:
-                prev_protocol = Protocol.parse_stdin()
-            except ParseError as err:
-                err.report(informant=warn)
-                prev_content = err.content
-
-            # Load the protocol associated with this command.
-            try:
-                curr_protocol = load(sys.argv[1], sys.argv[2:])
-                curr_protocol.set_current_date()
-                curr_protocol.set_current_command()
-            except ParseError as err:
-                err.report(informant=warn)
-                curr_content = err.content
-
-            # Combine the two protocols and output the result to stdout.
-            if prev_protocol and curr_protocol:
-                merged_protocol = merge(prev_protocol, curr_protocol)
-                print(merged_protocol, end='')
-
-            else:
-                print(prev_protocol or prev_content)
-                print(curr_protocol or curr_content)
+            io_stdin = ProtocolIO.from_stdin()
+            io_cli = ProtocolIO.from_cli(
+                    args['<command>'],
+                    args['<args>'],
+                    quiet=args['--quiet'],
+                    show_error_header=not io_stdin.errors,
+            )
+            io_stdout = ProtocolIO.merge(io_stdin, io_cli)
+            io_stdout.to_stdout()
 
     except StepwiseError as err:
         err.terminate()

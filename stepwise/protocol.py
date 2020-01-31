@@ -2,6 +2,7 @@
 
 import sys
 import os
+import pickle
 import shlex
 import arrow
 import re
@@ -9,6 +10,7 @@ import textwrap
 import io
 import subprocess as subp
 import inform
+import shutil
 from nonstdlib import plural, indices_from_str, pretty_range as str_from_indices
 from more_itertools import one
 from copy import copy
@@ -39,6 +41,7 @@ class Protocol:
         if isinstance(x, Iterable):
             return cls(steps=x)
 
+        raise ParseError(f"cannot interpret {x!r} as a protocol")
 
     def __init__(self, *, date=None, commands=None, steps=None, footnotes=None):
         self.date = date
@@ -132,7 +135,7 @@ class Protocol:
                 return Transition(parse_continued_step, state=state)
 
             raise ParseError(
-                    template="expected a step (e.g. '- ...')",
+                    template=truncate_error("expected a step (e.g. '- ...' or '1. ...'), not '{}'", line),
                     culprit=inform.get_culprit(),
             )
 
@@ -156,7 +159,7 @@ class Protocol:
                 return Transition(parse_new_footnote)
 
             raise ParseError(
-                    template="expected a footnote (e.g. '[#] ...')",
+                    template=truncate_error("expected a footnote (e.g. '[1] ...'), not '{}'", line),
                     culprit=inform.get_culprit(),
             )
 
@@ -171,6 +174,13 @@ class Protocol:
 
             return Transition(parse_new_footnote, line_parsed=False)
 
+
+        def truncate_error(message, problem):
+            max_width = shutil.get_terminal_size().columns
+            max_problem_width = max_width - len(message.format('')) - 1
+            truncated_problem = textwrap.shorten(
+                    problem, max_problem_width, placeholder='...')
+            return message.format(truncated_problem)
 
         def check_footnotes(footnotes):
             """
@@ -212,7 +222,6 @@ class Protocol:
         except ParseError as err:
             err.reraise(content='\n'.join(lines))
         
-
     def show(self):
         s = ''.join([
                 self.show_date(),
@@ -340,19 +349,26 @@ class Protocol:
         old_ids = sorted(self.footnotes)
         new_ids = {j: i for i, j in enumerate(old_ids, start=start)}
         
-        def update_id(m):
+        def renumber_footnote(m):
             ii = indices_from_str(m.group(1))
             jj = [new_ids[i] for i in ii]
             return f'[{str_from_indices(jj)}]'
 
         self.steps = [
-                re.sub(self.FOOTNOTE_REGEX, update_id, step)
+                re.sub(self.FOOTNOTE_REGEX, renumber_footnote, step)
                 for step in self.steps
         ]
         self.footnotes = {
                 new_ids[k]: v
                 for k,v in self.footnotes.items()
         }
+
+    def clear_footnotes(self):
+        self.steps = [
+                re.sub(rf'\s*{self.FOOTNOTE_REGEX}', '', step)
+                for step in self.steps
+        ]
+        self.footnotes = {}
 
     def pick_slug(self):
         """
@@ -384,6 +400,77 @@ class Protocol:
         argv = Path(sys.argv[0]).name, *sys.argv[1:]
         self.commands = [shlex.join(argv)]
 
+class ProtocolIO:
+    """
+    Represent a user-provided protocol that may or may not have been 
+    successfully parsed.
+
+    `ProtocolIO` objects have two attributes: `errors` and `protocol`.  
+    `errors` is a count of the number of errors that have been generated so far 
+    in the pipeline.  If there have been any errors, `protocol` will be a 
+    string containing the raw text for the protocol.  This text won't be 
+    properly formatted, but it should help the user figure out what the 
+    problems were.  If there haven't been any errors, `io.protocol` will be a 
+    fully initialized `stepwise.Protocol` instance representing the protocol.
+    """
+
+    @classmethod
+    def from_stdin(cls):
+        if sys.stdin.isatty():
+            return ProtocolIO()
+
+        try:
+            return pickle.load(sys.stdin.buffer)
+        except Exception as err:
+            raise IOError(
+                    f"error parsing stdin: {err}",
+                    codicil="This error commonly occurs when the output from a non-stepwise command is piped into a stepwise command.  When usings pipes to combine protocols, make sure that every command is a stepwise command.",
+                    wrap=True,
+            )
+
+    @classmethod
+    def from_cli(cls, command, args, quiet=False, show_error_header=False):
+        io = cls()
+
+        try:
+            io.protocol = load(command, args)
+
+        except ParseError as err:
+            if show_error_header:
+                warn("the protocol could not be properly rendered due to error(s):")
+            err.report(informant=warn)
+            io.protocol = err.content
+            io.errors = 1
+
+        else:
+            io.protocol.set_current_date()
+            io.protocol.set_current_command()
+            if quiet: io.protocol.clear_footnotes()
+
+        return io
+
+    @classmethod
+    def merge(cls, *others):
+        io = cls()
+        io.errors = sum(x.errors for x in others)
+
+        if not io.errors:
+            io.protocol = merge(*(x.protocol for x in others))
+        else:
+            io.protocol = '\n'.join((str(x.protocol) for x in others))
+
+        return io
+
+    def __init__(self, protocol=None, errors=0):
+        self.protocol = protocol or Protocol()
+        self.errors = errors
+
+    def to_stdout(self):
+        if sys.stdout.isatty():
+            print(self.protocol, end='')
+        else:
+            pickle.dump(self, sys.stdout.buffer)
+
 def load(name, args):
     """
     Find a protocol by name, then load it in a filetype-specific manner.
@@ -395,8 +482,8 @@ def load(name, args):
     if hit['type'] != 'plugin':
         check_version_control(hit['path'])
 
-    if hit['path'].suffix == '.py':
-        cmd = 'python', str(hit['path']), *args
+    if is_executable(hit['path']):
+        cmd = str(hit['path']), *args
         culprit = f'`{shlex.join(cmd)}`'
         p = subp.run(cmd, stdout=subp.PIPE, text=True)
         p.check_returncode()

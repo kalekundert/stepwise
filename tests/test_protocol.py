@@ -480,6 +480,27 @@ def test_prune_footnotes(steps_before, footnotes_before, steps_after, footnotes_
     assert p.footnotes == footnotes_after
 
 @pytest.mark.parametrize(
+        'steps_before,steps_after,footnotes_before', [(
+            [], [], {},
+        ), (
+            ['Step [1]:'],   ['Step:'], {1: 'Footnote 1'},
+        ), (
+            ['Step [1,2]:'], ['Step:'], {1: 'Footnote 1', 2: 'Footnote 2'},
+        ), (
+            ['Step [1-3]:'], ['Step:'], {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'},
+        ), (
+            ['Some [1] idea.'], ['Some idea.'], {1: 'Footnote 1'},
+        )]
+)
+def test_clear_footnotes(steps_before, steps_after, footnotes_before):
+    p = Protocol()
+    p.steps = steps_before
+    p.footnotes = footnotes_before
+    p.clear_footnotes()
+    assert p.steps == steps_after
+    assert p.footnotes == {}
+
+@pytest.mark.parametrize(
         'date, commands, expected', [(
             None,
             [],
@@ -490,8 +511,12 @@ def test_prune_footnotes(steps_before, footnotes_before, steps_after, footnotes_
             'command1',
         ), (
             None,
-            ['command1 args', 'command2 args'],
-            'command1_command2',
+            ['file1.txt'],
+            'file1',
+        ), (
+            None,
+            ['command1 args', 'file2.txt'],
+            'command1_file2',
         ), (
             arrow.get(1988, 11, 8),
             [],
@@ -502,8 +527,12 @@ def test_prune_footnotes(steps_before, footnotes_before, steps_after, footnotes_
             '19881108_command1',
         ), (
             arrow.get(1988, 11, 8),
-            ['command1 args', 'command2 args'],
-            '19881108_command1_command2',
+            ['file1.txt'],
+            '19881108_file1',
+        ), (
+            arrow.get(1988, 11, 8),
+            ['command1 args', 'file2.txt'],
+            '19881108_command1_file2',
         )]
 )
 def test_pick_slug(date, commands, expected):
