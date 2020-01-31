@@ -2,7 +2,7 @@
 
 import pytest, arrow
 from pytest import raises
-from stepwise import parse, merge, Protocol, UserError
+from stepwise import parse, merge, Protocol, ParseError
 
 def test_repr():
     p = Protocol()
@@ -386,28 +386,6 @@ def test_iadd():
     assert p.footnotes == {1: "Footnote 1"}
 
 @pytest.mark.parametrize(
-        'err,steps,footnotes', [
-            (False, [], {}),
-            (False, ['[1]'], {1: 'Footnote 1'}),
-            (False, ['[1]'], {1: 'Footnote 1', 2: 'Footnote 2'}),
-            (True,  ['[2]'], {1: 'Footnote 1'}),
-            (False, ['[2]'], {1: 'Footnote 1', 2: 'Footnote 2'}),
-            (True,  ['[1] [2]'], {1: 'Footnote 1'}),
-            (False, ['[1] [2]'], {1: 'Footnote 1', 2: 'Footnote 2'}),
-        ]
-)
-def test_check_footnotes(err, steps, footnotes):
-    p = Protocol()
-    p.steps = steps
-    p.footnotes = footnotes
-
-    if not err:
-        p.check_footnotes()
-    else:
-        with raises(UserError):
-            p.check_footnotes()
-
-@pytest.mark.parametrize(
         'start,steps_before,footnotes_before,steps_after,footnotes_after', [(
             1,
             [], {},
@@ -686,267 +664,345 @@ Notes:
 """
 
 
-def test_parse_empty():
-    p = parse("")
+@pytest.mark.parametrize(
+        "text", [
+            "",
+            "\n",
+            " \n ",
+])
+def test_parse_empty(text):
+    p = parse(text)
     assert p.date == None
     assert p.commands == []
     assert p.steps == []
     assert p.footnotes == {}
 
-    p = parse("\n")
-    assert p.date == None
-    assert p.commands == []
-    assert p.steps == []
-    assert p.footnotes == {}
+@pytest.mark.parametrize(
+        "date,text", [(
 
-    p = parse(" \n ")
-    assert p.date == None
-    assert p.commands == []
-    assert p.steps == []
-    assert p.footnotes == {}
-
-def test_parse_date():
-    p = parse("""\
+arrow.get(1988, 11, 8),
+"""\
 November 8, 1988
-""")
-    assert p.date == arrow.get(1988, 11, 8)
+"""
+), (
 
-    p = parse("""\
+arrow.get(1988, 11, 8),
+"""\
 
 November 8, 1988
-""")
-    assert p.date == arrow.get(1988, 11, 8)
+"""
+), (
 
-    p = parse("""\
+arrow.get(1988, 11, 8),
+"""\
 November 8, 1988
 
-""")
-    assert p.date == arrow.get(1988, 11, 8)
+"""
+)])
+def test_parse_date(text, date):
+    p = parse(text)
+    assert p.date == date
 
-def test_parse_command():
-    p = parse("""\
+@pytest.mark.parametrize(
+        "commands,text", [(
+
+['sw pcr'],
+"""\
 $ sw pcr
-""")
-    assert p.commands == [
-            'sw pcr',
-    ]
+"""
+), (
 
-    p = parse("""\
+['sw pcr'],
+"""\
 
 $ sw pcr
-""")
-    assert p.commands == [
-            'sw pcr',
-    ]
+"""
+), (
 
-    p = parse("""\
+['sw pcr'],
+"""\
 $ sw pcr
 
-""")
-    assert p.commands == [
-            'sw pcr',
-    ]
+"""
+), (
 
-    p = parse("""\
+['sw pcr', 'sw kld'],
+"""\
 $ sw pcr
 $ sw kld
-""")
-    assert p.commands == [
-            'sw pcr',
-            'sw kld',
-    ]
+"""
+), (
 
-    p = parse("""\
-$ sw pcr
-$ sw kld
-""")
-    assert p.commands == [
-            'sw pcr',
-            'sw kld',
-    ]
-
-    p = parse("""\
+['sw pcr', 'sw kld'],
+"""\
 $ sw pcr
 
 $ sw kld
-""")
-    assert p.commands == [
-            'sw pcr',
-            'sw kld',
-    ]
+"""
+)])
+def test_parse_commands(text, commands):
+    p = parse(text)
+    assert p.commands == commands
 
-    with raises(UserError, match="not 'unexpected text'"):
-        parse("""\
+@pytest.mark.parametrize(
+        "err, text", [(
+
+"expected a step",
+"""\
 $ sw pcr
 unexpected text
-""")
+"""
+)])
+def test_parse_commands_err(text, err):
+    with raises(ParseError, match=err):
+        parse(text)
 
-def test_parse_steps():
-    p = parse("""\
+@pytest.mark.parametrize(
+        "steps,text", [(
+
+['Step 1'],
+"""\
 - Step 1
-""")
-    assert p.steps == ['Step 1']
+"""
+), (
 
-    p = parse("""\
+['Step 1'],
+"""\
 
 - Step 1
-""")
-    assert p.steps == ['Step 1']
+"""
+), (
 
-    p = parse("""\
+['Step 1'],
+"""\
 - Step 1
 
-""")
-    assert p.steps == ['Step 1']
+"""
+), (
 
-    p = parse("""\
+['Step 1\nLine wrap'],
+"""\
 - Step 1
   Line wrap
-""")
-    assert p.steps == ['Step 1\nLine wrap']
+"""
+), (
 
-    p = parse("""\
+['Step 1\n\nBlank line'],
+"""\
 - Step 1
 
   Blank line
-""")
-    assert p.steps == ['Step 1\n\nBlank line']
+"""
+), (
 
-    p = parse("""\
+['Step 1\n  Indented line'],
+"""\
 - Step 1
     Indented line
-""")
-    assert p.steps == ['Step 1\n  Indented line']
+"""
+), (
 
-    p = parse("""\
+['Step 1\n- Substep 1'],
+"""\
 - Step 1
   - Substep 1
-""")
-    assert p.steps == ['Step 1\n- Substep 1']
+"""
+), (
 
-    p = parse("""\
+['Step 1', 'Step 2'],
+"""\
 - Step 1
 - Step 2
-""")
-    assert p.steps == ['Step 1', 'Step 2']
+"""
+), (
 
-    p = parse("""\
+['Step 1', 'Step 2'],
+"""\
 - Step 1
 
 - Step 2
-""")
-    assert p.steps == ['Step 1', 'Step 2']
+"""
+), (
 
-    p = parse("""\
+['Step 1'],
+"""\
 1. Step 1
-""")
-    assert p.steps == ['Step 1']
+"""
+), (
 
-    p = parse("""\
+['Step 1', 'Step 2'],
+"""\
 1. Step 1
 2. Step 2
-""")
-    assert p.steps == ['Step 1', 'Step 2']
+"""
+), (
 
-    p = parse("""\
+['Step 1', 'Step 2'],
+"""\
  1. Step 1
  2. Step 2
-""")
-    assert p.steps == ['Step 1', 'Step 2']
+"""
+)])
+def test_parse_steps(text, steps):
+    p = parse(text)
+    assert p.steps == steps
 
+@pytest.mark.parametrize(
+        'err,text', [(
 
-    with raises(UserError, match="not 'unexpected text'"):
-        parse("""\
+"expected a step",
+"""\
 - Step 1
 unexpected text
-""")
+"""
+), (
 
-    with raises(UserError, match="not '  Fake line wrap'"):
-        parse("""\
+"expected a step",
+"""\
   Fake line wrap
-""")
+"""
+)])
+def test_parse_steps_err(err, text):
+    with pytest.raises(ParseError, match=err):
+        parse(text)
 
-def test_parse_footnotes():
-    p = parse("""\
+@pytest.mark.parametrize(
+        'footnotes,text', [(
+
+{},
+"""\
 Notes:
-""")
-    assert p.footnotes == {}
+"""
+), (
 
-    p = parse("""\
-Notes:
-[1] Footnote 1
-""")
-    assert p.footnotes == {1: 'Footnote 1'}
-
-    p = parse("""\
-Notes:
-
-[1] Footnote 1
-""")
-    assert p.footnotes == {1: 'Footnote 1'}
-
-    p = parse("""\
+{1: 'Footnote 1'},
+"""\
 Notes:
 [1] Footnote 1
+"""
+), (
 
-""")
-    assert p.footnotes == {1: 'Footnote 1'}
+{1: 'Footnote 1'},
+"""\
+Notes:
 
-    p = parse("""\
+[1] Footnote 1
+"""
+), (
+
+{1: 'Footnote 1'},
+"""\
+Notes:
+[1] Footnote 1
+
+"""
+), (
+
+{1: 'Footnote 1\nLine wrap'},
+"""\
 Notes:
 [1] Footnote 1
     Line wrap
-""")
-    assert p.footnotes == {1: 'Footnote 1\nLine wrap'}
+"""
+), (
 
-    p = parse("""\
+{1: 'Footnote 1\n  Indented line'},
+"""\
 Notes:
 [1] Footnote 1
       Indented line
-""")
-    assert p.footnotes == {1: 'Footnote 1\n  Indented line'}
+"""
+), (
 
-    p = parse("""\
+{1: 'Footnote 1\n\nBlank line'},
+"""\
 Notes:
 [1] Footnote 1
 
     Blank line
-""")
-    assert p.footnotes == {1: 'Footnote 1\n\nBlank line'}
+"""
+), (
 
-    p = parse("""\
+{1: 'Footnote 1', 2: 'Footnote 2'},
+"""\
 Notes:
 [1] Footnote 1
 [2] Footnote 2
-""")
-    assert p.footnotes == {1: 'Footnote 1', 2: 'Footnote 2'}
+"""
+), (
 
-    p = parse("""\
+{1: 'Footnote 1', 2: 'Footnote 2'},
+"""\
 Notes:
 [1] Footnote 1
 
 [2] Footnote 2
-""")
-    assert p.footnotes == {1: 'Footnote 1', 2: 'Footnote 2'}
+"""
+)])
+def test_parse_footnotes(text, footnotes):
+    p = parse(text)
+    assert p.footnotes == footnotes
 
-    with raises(UserError, match="not 'unexpected text'"):
-        parse("""\
+@pytest.mark.parametrize(
+        'err,text', [(
+
+"expected a footnote",
+"""\
 Notes:
 unexpected text
-""")
+"""
+), (
 
-    with raises(UserError, match="not 'unexpected text'"):
-        parse("""\
+"expected a footnote",
+"""\
 Notes:
 [1] Footnote 1
 unexpected text
-""")
+"""
+), (
 
-    with raises(UserError, match="not '   Fake line wrap'"):
-        parse("""\
+"expected a footnote",
+"""\
 Notes:
    Fake line wrap
-""")
+"""
+), (
+
+r"unknown footnote \[1\]",
+"""\
+- Step 1 [1]
+"""
+), (
+
+r"unknown footnote \[2\]",
+"""\
+- Step 1 [2]
+
+Footnotes:
+[1] Footnote
+"""
+), (
+
+r"unknown footnote \[2\]",
+"""\
+- Step 1 [1,2]
+
+Footnotes:
+[1] Footnote
+"""
+), (
+
+r"unknown footnotes \[2,3\]",
+"""\
+- Step 1 [1-3]
+
+Footnotes:
+[1] Footnote
+"""
+)])
+def test_parse_footnotes_err(err, text):
+    with pytest.raises(ParseError, match=err):
+        parse(text)
 
 def test_parse_everything():
     p = parse("""\

@@ -8,7 +8,7 @@ import pandas as pd
 from operator import lt, le, eq, ne, ge, gt, add, sub, mul, truediv, floordiv
 from collections.abc import Iterable
 from nonstdlib import plural
-from . import UserError
+from .utils import *
 
 @autoprop
 class MasterMix:
@@ -233,9 +233,9 @@ class Reaction:
         lines = text.strip().splitlines()
 
         if len(lines) < 3:
-            raise UserError(f"reagent table has {plural(lines):? line/s}, but needs at least 3 (i.e. header, underline, first reagent).")
+            raise UsageError(f"reagent table has {plural(lines):? line/s}, but needs at least 3 (i.e. header, underline, first reagent).")
         if not re.match(r'[-=\s]+', lines[1]):
-            raise UserError(f"the 2nd line of the reagent table must be an underline (e.g. '===' or '---'), not {lines[1]!r}.")
+            raise UsageError(f"the 2nd line of the reagent table must be an underline (e.g. '===' or '---'), not {lines[1]!r}.")
 
         column_slices = [
                 slice(x.start(), x.end())
@@ -311,7 +311,7 @@ class Reaction:
 
         def required_column(df, name):
             if name not in df.columns:
-                raise UserError(f"no {name!r} column found.")
+                raise UsageError(f"no {name!r} column found.")
 
         def optional_column(df, name, default):
             if name not in df.columns:
@@ -323,9 +323,9 @@ class Reaction:
         optional_column(df, 'Master Mix', False)
 
         if len(df) == 0:
-            raise UserError("reaction must have at least one reagent.")
+            raise UsageError("reaction must have at least one reagent.")
         if '' in list(df['Reagent']):
-            raise UserError("some reagents are missing names.")
+            raise UsageError("some reagents are missing names.")
 
         # Find the volume of the reaction.
         #
@@ -348,14 +348,14 @@ class Reaction:
                 return True
             if x in ('no', 'n', '', 0):
                 return False
-            raise UserError(f"expected 'yes' or 'no', got '{x}'")
+            raise UsageError(f"expected 'yes' or 'no', got '{x}'")
 
         for i, row in df.iterrows():
             name = row['Reagent']
             non_solvent = ns = (name != solvent)
 
             if row['Stock Conc'] and (name == solvent):
-                raise UserError(f"stock concentration {row['Stock Conc']!r} specified for solvent {name!r}")
+                raise UsageError(f"stock concentration {row['Stock Conc']!r} specified for solvent {name!r}")
 
             if (x := row['Stock Conc']):    rxn[name].stock_conc = x
             if (x := row['Volume']) and ns: rxn[name].volume = x

@@ -8,12 +8,15 @@ import re
 import textwrap
 import io
 import subprocess as subp
+import inform
 from nonstdlib import plural, indices_from_str, pretty_range as str_from_indices
 from more_itertools import one
 from copy import copy
 from pathlib import Path
 from pkg_resources import iter_entry_points
+from inform import warn
 from .config import config
+from .utils import *
 
 class Protocol:
     BLANK_REGEX = r'^\s*$'
@@ -64,14 +67,15 @@ class Protocol:
         if isinstance(x, Sequence):
             return cls.parse_lines(x)
 
-        raise ValueError(f"expected stream or string or list-like, not {type(x)}")
+        raise ParseError(f"expected stream or string or list-like, not {type(x)}")
 
     @classmethod
     def parse_stdin(cls):
-        if not sys.stdin.isatty():
-            return cls.parse_stream(sys.stdin)
-        else:
-            return cls()
+        with inform.set_culprit('<stdin>'):
+            if not sys.stdin.isatty():
+                return cls.parse_stream(sys.stdin)
+            else:
+                return cls()
 
     @classmethod
     def parse_stream(cls, stream):
@@ -127,7 +131,10 @@ class Protocol:
                 protocol.steps.append(match.group(2) + '\n')
                 return Transition(parse_continued_step, state=state)
 
-            raise UserError(f"expected '- ...' or 'Note[s]:', not '{line}'")
+            raise ParseError(
+                    template="expected a step (e.g. '- ...')",
+                    culprit=inform.get_culprit(),
+            )
 
         def parse_continued_step(line, state):
             indent = state['indent']
@@ -148,7 +155,10 @@ class Protocol:
             if re.match(cls.BLANK_REGEX, line):
                 return Transition(parse_new_footnote)
 
-            raise UserError(f"expected '[#] ...', not '{line}'")
+            raise ParseError(
+                    template="expected a footnote (e.g. '[#] ...')",
+                    culprit=inform.get_culprit(),
+            )
 
         def parse_continued_footnote(line, state):
             id = state['id']
@@ -161,25 +171,47 @@ class Protocol:
 
             return Transition(parse_new_footnote, line_parsed=False)
 
-        current_parser = parse_date
-        current_state = {}
 
-        i = 0
-        while i < len(lines):
-            transition = current_parser(lines[i], current_state)
-            i += transition.line_parsed
-            current_parser = transition.next_parser
-            current_state = transition.next_state
+        def check_footnotes(footnotes):
+            """
+            Complain if there are any footnotes that don't refer to anything.
+            """
+            for i, line in enumerate(lines, start=1):
+                for match in re.finditer(cls.FOOTNOTE_REGEX, line):
+                    refs = indices_from_str(match.group(1))
+                    unknown_refs = set(refs) - set(footnotes)
+                    if unknown_refs:
+                        raise ParseError(
+                                template=f"unknown {plural(unknown_refs):footnote/s} [{str_from_indices(unknown_refs)}]",
+                                culprit=inform.get_culprit(i),
+                                unknown_refs=unknown_refs,
+                        )
 
-        # Clean up blank lines
-        protocol.steps = [x.strip() for x in protocol.steps]
-        protocol.footnotes = {k: v.strip() for k,v in protocol.footnotes.items()}
+        try:
+            current_parser = parse_date
+            current_state = {}
 
-        # Complain if things don't make sense.
-        protocol.check_footnotes()
-        protocol.renumber_footnotes()
+            i = 0
+            while i < len(lines):
+                with inform.add_culprit(i+1):
+                    transition = current_parser(lines[i], current_state)
+                    i += transition.line_parsed
+                    current_parser = transition.next_parser
+                    current_state = transition.next_state
 
-        return protocol
+            # Clean up blank lines.
+            protocol.steps = [x.strip() for x in protocol.steps]
+            protocol.footnotes = {k: v.strip() for k,v in protocol.footnotes.items()}
+
+            # Clean up footnotes.
+            check_footnotes(protocol.footnotes)
+            protocol.renumber_footnotes()
+
+            return protocol
+
+        except ParseError as err:
+            err.reraise(content='\n'.join(lines))
+        
 
     def show(self):
         s = ''.join([
@@ -260,8 +292,15 @@ class Protocol:
 
         for protocol in protocols:
             p = copy(protocol)
-            p.renumber_footnotes(cursor + 1)
 
+            # Don't try to renumber the footnotes if there aren't any.  This 
+            # happens when using the += operator to add steps.  The steps might 
+            # reference footnotes that haven't been defined yet, and trying to 
+            # renumber them causes the code to crash.
+            if p.footnotes:
+                p.renumber_footnotes(cursor + 1)
+
+            # Footnotes should never be clobbered.
             assert not set(p.footnotes) & set(target.footnotes)
 
             target.steps.extend(p.steps)
@@ -300,7 +339,7 @@ class Protocol:
 
         old_ids = sorted(self.footnotes)
         new_ids = {j: i for i, j in enumerate(old_ids, start=start)}
-
+        
         def update_id(m):
             ii = indices_from_str(m.group(1))
             jj = [new_ids[i] for i in ii]
@@ -314,18 +353,6 @@ class Protocol:
                 new_ids[k]: v
                 for k,v in self.footnotes.items()
         }
-
-    def check_footnotes(self):
-        """
-        Complain if there are footnotes in the protocol that don't refer to 
-        anything.
-        """
-        lines = self.show().split('\n')
-        for i, line in enumerate(lines, start=1):
-            for match in re.finditer(self.FOOTNOTE_REGEX, line):
-                id = int(match.group(1))
-                if id not in self.footnotes:
-                    raise UserError(f"unknown footnote [{id}] on line {i}: '{line.strip()}'")
 
     def pick_slug(self):
         """
@@ -341,7 +368,8 @@ class Protocol:
 
         for cmd in self.commands:
             argv = shlex.split(cmd)
-            slug.append(argv[0] if argv[0] != 'stepwise' else argv[1])
+            arg0 = argv[0] if argv[0] != 'stepwise' else argv[1]
+            slug.append(Path(arg0).stem)
 
         if slug:
             return '_'.join(slug)
@@ -356,53 +384,30 @@ class Protocol:
         argv = Path(sys.argv[0]).name, *sys.argv[1:]
         self.commands = [shlex.join(argv)]
 
-
-class UserError(Exception):
-    pass
-
-class NoProtocolsFound(UserError):
-
-    def __init__(self, name, search_dirs):
-        self.name = name
-        self.search_dirs = search_dirs
-
-    def __str__(self):
-        err = f"no protocols matching '{self.name}' in:\n"
-        for dir in self.search_dirs:
-            err += f"    {dir['dir']}\n"
-        return err
-
-class MultipleProtocolsFound(UserError):
-
-    def __init__(self, name, hits):
-        self.name = name
-        self.hits = hits
-
-    def __str__(self):
-        err = f"multiple protocols matching '{self.name}':\n"
-        for hit in self.hits:
-            err += f"    {hit['relpath'].with_suffix('')}\n"
-        return err
-
 def load(name, args):
     """
     Find a protocol by name, then load it in a filetype-specific manner.
     """
 
     hit = find_protocol_path(name)
+    culprit = hit['path']
 
     if hit['type'] != 'plugin':
         check_version_control(hit['path'])
 
-    if is_executable(hit['path']):
-        cmd = str(hit['path']), *args
+    if hit['path'].suffix == '.py':
+        cmd = 'python', str(hit['path']), *args
+        culprit = f'`{shlex.join(cmd)}`'
         p = subp.run(cmd, stdout=subp.PIPE, text=True)
         p.check_returncode()
         content = p.stdout
-    else:
+    elif hit['path'].suffix == '.txt':
         content = hit['path'].read_text()
+    else:
+        return Protocol(steps=[f"<{hit['relpath']}>"])
 
-    return parse(content)
+    with inform.set_culprit(culprit):
+        return parse(content)
 
 def parse(input):
     return Protocol.parse(input)
@@ -440,7 +445,7 @@ def find_protocol_dirs():
 def find_protocol_paths(key=None, dirs=None):
     from itertools import chain
 
-    # This could be more configurable.
+    # This could be more configurable, i.e. something like .gitignore
     def hidden(name):
         return any((
                 name.startswith('.'),
@@ -486,9 +491,6 @@ def find_protocol_path(name):
         )
 
 def check_version_control(path):
-    def warn(*args, **kwargs):
-        print("Warning:", *args, **kwargs, file=sys.stderr)
-
     # Check that the file is in a repository.
     p1 = subp.run(
             shlex.split('git rev-parse --show-toplevel'),
@@ -496,7 +498,7 @@ def check_version_control(path):
             capture_output=True, text=True
     )
     if p1.returncode != 0:
-        warn(f"'{path}' is not in a git repository!")
+        warn(f"not in a git repository!", culprit=path)
 
     git_dir = Path(p1.stdout.strip())
     git_relpath = path.resolve().relative_to(git_dir)
@@ -508,7 +510,7 @@ def check_version_control(path):
             capture_output=True,
     )
     if p2.returncode != 0:
-        warn(f"'{path}' has never been committed!")
+        warn(f"not committed", culprit=path)
 
     # Check that the file doesn't have any uncommitted changes.
     p3 = subp.run(
@@ -517,7 +519,7 @@ def check_version_control(path):
             capture_output=True, text=True,
     )
     if str(git_relpath) in p3.stdout:
-        warn(f"'{path}' has uncommitted changes.")
+        warn(f"uncommitted changes", culprit=path)
 
 def is_executable(path):
     import os, stat

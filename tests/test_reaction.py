@@ -4,7 +4,7 @@ import pytest, re
 import pandas as pd
 from io import StringIO
 from stepwise import MasterMix, Reaction, Reagent, Solvent, Quantity, Q
-from stepwise import UserError
+from stepwise import UsageError
 
 wx = 'w', '8 µL', {
         'w': ('5 µL',  ..., True),
@@ -712,7 +712,7 @@ def test_reaction_from_csv(csv, solvent, volume, reagents):
         )]
 )
 def test_reaction_from_csv_raises(csv, solvent, err):
-    with pytest.raises(UserError, match=err):
+    with pytest.raises(UsageError, match=err):
         Reaction.from_csv(StringIO(csv), solvent)
 
 @pytest.mark.parametrize(
@@ -770,7 +770,7 @@ def test_reaction_from_text(text, solvent, volume, reagents):
         )]
 )
 def test_reaction_from_text_raises(text, err):
-    with pytest.raises(UserError, match=err):
+    with pytest.raises(UsageError, match=err):
         Reaction.from_text(text)
 
 

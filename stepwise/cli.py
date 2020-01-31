@@ -6,10 +6,12 @@ import functools
 import subprocess as subp
 from docopt import docopt
 from pathlib import Path
+from inform import warn, Inform
 from pkg_resources import iter_entry_points
-from .protocol import load, merge, Protocol, UserError
+from .protocol import load, merge, Protocol
 from .printer import print_protocol, get_default_printer
 from .config import config, user_config_path, site_config_path
+from .utils import *
 from . import __version__
 
 def main():
@@ -42,11 +44,13 @@ Examples:
         $ stepwise ls
 """
     try:
+        Inform(stream_policy='header')
         args = docopt(
                 main.__doc__,
                 sys.argv[1:2],
                 version=__version__,
         )
+
         command = args['<command>']
         plugins = {
                 x.name: x
@@ -57,21 +61,36 @@ Examples:
             plugins[command].load()()
 
         else:
+            prev_protocol = None
+            curr_protocol = None
+
             # Parse any previous protocols from stdin.
-            prev_protocol = Protocol.parse_stdin()
+            try:
+                prev_protocol = Protocol.parse_stdin()
+            except ParseError as err:
+                err.report(informant=warn)
+                prev_content = err.content
 
             # Load the protocol associated with this command.
-            curr_protocol = load(sys.argv[1], sys.argv[2:])
-            curr_protocol.set_current_date()
-            curr_protocol.set_current_command()
+            try:
+                curr_protocol = load(sys.argv[1], sys.argv[2:])
+                curr_protocol.set_current_date()
+                curr_protocol.set_current_command()
+            except ParseError as err:
+                err.report(informant=warn)
+                curr_content = err.content
 
             # Combine the two protocols and output the result to stdout.
-            merged_protocol = merge(prev_protocol, curr_protocol)
-            print(merged_protocol, end='')
+            if prev_protocol and curr_protocol:
+                merged_protocol = merge(prev_protocol, curr_protocol)
+                print(merged_protocol, end='')
 
-    except UserError as err:
-        print("Error:", err, file=sys.stderr)
-        sys.exit(1)
+            else:
+                print(prev_protocol or prev_content)
+                print(curr_protocol or curr_content)
+
+    except StepwiseError as err:
+        err.terminate()
 
     except subp.CalledProcessError as err:
         sys.exit(err.returncode)
@@ -175,6 +194,9 @@ Options:
     -f --force
         Overwrite existing files.
 
+    -F --no-file
+        Only print the protocol and don't write it to a file.
+
     -P --no-print
         Only write the protocol to a file and don't attempt to print it.
 
@@ -192,13 +214,14 @@ and size, etc.) can be configured in:
     protocol = Protocol.parse_stdin()
 
     # Write the protocol to a file.
-    path = Path(f'{protocol.pick_slug()}.txt')
+    if not args['--no-file']:
+        path = Path(f'{protocol.pick_slug()}.txt')
 
-    if path.exists() and not args['--force']:
-        print(f"'{path}' already exists, use '-f' to overwrite.")
-        sys.exit(1)
-        
-    path.write_text(str(protocol))
+        if path.exists() and not args['--force']:
+            print(f"'{path}' already exists, use '-f' to overwrite.")
+            sys.exit(1)
+            
+        path.write_text(str(protocol))
 
     # Send to protocol to the printer.
     if not args['--no-print']:
