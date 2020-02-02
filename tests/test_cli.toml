@@ -5,8 +5,9 @@
 [[test_main]]
 id = 'builtin-echo'
 cmd = "stepwise echo -e '- A\\n- B'"
+env = {}
 stdout = '''
-{DATE}
+^{DATE}
 
 \$ stepwise echo -e '- A\\n- B'
 
@@ -14,14 +15,15 @@ stdout = '''
 
 2\. B
 '''
-stderr = '$'
+stderr = '^$'
 return_code = 0
 
 [[test_main]]
 id = 'builtin-split'
 cmd = "stepwise split 'A;B'"
+env = {}
 stdout = '''
-{DATE}
+^{DATE}
 
 \$ stepwise split 'A;B'
 
@@ -29,7 +31,7 @@ stdout = '''
 
 2\. B
 '''
-stderr = '$'
+stderr = '^$'
 return_code = 0
 
 
@@ -40,8 +42,9 @@ return_code = 0
 [[test_main]]
 id = 'pipeline-2'
 cmd = "stepwise split A | stepwise split B"
+env = {}
 stdout = '''
-{DATE}
+^{DATE}
 
 \$ stepwise split A
 \$ stepwise split B
@@ -50,14 +53,15 @@ stdout = '''
 
 2\. B
 '''
-stderr = '$'
+stderr = '^$'
 return_code = 0
 
 [[test_main]]
 id = 'pipeline-3'
 cmd = "stepwise split A | stepwise split B | stepwise split C"
+env = {}
 stdout = '''
-{DATE}
+^{DATE}
 
 \$ stepwise split A
 \$ stepwise split B
@@ -69,7 +73,7 @@ stdout = '''
 
 3\. C
 '''
-stderr = '$'
+stderr = '^$'
 return_code = 0
 
 
@@ -80,9 +84,10 @@ return_code = 0
 [[test_main]]
 id = 'err-unknown-protocol'
 cmd = "stepwise unknown-protocol"
-stdout = '$'
+env = {}
+stdout = '^$'
 stderr = '''
-stepwise error:
+^stepwise error:
     no protocols matching 'unknown-protocol' in:
 '''
 return_code = 1
@@ -90,11 +95,12 @@ return_code = 1
 [[test_main]]
 id = 'err-formatting'
 cmd = "stepwise echo 'Formatting error'"
+env = {}
 stdout = '''
-Formatting error
+^Formatting error$
 '''
 stderr = '''
-stepwise warning: the protocol could not be properly rendered due to error(s):
+^stepwise warning: the protocol could not be properly rendered due to error(s):
 stepwise warning: `.*echo 'Formatting error'`, 1:
     expected a step (e.g. '- ...' or '1. ...'), not 'Formatting error'
 '''
@@ -103,12 +109,74 @@ return_code = 0
 [[test_main]]
 id = 'err-bad-stdin'
 cmd = "echo foo | stepwise split A"
-stdout = '$'
+env = {}
+stdout = '^$'
 stderr = '''
-stepwise error: error parsing stdin: invalid load key, 'f'.
+^stepwise error: error parsing stdin: invalid load key, 'f'.
     This error commonly occurs when the output from a non-stepwise command
     is piped into a stepwise command.  When usings pipes to combine
     protocols, make sure that every command is a stepwise command.
 '''
 return_code = 1
+
+
+###############################################################################
+### Subcommands
+###############################################################################
+
+[[test_main]]
+id = 'ls'
+cmd = "stepwise ls"
+env = {}
+stdout = '''
+.*\
+stepwise\.builtins
+  echo
+  split
+.*\
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'ls-d'
+cmd = "stepwise ls -d"
+env = {}
+stdout = '''
+.*\
+stepwise\.builtins
+.*\
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'ls-p'
+cmd = "stepwise ls -p"
+env = {}
+stdout = '''
+.*\
+echo
+split
+.*\
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'edit'
+cmd = "stepwise edit echo"
+env = {EDITOR = 'echo'}
+stdout = '.*/builtins/echo$'
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'which'
+cmd = "stepwise which echo"
+env = {}
+stdout = '.*/builtins/echo$'
+stderr = '^$'
+return_code = 0
+
 

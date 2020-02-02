@@ -7,8 +7,8 @@ DATE = r'\w+ \d{1,2}, \d{4}'
 
 @pytest.mark.slow
 @parametrize_via_toml('test_cli.toml')
-def test_main(cmd, stdout, stderr, return_code):
-    p = tty_capture(cmd, shell=True)
+def test_main(cmd, env, stdout, stderr, return_code):
+    p = tty_capture(cmd, env=env, shell=True)
     assert p.returncode == return_code
 
     print(p.stdout)
@@ -18,7 +18,7 @@ def test_main(cmd, stdout, stderr, return_code):
     check_output(stdout, p.stdout)
 
 
-def tty_capture(cmd, stdin=None, **kwargs):
+def tty_capture(cmd, stdin=None, env={}, **kwargs):
     """Capture stdout and stderr of the given command with the given stdin, 
     with stdin, stdout and stderr all being TTYs.
 
@@ -33,6 +33,8 @@ def tty_capture(cmd, stdin=None, **kwargs):
     me, se = pty.openpty()  
     mi, si = pty.openpty()  
 
+    from pprint import pprint
+    pprint({'COLUMNS': '80', **env, **os.environ})
     p = subp.Popen(
         cmd,
         bufsize=1,
@@ -40,7 +42,7 @@ def tty_capture(cmd, stdin=None, **kwargs):
         stdout=so,
         stderr=se, 
         close_fds=True,
-        env={'COLUMNS': '80', **os.environ},
+        env={**os.environ, 'COLUMNS': '80', **env},
         **kwargs,
     )
     for fd in [so, se, si]:
@@ -84,5 +86,5 @@ def tty_capture(cmd, stdin=None, **kwargs):
 def check_output(pattern, actual):
     pattern = pattern.format(DATE=DATE).strip()
     actual = actual.replace('\r', '')
-    assert re.match(pattern, actual)
+    assert re.match(pattern, actual, flags=re.DOTALL)
 
