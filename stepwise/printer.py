@@ -5,6 +5,7 @@ import shlex
 import subprocess as subp
 from nonstdlib import pretty_range
 from .config import load_config
+from .utils import *
 
 class PrinterOptions:
 
@@ -12,7 +13,7 @@ class PrinterOptions:
         self.options = kwargs
 
     def __repr__(self):
-        kwargs = ', '.join([f'{k}={repr(v)}' for k,v in self.options])
+        kwargs = ', '.join([f'{k}={repr(v)}' for k,v in self.options.items()])
         return f'PrinterOptions({kwargs})'
 
     def __getattr__(self, key):
@@ -30,7 +31,12 @@ class PrinterOptions:
 
 def print_protocol(protocol, printer=None):
     options = load_printer_options(printer)
-    check_for_long_lines(protocol, options)
+
+    try:
+        check_for_long_lines(protocol, options)
+    except PrinterWarning as err:
+        err.report(informant=warn)
+
     pages = make_pages(protocol, options)
     pages = add_margin(pages, options)
     print_pages(pages, options)
@@ -49,23 +55,25 @@ def check_for_long_lines(text, options):
             too_long_lines.append(lineno)
 
     if len(too_long_lines) == 0:
-        return False
+        return
     elif len(too_long_lines) == 1:
-        warning = "Warning: line {} is more than {} characters long."
+        warning = "line {} is more than {} characters long."
     else:
-        warning = "Warning: lines {} are more than {} characters long."
+        warning = "lines {} are more than {} characters long."
 
     warning = warning.format(
             pretty_range(too_long_lines),
             options.content_width,
     )
-    print(warning, file=sys.stderr)
-    return True
+    raise PrinterWarning(warning)
     
 def make_pages(text, options):
     """
     Split the given protocol into pages by trying to best take advantage of 
     natural paragraph breaks.
+
+    The return value is a list of "pages", where each page is a list of lines 
+    (without trailing newlines).
     """
     lines = str(text).splitlines()
 
@@ -111,7 +119,7 @@ def add_margin(pages, options):
     Add a margin on the left to leave room for holes to be punched.
     """
     left_margin = ' ' * options.margin_width + '│ '
-    return ['\n'.join(left_margin + line for line in page) for page in pages]
+    return [[left_margin + line for line in page] for page in pages]
 
 def print_pages(pages, options):
     """
@@ -119,12 +127,15 @@ def print_pages(pages, options):
     """
     from subprocess import Popen, PIPE
     form_feed = ''
+    document = form_feed.join(
+            ('\n'.join(x) for x in pages)
+    ).encode()
     print_cmd = ' | '.join([
             f'paps {options.paps_flags}',
             f'lpr {options.lpr_flags}',
     ])
     lpr = Popen(print_cmd, shell=True, stdin=PIPE)
-    lpr.communicate(input=form_feed.join(pages).encode())
+    lpr.communicate(input=document)
 
 def get_default_printer():
     lpstat = shlex.split('lpstat -d')

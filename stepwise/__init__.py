@@ -11,6 +11,7 @@ from .reaction import *
 from .cli import *
 from .printer import *
 from .config import *
+from .utils import *
 
 from pathlib import Path
 protocol_dirs = [

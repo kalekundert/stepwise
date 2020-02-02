@@ -5,13 +5,13 @@ from inform import Error
 class StepwiseError(Error):
     pass
 
-class IOError(StepwiseError, IOError):
-    pass
-
 class UsageError(StepwiseError):
     pass
 
-class LoadError(StepwiseError):
+class IOError(StepwiseError, IOError):
+    pass
+
+class LoadError(IOError):
     pass
 
 class ParseError(LoadError):
@@ -38,3 +38,5 @@ class MultipleProtocolsFound(LoadError):
 
         super().__init__(codicil=codicil)
 
+class PrinterWarning(IOError):
+    pass

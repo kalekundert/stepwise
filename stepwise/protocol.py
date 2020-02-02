@@ -474,7 +474,7 @@ def load(name, args):
     if hit['type'] != 'plugin':
         try:
             check_version_control(hit['path'])
-        except VersionControlWarning:
+        except VersionControlWarning as err:
             err.report(informant=warn)
 
     if is_executable(hit['path']):
