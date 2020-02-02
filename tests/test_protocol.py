@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import pytest, arrow
+import subprocess as subp
 from pytest import raises
 from stepwise import parse, merge, Protocol, ParseError
+from utils import *
 
 def test_repr():
     p = Protocol()
@@ -18,6 +20,10 @@ def test_repr():
 def test_from_anything(input, steps):
     p = Protocol.from_anything(input)
     assert p.steps == steps
+
+def test_from_anything_err():
+    with raises(ParseError, match="cannot interpret 42 as a protocol"):
+        Protocol.from_anything(42)
 
 @pytest.mark.parametrize(
         'inputs,output', [
@@ -385,157 +391,36 @@ def test_iadd():
     assert p.steps == ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"]
     assert p.footnotes == {1: "Footnote 1"}
 
-@pytest.mark.parametrize(
-        'start,steps_before,footnotes_before,steps_after,footnotes_after', [(
-            1,
-            [], {},
-            [], {},
-        ), (
-            1,
-            ['[1]'], {1: 'Footnote 1'},
-            ['[1]'], {1: 'Footnote 1'},
-        ), (
-            2,
-            ['[1]'], {1: 'Footnote 1'},
-            ['[2]'], {2: 'Footnote 1'},
-        ), (
-            1,
-            ['[2]'], {2: 'Footnote 1'},
-            ['[1]'], {1: 'Footnote 1'},
-        ), (
-            2,
-            ['[2]'], {2: 'Footnote 1'},
-            ['[2]'], {2: 'Footnote 1'},
-        ), (
-            1,
-            ['[1] [3]'], {1: 'Footnote 1', 3: 'Footnote 3'},
-            ['[1] [2]'], {1: 'Footnote 1', 2: 'Footnote 3'},
-        ), (
-            2,
-            ['[1] [3]'], {1: 'Footnote 1', 3: 'Footnote 3'},
-            ['[2] [3]'], {2: 'Footnote 1', 3: 'Footnote 3'},
-        ), (
-            3,
-            ['[1] [3]'], {1: 'Footnote 1', 3: 'Footnote 3'},
-            ['[3] [4]'], {3: 'Footnote 1', 4: 'Footnote 3'},
-        ), (
-            1,
-            ['[2] [3]'], {2: 'Footnote 2', 3: 'Footnote 3'},
-            ['[1] [2]'], {1: 'Footnote 2', 2: 'Footnote 3'},
-        ), (
-            1,
-            ['[3] [1]'], {1: 'Footnote 1', 3: 'Footnote 3'},
-            ['[2] [1]'], {1: 'Footnote 1', 2: 'Footnote 3'},
-        ), (
-            1,
-            ['[1,2]'], {1: 'Footnote 1', 2: 'Footnote 2'},
-            ['[1,2]'], {1: 'Footnote 1', 2: 'Footnote 2'},
-        ), (
-            2,
-            ['[1,2]'], {1: 'Footnote 1', 2: 'Footnote 2'},
-            ['[2,3]'], {2: 'Footnote 1', 3: 'Footnote 2'},
-        ), (
-            1,
-            ['[1-3]'], {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'},
-            ['[1-3]'], {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'},
-        ), (
-            2,
-            ['[1-3]'], {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'},
-            ['[2-4]'], {2: 'Footnote 1', 3: 'Footnote 2', 4: 'Footnote 3'},
-        ), (
-            1,
-            ['[1,2,3]'], {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'},
-            ['[1-3]'],   {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'},
-        )]
-)
+@parametrize_via_toml('test_protocol.toml')
 def test_renumber_footnotes(start, steps_before, footnotes_before, steps_after, footnotes_after):
     p = Protocol()
     p.steps = steps_before
-    p.footnotes = footnotes_before
+    p.footnotes = int_keys(footnotes_before)
     p.renumber_footnotes(start=start)
     assert p.steps == steps_after
-    assert p.footnotes == footnotes_after
+    assert p.footnotes == int_keys(footnotes_after)
 
-@pytest.mark.parametrize(
-        'steps_before,footnotes_before,steps_after,footnotes_after', [(
-            [], {},
-            [], {},
-        ), (
-            ['[1]'], {1: 'Footnote 1'},
-            ['[1]'], {1: 'Footnote 1'},
-        ), (
-            ['[1]'], {1: 'Footnote 1', 2: 'Footnote 2'},
-            ['[1]'], {1: 'Footnote 1'},
-        ), (
-            ['[2]'], {1: 'Footnote 1', 2: 'Footnote 2'},
-            ['[1]'], {1: 'Footnote 2'},
-        )]
-)
+@parametrize_via_toml('test_protocol.toml')
 def test_prune_footnotes(steps_before, footnotes_before, steps_after, footnotes_after):
     p = Protocol()
     p.steps = steps_before
-    p.footnotes = footnotes_before
+    p.footnotes = int_keys(footnotes_before)
     p.prune_footnotes()
     assert p.steps == steps_after
-    assert p.footnotes == footnotes_after
+    assert p.footnotes == int_keys(footnotes_after)
 
-@pytest.mark.parametrize(
-        'steps_before,steps_after,footnotes_before', [(
-            [], [], {},
-        ), (
-            ['Step [1]:'],   ['Step:'], {1: 'Footnote 1'},
-        ), (
-            ['Step [1,2]:'], ['Step:'], {1: 'Footnote 1', 2: 'Footnote 2'},
-        ), (
-            ['Step [1-3]:'], ['Step:'], {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'},
-        ), (
-            ['Some [1] idea.'], ['Some idea.'], {1: 'Footnote 1'},
-        )]
-)
+@parametrize_via_toml('test_protocol.toml')
 def test_clear_footnotes(steps_before, steps_after, footnotes_before):
     p = Protocol()
     p.steps = steps_before
-    p.footnotes = footnotes_before
+    p.footnotes = int_keys(footnotes_before)
     p.clear_footnotes()
     assert p.steps == steps_after
     assert p.footnotes == {}
 
-@pytest.mark.parametrize(
-        'date, commands, expected', [(
-            None,
-            [],
-            'protocol',
-        ), (
-            None,
-            ['command1 args'],
-            'command1',
-        ), (
-            None,
-            ['file1.txt'],
-            'file1',
-        ), (
-            None,
-            ['command1 args', 'file2.txt'],
-            'command1_file2',
-        ), (
-            arrow.get(1988, 11, 8),
-            [],
-            '19881108',
-        ), (
-            arrow.get(1988, 11, 8),
-            ['command1 args'],
-            '19881108_command1',
-        ), (
-            arrow.get(1988, 11, 8),
-            ['file1.txt'],
-            '19881108_file1',
-        ), (
-            arrow.get(1988, 11, 8),
-            ['command1 args', 'file2.txt'],
-            '19881108_command1_file2',
-        )]
-)
+@parametrize_via_toml('test_protocol.toml')
 def test_pick_slug(date, commands, expected):
+    date = None if date is False else arrow.get(date)
     p = Protocol(date=date, commands=commands)
     assert p.pick_slug() == expected
 
@@ -544,127 +429,29 @@ def test_show_empty():
     p = Protocol()
     assert p.show() == ''
 
-def test_show_date():
+@parametrize_via_toml('test_protocol.toml')
+def test_show_date(date, expected):
     p = Protocol()
-    p.date = arrow.get(1988, 11, 8)
-    assert p.show() == """\
-November 8, 1988
-"""
+    p.date = arrow.get(date)
+    assert p.show() == expected.rstrip()
 
-def test_show_commands():
+@parametrize_via_toml('test_protocol.toml')
+def test_show_commands(commands, expected):
     p = Protocol()
-    p.commands.append('sw pcr')
-    assert p.show() == """\
-$ sw pcr
-"""
+    p.commands = commands
+    assert p.show() == expected.rstrip()
 
-    p.commands.append('sw kld')
-    assert p.show() == """\
-$ sw pcr
-$ sw kld
-"""
-
-def test_show_steps():
+@parametrize_via_toml('test_protocol.toml')
+def test_show_steps(steps, expected):
     p = Protocol()
-    p.steps.append('Step 1\nLine break')
-    assert p.show() == """\
-1. Step 1
-   Line break
-"""
+    p.steps = steps
+    assert p.show() == expected.rstrip()
 
-    p.steps.append('Step 2\nAnother line break')
-    assert p.show() == """\
-1. Step 1
-   Line break
-
-2. Step 2
-   Another line break
-"""
-
-    p.steps = ['A\nB' for _ in range(10)]
-    assert p.show() == """\
- 1. A
-    B
-
- 2. A
-    B
-
- 3. A
-    B
-
- 4. A
-    B
-
- 5. A
-    B
-
- 6. A
-    B
-
- 7. A
-    B
-
- 8. A
-    B
-
- 9. A
-    B
-
-10. A
-    B
-"""
-
-@pytest.mark.parametrize(
-        'footnotes,expected', [({
-################
-1: "Footnote 1",
-}, """\
-Note:
-[1] Footnote 1
-"""), ({
-################
-1: "Footnote 1",
-2: "Footnote 2",
-}, """\
-Notes:
-[1] Footnote 1
-
-[2] Footnote 2
-"""), ({
-################
-1: "Footnote 1\nLine wrap",
-}, """\
-Note:
-[1] Footnote 1
-    Line wrap
-"""), ({
-################
-1: "Footnote 1\nLine wrap",
-2: "Footnote 2\nAnother line wrap",
-}, """\
-Notes:
-[1] Footnote 1
-    Line wrap
-
-[2] Footnote 2
-    Another line wrap
-"""), ({
-################
-1: "Footnote 1\nLine wrap",
-10: "Footnote 10\nAnother line wrap",
-}, """\
-Notes:
- [1] Footnote 1
-     Line wrap
-
-[10] Footnote 10
-     Another line wrap
-""")
-])
+@parametrize_via_toml('test_protocol.toml')
 def test_show_footnotes(footnotes, expected):
     p = Protocol()
-    p.footnotes = footnotes
-    assert p.show() == expected
+    p.footnotes = int_keys(footnotes)
+    assert p.show() == expected.rstrip()
 
 def test_show_everything():
     """
@@ -672,15 +459,15 @@ def test_show_everything():
     """
     p = Protocol()
     p.date = arrow.get(1988, 11, 8)
-    p.commands = ['sw pcr', 'sw kld']
+    p.commands = ['sw cmd-1', 'sw cmd-2']
     p.steps = ['Step 1', 'Step 2']
     p.footnotes = {1: 'Footnote 1', 2: 'Footnote 2'}
     assert p.show() == str(p)
     assert p.show() == """\
 November 8, 1988
 
-$ sw pcr
-$ sw kld
+$ sw cmd-1
+$ sw cmd-2
 
 1. Step 1
 
@@ -689,16 +476,10 @@ $ sw kld
 Notes:
 [1] Footnote 1
 
-[2] Footnote 2
-"""
+[2] Footnote 2"""
 
 
-@pytest.mark.parametrize(
-        "text", [
-            "",
-            "\n",
-            " \n ",
-])
+@parametrize_via_toml('test_protocol.toml')
 def test_parse_empty(text):
     p = parse(text)
     assert p.date == None
@@ -706,335 +487,45 @@ def test_parse_empty(text):
     assert p.steps == []
     assert p.footnotes == {}
 
-@pytest.mark.parametrize(
-        "date,text", [(
-
-arrow.get(1988, 11, 8),
-"""\
-November 8, 1988
-"""
-), (
-
-arrow.get(1988, 11, 8),
-"""\
-
-November 8, 1988
-"""
-), (
-
-arrow.get(1988, 11, 8),
-"""\
-November 8, 1988
-
-"""
-)])
+@parametrize_via_toml('test_protocol.toml')
 def test_parse_date(text, date):
     p = parse(text)
-    assert p.date == date
+    assert p.date == arrow.get(date)
 
-@pytest.mark.parametrize(
-        "commands,text", [(
-
-['sw pcr'],
-"""\
-$ sw pcr
-"""
-), (
-
-['sw pcr'],
-"""\
-
-$ sw pcr
-"""
-), (
-
-['sw pcr'],
-"""\
-$ sw pcr
-
-"""
-), (
-
-['sw pcr', 'sw kld'],
-"""\
-$ sw pcr
-$ sw kld
-"""
-), (
-
-['sw pcr', 'sw kld'],
-"""\
-$ sw pcr
-
-$ sw kld
-"""
-)])
+@parametrize_via_toml('test_protocol.toml')
 def test_parse_commands(text, commands):
     p = parse(text)
     assert p.commands == commands
 
-@pytest.mark.parametrize(
-        "err, text", [(
-
-"expected a step",
-"""\
-$ sw pcr
-unexpected text
-"""
-)])
+@parametrize_via_toml('test_protocol.toml')
 def test_parse_commands_err(text, err):
     with raises(ParseError, match=err):
         parse(text)
 
-@pytest.mark.parametrize(
-        "steps,text", [(
-
-['Step 1'],
-"""\
-- Step 1
-"""
-), (
-
-['Step 1'],
-"""\
-
-- Step 1
-"""
-), (
-
-['Step 1'],
-"""\
-- Step 1
-
-"""
-), (
-
-['Step 1\nLine wrap'],
-"""\
-- Step 1
-  Line wrap
-"""
-), (
-
-['Step 1\n\nBlank line'],
-"""\
-- Step 1
-
-  Blank line
-"""
-), (
-
-['Step 1\n  Indented line'],
-"""\
-- Step 1
-    Indented line
-"""
-), (
-
-['Step 1\n- Substep 1'],
-"""\
-- Step 1
-  - Substep 1
-"""
-), (
-
-['Step 1', 'Step 2'],
-"""\
-- Step 1
-- Step 2
-"""
-), (
-
-['Step 1', 'Step 2'],
-"""\
-- Step 1
-
-- Step 2
-"""
-), (
-
-['Step 1'],
-"""\
-1. Step 1
-"""
-), (
-
-['Step 1', 'Step 2'],
-"""\
-1. Step 1
-2. Step 2
-"""
-), (
-
-['Step 1', 'Step 2'],
-"""\
- 1. Step 1
- 2. Step 2
-"""
-)])
+@parametrize_via_toml('test_protocol.toml')
 def test_parse_steps(text, steps):
     p = parse(text)
     assert p.steps == steps
 
-@pytest.mark.parametrize(
-        'err,text', [(
-
-"expected a step",
-"""\
-- Step 1
-unexpected text
-"""
-), (
-
-"expected a step",
-"""\
-  Fake line wrap
-"""
-)])
+@parametrize_via_toml('test_protocol.toml')
 def test_parse_steps_err(err, text):
     with pytest.raises(ParseError, match=err):
         parse(text)
 
-@pytest.mark.parametrize(
-        'footnotes,text', [(
-
-{},
-"""\
-Notes:
-"""
-), (
-
-{1: 'Footnote 1'},
-"""\
-Notes:
-[1] Footnote 1
-"""
-), (
-
-{1: 'Footnote 1'},
-"""\
-Notes:
-
-[1] Footnote 1
-"""
-), (
-
-{1: 'Footnote 1'},
-"""\
-Notes:
-[1] Footnote 1
-
-"""
-), (
-
-{1: 'Footnote 1\nLine wrap'},
-"""\
-Notes:
-[1] Footnote 1
-    Line wrap
-"""
-), (
-
-{1: 'Footnote 1\n  Indented line'},
-"""\
-Notes:
-[1] Footnote 1
-      Indented line
-"""
-), (
-
-{1: 'Footnote 1\n\nBlank line'},
-"""\
-Notes:
-[1] Footnote 1
-
-    Blank line
-"""
-), (
-
-{1: 'Footnote 1', 2: 'Footnote 2'},
-"""\
-Notes:
-[1] Footnote 1
-[2] Footnote 2
-"""
-), (
-
-{1: 'Footnote 1', 2: 'Footnote 2'},
-"""\
-Notes:
-[1] Footnote 1
-
-[2] Footnote 2
-"""
-)])
+@parametrize_via_toml('test_protocol.toml')
 def test_parse_footnotes(text, footnotes):
     p = parse(text)
-    assert p.footnotes == footnotes
+    assert p.footnotes == int_keys(footnotes)
 
-@pytest.mark.parametrize(
-        'err,text', [(
-
-"expected a footnote",
-"""\
-Notes:
-unexpected text
-"""
-), (
-
-"expected a footnote",
-"""\
-Notes:
-[1] Footnote 1
-unexpected text
-"""
-), (
-
-"expected a footnote",
-"""\
-Notes:
-   Fake line wrap
-"""
-), (
-
-r"unknown footnote \[1\]",
-"""\
-- Step 1 [1]
-"""
-), (
-
-r"unknown footnote \[2\]",
-"""\
-- Step 1 [2]
-
-Footnotes:
-[1] Footnote
-"""
-), (
-
-r"unknown footnote \[2\]",
-"""\
-- Step 1 [1,2]
-
-Footnotes:
-[1] Footnote
-"""
-), (
-
-r"unknown footnotes \[2,3\]",
-"""\
-- Step 1 [1-3]
-
-Footnotes:
-[1] Footnote
-"""
-)])
+@parametrize_via_toml('test_protocol.toml')
 def test_parse_footnotes_err(err, text):
     with pytest.raises(ParseError, match=err):
         parse(text)
 
 def test_parse_everything():
-    p = parse("""\
+    from io import StringIO
+
+    s = """\
 November 8, 1988
 
 $ sw pcr
@@ -1048,11 +539,50 @@ Notes:
 [1] Footnote 1
 
 [2] Footnote 2
-""")
-    assert p.date == arrow.get(1988, 11, 8)
-    assert p.commands == ['sw pcr', 'sw kld' ]
-    assert p.steps == ['Step 1', 'Step 2']
-    assert p.footnotes == {1: 'Footnote 1', 2: 'Footnote 2'}
+"""
+    inputs = [
+            s,
+            StringIO(s),
+            s.splitlines(),
+    ]
+    for input in inputs:
+        p = parse(input)
+        assert p.date == arrow.get(1988, 11, 8)
+        assert p.commands == ['sw pcr', 'sw kld' ]
+        assert p.steps == ['Step 1', 'Step 2']
+        assert p.footnotes == {1: 'Footnote 1', 2: 'Footnote 2'}
+
+def test_parse_err():
+    with raises(ParseError, match="not <class 'int'>"):
+        parse(1)
 
 
+def test_check_version_control(tmp_path):
+    from stepwise import check_version_control, VersionControlWarning
 
+    repo = tmp_path / 'repo'
+    repo.mkdir()
+    protocol = repo / 'protocol'
+    protocol.write_text("version 1")
+
+    with raises(VersionControlWarning, match="not in a git repository"):
+        check_version_control(protocol)
+
+    subp.run('git init', cwd=repo, shell=True)
+
+    with raises(VersionControlWarning, match="not committed"):
+        check_version_control(protocol)
+    
+    subp.run(f'git add {protocol.name}', cwd=repo, shell=True)
+    subp.run(f'git commit -m "Initial commit"', cwd=repo, shell=True)
+
+    check_version_control(protocol)
+
+    protocol.write_text("version 2")
+
+    with raises(VersionControlWarning, match="uncommitted changes"):
+        check_version_control(protocol)
+
+
+def int_keys(d):
+    return {int(k): v for k, v in d.items()}

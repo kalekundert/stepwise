@@ -73,14 +73,6 @@ class Protocol:
         raise ParseError(f"expected stream or string or list-like, not {type(x)}")
 
     @classmethod
-    def parse_stdin(cls):
-        with inform.set_culprit('<stdin>'):
-            if not sys.stdin.isatty():
-                return cls.parse_stream(sys.stdin)
-            else:
-                return cls()
-
-    @classmethod
     def parse_stream(cls, stream):
         return cls.parse_str(stream.read())
 
@@ -229,11 +221,7 @@ class Protocol:
                 self.show_steps(),
                 self.show_footnotes(),
         ])
-
-        if s.endswith('\n'):
-            s = s.rstrip() + '\n'
-
-        return s
+        return s.rstrip()
 
     def show_date(self):
         s = ''
@@ -439,6 +427,7 @@ class ProtocolIO:
             if show_error_header:
                 warn("the protocol could not be properly rendered due to error(s):")
             err.report(informant=warn)
+
             io.protocol = err.content
             io.errors = 1
 
@@ -457,7 +446,10 @@ class ProtocolIO:
         if not io.errors:
             io.protocol = merge(*(x.protocol for x in others))
         else:
-            io.protocol = '\n'.join((str(x.protocol) for x in others))
+            # When merging with the empty protocol created by default is stdin 
+            # is empty, an extraneous newline will be added to the front of the 
+            # protocol.  The strip() call deals with this.
+            io.protocol = '\n'.join((str(x.protocol) for x in others)).strip()
 
         return io
 
@@ -465,9 +457,9 @@ class ProtocolIO:
         self.protocol = protocol or Protocol()
         self.errors = errors
 
-    def to_stdout(self):
-        if sys.stdout.isatty():
-            print(self.protocol, end='')
+    def to_stdout(self, force_text=False):
+        if sys.stdout.isatty() or force_text:
+            print(self.protocol)
         else:
             pickle.dump(self, sys.stdout.buffer)
 
@@ -480,13 +472,17 @@ def load(name, args):
     culprit = hit['path']
 
     if hit['type'] != 'plugin':
-        check_version_control(hit['path'])
+        try:
+            check_version_control(hit['path'])
+        except VersionControlWarning:
+            err.report(informant=warn)
 
     if is_executable(hit['path']):
         cmd = str(hit['path']), *args
         culprit = f'`{shlex.join(cmd)}`'
         p = subp.run(cmd, stdout=subp.PIPE, text=True)
-        p.check_returncode()
+        if p.returncode != 0:
+            raise LoadError("command failed with status {p.returncode}", culprit=culprit)
         content = p.stdout
     elif hit['path'].suffix == '.txt':
         content = hit['path'].read_text()
@@ -578,17 +574,19 @@ def find_protocol_path(name):
         )
 
 def check_version_control(path):
+    path = path.resolve()
+
     # Check that the file is in a repository.
     p1 = subp.run(
             shlex.split('git rev-parse --show-toplevel'),
-            cwd=path.resolve().parent,
+            cwd=path.parent,
             capture_output=True, text=True
     )
     if p1.returncode != 0:
-        warn(f"not in a git repository!", culprit=path)
+        raise VersionControlWarning(f"not in a git repository!", culprit=path)
 
-    git_dir = Path(p1.stdout.strip())
-    git_relpath = path.resolve().relative_to(git_dir)
+    git_dir = Path(p1.stdout.strip()).resolve()
+    git_relpath = path.relative_to(git_dir)
 
     # Check that the file is being tracked.
     p2 = subp.run(
@@ -597,7 +595,7 @@ def check_version_control(path):
             capture_output=True,
     )
     if p2.returncode != 0:
-        warn(f"not committed", culprit=path)
+        raise VersionControlWarning(f"not committed", culprit=path)
 
     # Check that the file doesn't have any uncommitted changes.
     p3 = subp.run(
@@ -606,7 +604,7 @@ def check_version_control(path):
             capture_output=True, text=True,
     )
     if str(git_relpath) in p3.stdout:
-        warn(f"uncommitted changes", culprit=path)
+        raise VersionControlWarning(f"uncommitted changes", culprit=path)
 
 def is_executable(path):
     import os, stat

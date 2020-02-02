@@ -1,0 +1,114 @@
+###############################################################################
+### Builtins
+###############################################################################
+
+[[test_main]]
+id = 'builtin-echo'
+cmd = "stepwise echo -e '- A\\n- B'"
+stdout = '''
+{DATE}
+
+\$ stepwise echo -e '- A\\n- B'
+
+1\. A
+
+2\. B
+'''
+stderr = '$'
+return_code = 0
+
+[[test_main]]
+id = 'builtin-split'
+cmd = "stepwise split 'A;B'"
+stdout = '''
+{DATE}
+
+\$ stepwise split 'A;B'
+
+1\. A
+
+2\. B
+'''
+stderr = '$'
+return_code = 0
+
+
+###############################################################################
+### Pipes
+###############################################################################
+
+[[test_main]]
+id = 'pipeline-2'
+cmd = "stepwise split A | stepwise split B"
+stdout = '''
+{DATE}
+
+\$ stepwise split A
+\$ stepwise split B
+
+1\. A
+
+2\. B
+'''
+stderr = '$'
+return_code = 0
+
+[[test_main]]
+id = 'pipeline-3'
+cmd = "stepwise split A | stepwise split B | stepwise split C"
+stdout = '''
+{DATE}
+
+\$ stepwise split A
+\$ stepwise split B
+\$ stepwise split C
+
+1\. A
+
+2\. B
+
+3\. C
+'''
+stderr = '$'
+return_code = 0
+
+
+###############################################################################
+### Errors
+###############################################################################
+
+[[test_main]]
+id = 'err-unknown-protocol'
+cmd = "stepwise unknown-protocol"
+stdout = '$'
+stderr = '''
+stepwise error:
+    no protocols matching 'unknown-protocol' in:
+'''
+return_code = 1
+
+[[test_main]]
+id = 'err-formatting'
+cmd = "stepwise echo 'Formatting error'"
+stdout = '''
+Formatting error
+'''
+stderr = '''
+stepwise warning: the protocol could not be properly rendered due to error(s):
+stepwise warning: `.*echo 'Formatting error'`, 1:
+    expected a step (e.g. '- ...' or '1. ...'), not 'Formatting error'
+'''
+return_code = 0
+
+[[test_main]]
+id = 'err-bad-stdin'
+cmd = "echo foo | stepwise split A"
+stdout = '$'
+stderr = '''
+stepwise error: error parsing stdin: invalid load key, 'f'.
+    This error commonly occurs when the output from a non-stepwise command
+    is piped into a stepwise command.  When usings pipes to combine
+    protocols, make sure that every command is a stepwise command.
+'''
+return_code = 1
+

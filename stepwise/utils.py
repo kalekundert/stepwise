@@ -17,6 +17,9 @@ class LoadError(StepwiseError):
 class ParseError(LoadError):
     pass
 
+class VersionControlWarning(LoadError):
+    pass
+
 class NoProtocolsFound(LoadError):
 
     def __init__(self, name, search_dirs):

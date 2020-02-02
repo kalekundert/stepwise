@@ -19,7 +19,7 @@ def main():
 Generate and display scientific protocols.
 
 Usage:
-    stepwise [options] <command> [<args>...]
+    stepwise [-qx] <command> [<args>...]
     stepwise -h|--help
     stepwise -v|--version
 
@@ -32,7 +32,13 @@ Options:
         Show version information and exit.
 
     -q --quiet
-        Remove footnotes from the protocol.
+        Remove footnotes from the protocol.  This option only applies if the 
+        command specifies a protocol to display.
+
+    -x --force-text
+        Force the protocol to be printed in human-readable format (rather than 
+        the binary format used to communicate through pipes) even if stdout is 
+        not a TTY.  This option should not be necessary in normal usage.
 
 Examples:
 
@@ -72,14 +78,11 @@ Examples:
                     show_error_header=not io_stdin.errors,
             )
             io_stdout = ProtocolIO.merge(io_stdin, io_cli)
-            io_stdout.to_stdout()
+            io_stdout.to_stdout(args['--force-text'])
 
     except StepwiseError as err:
         err.terminate()
 
-    except subp.CalledProcessError as err:
-        sys.exit(err.returncode)
-    
 def ls():
     """\
 List protocols known to stepwise.
@@ -196,7 +199,7 @@ and size, etc.) can be configured in:
     {site_config_path}
 """
     args = docopt(usage)
-    protocol = Protocol.parse_stdin()
+    io = ProtocolIO.from_stdin()
 
     # Write the protocol to a file.
     if not args['--no-file']:
@@ -206,10 +209,10 @@ and size, etc.) can be configured in:
             print(f"'{path}' already exists, use '-f' to overwrite.")
             sys.exit(1)
             
-        path.write_text(str(protocol))
+        path.write_text(str(io.protocol))
 
     # Send to protocol to the printer.
     if not args['--no-print']:
-        print_protocol(protocol, args['--printer'])
+        print_protocol(io.protocol, args['--printer'])
 
 

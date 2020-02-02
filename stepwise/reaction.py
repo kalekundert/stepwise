@@ -173,9 +173,6 @@ class MasterMix:
         )
 
         # Assemble the table
-
-
-        
         rule = '─' * (sum(column_widths) + 2 * len(column_widths) - 2)
         rows = [
             row_template.format(*column_titles),
