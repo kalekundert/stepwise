@@ -33,8 +33,6 @@ def tty_capture(cmd, stdin=None, env={}, **kwargs):
     me, se = pty.openpty()  
     mi, si = pty.openpty()  
 
-    from pprint import pprint
-    pprint({'COLUMNS': '80', **env, **os.environ})
     p = subp.Popen(
         cmd,
         bufsize=1,
