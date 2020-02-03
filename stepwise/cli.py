@@ -121,11 +121,14 @@ Options:
 
         return x['name']
 
-    def by_type_then_name(x):
-        return by_type(x), by_name(x)
+    def by_relpath(x):
+        return x['relpath']
+
+    def by_type_then_name_then_relpath(x):
+        return by_type(x), by_name(x), by_relpath(x)
 
     paths = find_protocol_paths(args['<protocol>'])
-    paths = sorted(paths, key=by_type_then_name)
+    paths = sorted(paths, key=by_type_then_name_then_relpath)
     indent = '' if args['--paths'] else '  '
 
     for type, dirs in groupby(paths, by_type):
