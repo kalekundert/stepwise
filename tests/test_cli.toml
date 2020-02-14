@@ -120,13 +120,19 @@ stderr = '''
 .*stepwise warning.*`.*echo 'Formatting error'`, 1.*
     expected a step \(e.g. '- ...' or '1. ...'\), not 'Formatting error'
 '''
-return_code = 0
+return_code = 1
 
 [[test_main]]
 id = 'err-bad-stdin'
 cmd = "echo foo | stepwise split A"
 env = {}
-stdout = '^$'
+stdout = '''
+^{DATE}
+
+\$ stepwise split A
+
+1\. A
+'''
 stderr = '''
 .*stepwise error.*error parsing stdin: invalid load key, 'f'.
     This error commonly occurs when the output from a non-stepwise command

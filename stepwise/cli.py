@@ -79,9 +79,11 @@ Examples:
             )
             io_stdout = ProtocolIO.merge(io_stdin, io_cli)
             io_stdout.to_stdout(args['--force-text'])
+            sys.exit(io_stdout.errors)
 
     except StepwiseError as err:
         err.terminate()
+
 
 def ls():
     """\
