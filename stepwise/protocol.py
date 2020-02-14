@@ -432,6 +432,9 @@ class ProtocolIO:
             io.errors = 1
 
         else:
+            if not io.protocol.steps:
+                warn("protocol is empty.", culprit=command)
+
             io.protocol.set_current_date()
             io.protocol.set_current_command()
             if quiet: io.protocol.clear_footnotes()

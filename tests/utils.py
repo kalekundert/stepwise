@@ -20,7 +20,7 @@ def parametrize_via_toml(relpath):
         # Make sure there aren't any missing/extra parameters:
         for params in raw_params:
             if missing := raw_args - set(params):
-                missing_str = ', '.join("'{x}'" for x in missing)
+                missing_str = ', '.join(f"'{x}'" for x in missing)
                 raise ValueError(f"{toml_path}: {f.__name__}: missing parameter(s) {missing_str}")
 
         args = list(raw_args)

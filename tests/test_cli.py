@@ -15,7 +15,7 @@ def test_main(cmd, env, stdout, stderr, return_code):
     print(p.stderr, file=sys.stderr)
 
     check_output(stdout, p.stdout)
-    check_output(stdout, p.stdout)
+    check_output(stderr, p.stderr)
 
 
 def tty_capture(cmd, stdin=None, env={}, **kwargs):
@@ -82,6 +82,7 @@ def tty_capture(cmd, stdin=None, env={}, **kwargs):
     )
 
 def check_output(pattern, actual):
+    print(pattern)
     pattern = pattern.format(DATE=DATE).strip()
     actual = actual.replace('\r', '')
     assert re.match(pattern, actual, flags=re.DOTALL)
