@@ -482,7 +482,7 @@ def load(name, args):
         culprit = f'`{shlex.join(cmd)}`'
         p = subp.run(cmd, stdout=subp.PIPE, text=True)
         if p.returncode != 0:
-            raise LoadError("command failed with status {p.returncode}", culprit=culprit)
+            raise LoadError(f"command failed with status {p.returncode}", culprit=culprit)
         content = p.stdout
     elif hit['path'].suffix == '.txt':
         content = hit['path'].read_text()

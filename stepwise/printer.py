@@ -3,6 +3,7 @@
 import sys
 import shlex
 import subprocess as subp
+from inform import warn
 from nonstdlib import pretty_range
 from .config import load_config
 from .utils import *

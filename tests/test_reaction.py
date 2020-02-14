@@ -6,7 +6,7 @@ from io import StringIO
 from stepwise import MasterMix, Reaction, Reagent, Solvent, Quantity, Q
 from stepwise import UsageError
 
-wx = 'w', '8 µL', {
+wx = '8 µL', {
         'w': ('5 µL',  ..., True),
         'x': ('3 µL', '2x', False),
 }
@@ -558,30 +558,20 @@ def test_reaction_hold_ratios_in_place():
     assert rxn.volume == '10 µL'
     assert rxn['x'].volume == '2 µL'
 @pytest.mark.parametrize(
-        'csv,solvent,volume,reagents', [(
+        'csv,volume,reagents', [(
 
         # Solvent only
             "Reagent,Stock,Volume,MM?\n"
-            "w,,5 µL,yes\n"
+            "w,,to 5 µL,yes\n"
             ,
-                'w', '5 µL', {
+                '5 µL', {
                     'w': ('5 µL', ..., True),
-                },
-        ), (
-
-        # Reagent only:
-            "Reagent,Stock,Volume,MM?\n"
-            "x,2x,3 µL,no\n"
-            , 
-                'w', None, {
-                    'w': (   ...,  ...,   ...),
-                    'x': ('3 µL', '2x', False),
                 },
         ), (
 
         # Solvent and reagent:
             "Reagent,Stock,Volume,MM?\n"
-            "w,,5 µL,yes\n"
+            "w,,to 8 µL,yes\n"
             "x,2x,3 µL,no\n"
             ,
             *wx,
@@ -589,13 +579,13 @@ def test_reaction_hold_ratios_in_place():
 
         # Column aliases:
             "Reagent,Stock Conc,Volume,MM?\n"
-            "w,,5 µL,yes\n"
+            "w,,to 8 µL,yes\n"
             "x,2x,3 µL,no\n"
             ,
             *wx,
         ), (
             "Reagent,Stock,Volume,Master Mix\n"
-            "w,,5 µL,yes\n"
+            "w,,to 8 µL,yes\n"
             "x,2x,3 µL,no\n"
             ,
             *wx,
@@ -603,7 +593,7 @@ def test_reaction_hold_ratios_in_place():
 
         # Out-of-order columns:
             "Reagent,Volume,Stock,MM?\n"
-            "w,5 µL,,yes\n"
+            "w,to 8 µL,,yes\n"
             "x,3 µL,2x,no\n"
             ,
             *wx
@@ -611,7 +601,7 @@ def test_reaction_hold_ratios_in_place():
 
         # Extra columns:
             "Reagent,Stock,Volume,MM?,Note\n"
-            "w,,5 µL,yes,lorem ipsum\n"
+            "w,,to 8 µL,yes,lorem ipsum\n"
             "x,2x,3 µL,no\n"
             ,
             *wx,
@@ -619,57 +609,37 @@ def test_reaction_hold_ratios_in_place():
 
         # Optional columns:
             "Reagent,Stock,Volume\n"
-            "w,,5 µL\n"
+            "w,,to 8 µL\n"
             "x,2x,3 µL\n"
             ,
-                'w', '8 µL', {
+                '8 µL', {
                     'w': ('5 µL',  ..., False),
                     'x': ('3 µL', '2x', False),
                 }
         ), (
 
         # Undefined values:
-            "Reagent,Stock Conc,Volume,MM?\n"
-            "w,,,yes\n"
-            "x,2x,3 µL,no\n"
-            ,
-                'w', None, {
-                    'w': (   ...,  ..., True),
-                    'x': ('3 µL', '2x', False),
-                }
-        ), (
             "Reagent,Stock,Volume,MM?\n"
-            "w,,5 µL,yes\n"
+            "w,,to 8 µL,yes\n"
             "x,,3 µL,no\n"
             ,
-                'w', '8 µL', {
+                '8 µL', {
                     'w': ('5 µL',  ..., True),
                     'x': ('3 µL', None, False),
                 }
         ), (
             "Reagent,Stock,Volume,MM?\n"
-            "w,,5 µL,yes\n"
-            "x,2x,,no\n"
-            ,
-                'w', None, {
-                    # The solvent loses its volume because the volume of the 
-                    # reaction isn't defined.
-                    'w': (   ...,  ..., True),
-                    'x': (  None, '2x', False),
-                }
-        ), (
-            "Reagent,Stock,Volume,MM?\n"
-            "w,,5 µL,\n"
+            "w,,to 8 µL,\n"
             "x,2x,3 µL,no\n"
             ,
-                'w', '8 µL', {
+                '8 µL', {
                     'w': ('5 µL',  ..., False),
                     'x': ('3 µL', '2x', False),
                 }
         )]
 )
-def test_reaction_from_csv(csv, solvent, volume, reagents):
-    rxn = Reaction.from_csv(StringIO(csv), solvent)
+def test_reaction_from_csv(csv, volume, reagents):
+    rxn = Reaction.from_csv(StringIO(csv))
 
     assert len(rxn) == len(reagents)
     assert rxn.volume == volume
@@ -681,54 +651,56 @@ def test_reaction_from_csv(csv, solvent, volume, reagents):
         if master_mix != ...: assert rxn[name].master_mix == master_mix
 
 @pytest.mark.parametrize(
-        'csv,solvent,err', [(
+        'csv,err', [(
             "Reagent,Stock,Volume,MM?",
-            'w',
             "at least one reagent",
         ), (
-            "Reagent,Stock,Volume,MM?\n,10x,1 µL,yes",
-            'w',
-            "missing names",
-        ), (
-            "Stock,Volume,MM?\n10x,1 µL,yes",
-            'w',
+            "Stock,Volume,MM?\n,to 5 µL,yes",
             "no 'Reagent' column",
         ), (
-            "Reagent,Volume,MM?\nx,1 µL,yes",
-            'w',
+            "Reagent,Volume,MM?\nx,to 5 µL,yes",
             "no 'Stock Conc' column",
         ), (
-            "Reagent,Stock,MM?\nx,10x,yes",
-            'w',
+            "Reagent,Stock,MM?\nx,,yes",
             "no 'Volume' column",
         ), (
-            "Reagent,Stock,Volume,MM?\nw,10x,1 µL,yes",
-            'w',
+            "Reagent,Stock,Volume,MM?\n,,to 5 µL,yes",
+            "missing names",
+        ), (
+            "Reagent,Stock,Volume,MM?\nx,,,yes",
+            "missing volumes",
+        ), (
+            "Reagent,Stock,Volume,MM?\nx,,5 µL,yes",
+            "no solvent found",
+        ), (
+            "Reagent,Stock,Volume,MM?\nx,,to 5 µL,yes\ny,,to 6 µL,yes",
+            "multiple solvents specified",
+        ), (
+            "Reagent,Stock,Volume,MM?\nw,10x,to 5 µL,yes",
             "stock conc.* 'w'",
         ), (
-            "Reagent,Stock,Volume,MM?\nx,10x,1 µL,maybe",
-            'w',
+            "Reagent,Stock,Volume,MM?\nx,,to 5 µL,maybe",
             "expected 'yes' or 'no', got 'maybe'",
         )]
 )
-def test_reaction_from_csv_raises(csv, solvent, err):
+def test_reaction_from_csv_raises(csv, err):
     with pytest.raises(UsageError, match=err):
-        Reaction.from_csv(StringIO(csv), solvent)
+        Reaction.from_csv(StringIO(csv))
 
 @pytest.mark.parametrize(
-        'text,solvent,volume,reagents', [(
+        'text,volume,reagents', [(
 
         # Solvent only
-            "Reagent  Stock  Volume  MM?\n"
-            "=======  =====  ======  ===\n"
-            "w                 5 µL  yes\n"
-            "x           2x    3 µL   no\n"
+            "Reagent  Stock   Volume  MM?\n"
+            "=======  =====  =======  ===\n"
+            "w               to 8 µL  yes\n"
+            "x           2x     3 µL   no\n"
             ,
             *wx
         )]
 )
-def test_reaction_from_text(text, solvent, volume, reagents):
-    rxn = Reaction.from_text(text, solvent)
+def test_reaction_from_text(text, volume, reagents):
+    rxn = Reaction.from_text(text)
 
     assert len(rxn) == len(reagents)
     assert rxn.volume == volume
@@ -761,10 +733,10 @@ def test_reaction_from_text(text, solvent, volume, reagents):
 
         # Malformed underline:
             ""
-            "Reagent  Stock  Volume  MM?\n"
-            "~~~~~~~  ~~~~~  ~~~~~~  ~~~\n"
-            "w                 5 µL  yes\n"
-            "x           2x    3 µL   no\n"
+            "Reagent  Stock   Volume  MM?\n"
+            "~~~~~~~  ~~~~~  ~~~~~~~  ~~~\n"
+            "w               to 8 µL  yes\n"
+            "x           2x     3 µL   no\n"
             ,
             "not '~~~",
         )]
@@ -913,11 +885,11 @@ def test_master_mix_scale(params):
 
 def test_master_mix_show():
     mm = MasterMix.from_text("""\
-Reagent  Stock  Volume  MM?
-=======  =====  ======  ===
-water             7 µL  yes
-buffer     10x    1 µL  yes
-enzyme      5x    2 µL   no
+Reagent  Stock    Volume  MM?
+=======  =====  ========  ===
+water           to 10 µL  yes
+buffer     10x      1 µL  yes
+enzyme      5x      2 µL   no
 """)
 
     mm.num_reactions = 1

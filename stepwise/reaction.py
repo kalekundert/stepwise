@@ -8,7 +8,17 @@ import pandas as pd
 from operator import lt, le, eq, ne, ge, gt, add, sub, mul, truediv, floordiv
 from collections.abc import Iterable
 from nonstdlib import plural
+from more_itertools import one
 from .utils import *
+
+# Solvent handling
+# ================
+# - Having solvent be an attribute of Reaction ensures that there is only ever 
+#   one solvent.
+#
+# - Right now, you got to set the solvent before declaring all the reagents, 
+#   cuz you can't make a reagent a solvent once it's there.  That's kinda 
+#   obnoxious.
 
 @autoprop
 class MasterMix:
@@ -197,7 +207,7 @@ class MasterMix:
 class Reaction:
 
     @classmethod
-    def from_text(cls, text, solvent='water'):
+    def from_text(cls, text):
         """
         Define a reaction using an ASCII-style table.
 
@@ -245,25 +255,25 @@ class Reaction:
         reagents = [split_columns(x) for x in lines[2:]]
 
         df = pd.DataFrame.from_records(reagents, columns=header)
-        return cls.from_pandas(df, solvent)
+        return cls.from_pandas(df)
 
     @classmethod
-    def from_csv(cls, path_or_buffer, solvent='water', *args, **kwargs):
+    def from_csv(cls, path_or_buffer, *args, **kwargs):
         df = pd.read_csv(path_or_buffer, *args, **kwargs)
-        return cls.from_pandas(df, solvent)
+        return cls.from_pandas(df)
 
     @classmethod
-    def from_tsv(cls, path_or_buffer, solvent='water', *args, **kwargs):
+    def from_tsv(cls, path_or_buffer, *args, **kwargs):
         df = pd.read_csv(path_or_buffer, sep='\t', *args, **kwargs)
-        return cls.from_pandas(df, solvent)
+        return cls.from_pandas(df)
 
     @classmethod
-    def from_excel(cls, path_or_buffer, solvent='water', *args, **kwargs):
+    def from_excel(cls, path_or_buffer, *args, **kwargs):
         df = pd.read_excel(path_or_buffer, *args, **kwargs)
-        return cls.from_pandas(df, solvent)
+        return cls.from_pandas(df)
 
     @classmethod
-    def from_pandas(cls, df, solvent='water'):
+    def from_pandas(cls, df):
         """
         Define a reaction from a pandas data frame.
 
@@ -281,7 +291,6 @@ class Reaction:
         "y", "no", or "n".
         """
         rxn = cls()
-        rxn.solvent = solvent
 
         # Use consistent column names:
 
@@ -297,14 +306,14 @@ class Reaction:
         df = df.fillna('')
 
         # Make sure the table makes sense:
-        #
+
         # - Make sure all the required columns are present.
         # - Fill in any missing optional columns with default values.
         # - Unexpected columns are allowed.  Maybe the user wanted to annotate 
         #   the reaction with comments or product numbers or something.
         # - Make sure there is at least one row.
         # - Make sure every reagent is named.
-        # - Make sure one of the reagents is the solvent.
+        # - Make sure every reagent has a volume.
 
         def required_column(df, name):
             if name not in df.columns:
@@ -321,24 +330,24 @@ class Reaction:
 
         if len(df) == 0:
             raise UsageError("reaction must have at least one reagent.")
-        if '' in list(df['Reagent']):
+        if (df['Reagent'] == '').any():
             raise UsageError("some reagents are missing names.")
+        if (df['Volume'] == '').any():
+            raise UsageError("some reagents are missing volumes.")
 
-        # Find the volume of the reaction.
-        #
-        # - Don't set a volume for the whole reaction if any of the reagents 
-        #   have undefined volumes.
+        # Configure the solvent:
 
-        have_volumes = all(x != '' for x in df['Volume'])
-        have_solvent = solvent in set(df['Reagent'])
+        is_solvent = df['Volume'].str.strip().str.startswith('to')
+        i, solvent_row = one(
+                df[is_solvent].iterrows(),
+                UsageError("no solvent found.\nUse the 'to <total volume>' syntax in the 'Volume' column to specify the solvent."),
+                UsageError("multiple solvents specified."),
+        )
 
-        if have_volumes and have_solvent:
-            rxn.volume = sum(
-                    Quantity.from_string(x)
-                    for x in df['Volume']
-            )
+        rxn.solvent = solvent_row['Reagent']
+        rxn.volume = solvent_row['Volume'][2:]
 
-        # Define all the reagents:
+        # Configure all the other reagents:
 
         def parse_bool(x):
             if x in ('yes', 'y', 'x', 1):
@@ -349,9 +358,9 @@ class Reaction:
 
         for i, row in df.iterrows():
             name = row['Reagent']
-            non_solvent = ns = (name != solvent)
+            non_solvent = ns = (name != rxn.solvent)
 
-            if row['Stock Conc'] and (name == solvent):
+            if row['Stock Conc'] and (name == rxn.solvent):
                 raise UsageError(f"stock concentration {row['Stock Conc']!r} specified for solvent {name!r}")
 
             if (x := row['Stock Conc']):    rxn[name].stock_conc = x
@@ -436,6 +445,8 @@ class Reaction:
                 self._reagents[new_solvent] = self._reagents[old_solvent]
             del self._reagents[old_solvent]
 
+        # Don't need to instantiate the solvent here.  It'll get instantiated 
+        # when someone tries to access it; see `__getitem__()`.
         self._solvent = new_solvent
 
     @property
@@ -776,7 +787,7 @@ class Quantity:
     - Immutable
     """
     FLOAT_REGEX = r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)'
-    QUANTITY_REGEX = fr'^({FLOAT_REGEX})\s*(\S+)$'
+    QUANTITY_REGEX = fr'^\s*({FLOAT_REGEX})\s*(\S+)$'
     NO_PADDING = '%', 'x'
 
     @classmethod

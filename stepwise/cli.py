@@ -206,7 +206,7 @@ and size, etc.) can be configured in:
 
     # Write the protocol to a file.
     if not args['--no-file']:
-        path = Path(f'{protocol.pick_slug()}.txt')
+        path = Path(f'{io.protocol.pick_slug()}.txt')
 
         if path.exists() and not args['--force']:
             print(f"'{path}' already exists, use '-f' to overwrite.")
