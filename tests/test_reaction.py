@@ -16,18 +16,33 @@ def test_reagent_repr():
     x = Reagent(rxn, 'x')
     assert re.match(r"Reagent\(reaction=\d{4}, name='x'\)", repr(x))
 
+def test_reagent_key():
+    rxn = Reaction()
+
+    x = Reagent(rxn, 'x')
+    assert x.key == 'x'
+    assert 'x' in rxn
+    assert 'y' not in rxn
+
+    x.key = 'y'
+    assert x.key == 'y'
+    assert 'x' not in rxn
+    assert 'y' in rxn
+
 def test_reagent_name():
     rxn = Reaction()
 
     x = Reagent(rxn, 'x')
+    assert x.key == 'x'
     assert x.name == 'x'
     assert 'x' in rxn
     assert 'y' not in rxn
 
     x.name = 'y'
+    assert x.key == 'x'
     assert x.name == 'y'
-    assert 'x' not in rxn
-    assert 'y' in rxn
+    assert 'x' in rxn
+    assert 'y' not in rxn
 
 @pytest.mark.parametrize(
         'given,expected', [
@@ -276,7 +291,7 @@ def test_reagent_order():
     assert x.order == 1
 
 
-def test_solvent_name():
+def test_solvent_key():
     rxn = Reaction()
     rxn.solvent = 'w'
 
@@ -284,25 +299,43 @@ def test_solvent_name():
     w = rxn['w']
     rxn['y']
 
-    assert w.name == 'w'
+    assert w.key == 'w'
 
-    # Set the name without changing it.  This shouldn't cause problems:
+    # Set the key without changing it.  This shouldn't cause problems:
     rxn.solvent = 'w'
 
-    # Rename the solvent via the reaction:
+    # Re-key the solvent via the reaction:
     rxn.solvent = 'w2'
     assert 'w' not in rxn
     assert 'w2' in rxn
     assert rxn['w2'] is w
-    assert rxn['w2'].name == 'w2'
+    assert rxn['w2'].key == 'w2'
 
-    # Rename the solvent via itself:
-    w.name = 'w3'
+    # Re-key the solvent via itself:
+    w.key = 'w3'
     assert 'w' not in rxn
     assert 'w2' not in rxn
     assert 'w3' in rxn
     assert rxn['w3'] is w
-    assert rxn['w3'].name == 'w3'
+    assert rxn['w3'].key == 'w3'
+
+def test_solvent_name():
+    rxn = Reaction()
+    rxn.solvent = 'w'
+
+    w = rxn['w']
+
+    assert w.key == 'w'
+    assert w.name == 'w'
+    assert 'w' in rxn
+    assert 'w2' not in rxn
+
+    w.name = 'w2'
+
+    assert w.key == 'w'
+    assert w.name == 'w2'
+    assert 'w' in rxn
+    assert 'w2' not in rxn
 
 def test_solvent_volume():
     rxn = Reaction()

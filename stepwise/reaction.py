@@ -63,17 +63,17 @@ class MasterMix:
     def __iter__(self):
         return self.reaction.__iter__()
 
-    def __contains__(self, name):
-        return self.reaction.__contains__(name)
+    def __contains__(self, key):
+        return self.reaction.__contains__(key)
 
     def __len__(self):
         return self.reaction.__len__()
 
-    def __getitem__(self, name):
-        return self.reaction.__getitem__(name)
+    def __getitem__(self, key):
+        return self.reaction.__getitem__(key)
 
-    def __delitem__(self, name):
-        return self.reaction.__delitem__(name)
+    def __delitem__(self, key):
+        return self.reaction.__delitem__(key)
 
     def __getattr__(self, attr):
         # Note that `__getattr__()` isn't used to lookup dunder methods, so 
@@ -357,15 +357,15 @@ class Reaction:
             raise UsageError(f"expected 'yes' or 'no', got '{x}'")
 
         for i, row in df.iterrows():
-            name = row['Reagent']
-            non_solvent = ns = (name != rxn.solvent)
+            key = row['Reagent']
+            non_solvent = ns = (key != rxn.solvent)
 
-            if row['Stock Conc'] and (name == rxn.solvent):
-                raise UsageError(f"stock concentration {row['Stock Conc']!r} specified for solvent {name!r}")
+            if row['Stock Conc'] and (key == rxn.solvent):
+                raise UsageError(f"stock concentration {row['Stock Conc']!r} specified for solvent {key!r}")
 
-            if (x := row['Stock Conc']):    rxn[name].stock_conc = x
-            if (x := row['Volume']) and ns: rxn[name].volume = x
-            if (x := row['Master Mix']):    rxn[name].master_mix = parse_bool(x)
+            if (x := row['Stock Conc']):    rxn[key].stock_conc = x
+            if (x := row['Volume']) and ns: rxn[key].volume = x
+            if (x := row['Master Mix']):    rxn[key].master_mix = parse_bool(x)
 
         return rxn
 
@@ -389,12 +389,12 @@ class Reaction:
                 key=lambda x: math.inf if x.order is None else x.order
         )
 
-    def __contains__(self, name):
-        if name in self._reagents:
+    def __contains__(self, key):
+        if key in self._reagents:
             return True
 
         if self._solvent is not None:
-            if name == self._solvent:
+            if key == self._solvent:
                 return True
 
         return False
@@ -405,19 +405,19 @@ class Reaction:
                 self._solvent not in self._reagents
         )
 
-    def __getitem__(self, name):
-        if name not in self._reagents:
-            if name == self._solvent:
-                self._reagents[name] = Solvent(self)
+    def __getitem__(self, key):
+        if key not in self._reagents:
+            if key == self._solvent:
+                self._reagents[key] = Solvent(self)
             else:
-                self._reagents[name] = Reagent(self, name)
+                self._reagents[key] = Reagent(self, key)
 
-        return self._reagents[name]
+        return self._reagents[key]
 
-    def __delitem__(self, name):
-        if name in self._reagents:
-            del self._reagents[name]
-        if name == self._solvent:
+    def __delitem__(self, key):
+        if key in self._reagents:
+            del self._reagents[key]
+        if key == self._solvent:
             self._solvent = None
 
     def get_volume(self):
@@ -430,9 +430,9 @@ class Reaction:
     def get_solvent(self):
         return self._solvent
 
-    def set_solvent(self, name):
+    def set_solvent(self, key):
         old_solvent = self._solvent
-        new_solvent = name
+        new_solvent = key
 
         if new_solvent == old_solvent:
             return
@@ -487,7 +487,7 @@ class Reaction:
             v2 = Quantity.from_anything(volume)
 
             for reagent in self.reaction:
-                if reagent.name != self.reaction.solvent:
+                if reagent.key != self.reaction.solvent:
                     reagent.require_volume()
                     reagent.volume *= v2 / v1
 
@@ -496,11 +496,12 @@ class Reaction:
 @autoprop
 class Reagent:
 
-    def __init__(self, reaction, name):
+    def __init__(self, reaction, key):
         self._reaction = reaction
-        self._reaction._reagents[name] = self
+        self._reaction._reagents[key] = self
 
-        self._name = name
+        self._key = key
+        self._name = None
         self._volume = None
         self._stock_conc = None
 
@@ -514,12 +515,18 @@ class Reagent:
     def get_reaction(self):
         return self._reaction
 
+    def get_key(self):
+        return self._key
+
+    def set_key(self, key):
+        del self.reaction[self._key]
+        self._reaction._reagents[key] = self
+        self._key = key
+
     def get_name(self):
-        return self._name
+        return self._name or self._key
 
     def set_name(self, name):
-        del self.reaction[self._name]
-        self._reaction._reagents[name] = self
         self._name = name
 
     def get_volume(self):
@@ -746,14 +753,21 @@ class Solvent:
 
     def __init__(self, reaction):
         self._reaction = reaction
+        self._name = None
         self.master_mix = False
         self.order = None
 
-    def get_name(self):
+    def get_key(self):
         return self._reaction.solvent
 
+    def set_key(self, key):
+        self._reaction.solvent = key
+
+    def get_name(self):
+        return self._name or self.key
+
     def set_name(self, name):
-        self._reaction.solvent = name
+        self._name = name
 
     def get_volume(self):
         self._reaction.require_volume()
