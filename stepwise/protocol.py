@@ -16,7 +16,8 @@ from more_itertools import one
 from copy import copy
 from pathlib import Path
 from pkg_resources import iter_entry_points
-from inform import warn
+from inform import warn, error
+from traceback import print_exc
 from .config import config
 from .utils import *
 
@@ -402,19 +403,24 @@ class ProtocolIO:
     fully initialized `stepwise.Protocol` instance representing the protocol.
     """
 
+    # The methods of this class should never raise, so that commands can always 
+    # be pipelined no matter what goes wrong.
+
     @classmethod
     def from_stdin(cls):
         if sys.stdin.isatty():
-            return ProtocolIO()
+            return cls()
 
         try:
             return pickle.load(sys.stdin.buffer)
+
         except Exception as err:
-            raise IOError(
+            error(
                     f"error parsing stdin: {err}",
                     codicil="This error commonly occurs when the output from a non-stepwise command is piped into a stepwise command.  When usings pipes to combine protocols, make sure that every command is a stepwise command.",
                     wrap=True,
             )
+            return cls("", 1)
 
     @classmethod
     def from_cli(cls, command, args, quiet=False, show_error_header=False):
@@ -429,6 +435,18 @@ class ProtocolIO:
             err.report(informant=warn)
 
             io.protocol = err.content
+            io.errors = 1
+
+        except StepwiseError as err:
+            err.report()
+
+            io.protocol = ''
+            io.errors = 1
+
+        except Exception as err:
+            print_exc(file=sys.stderr)
+
+            io.protocol = ''
             io.errors = 1
 
         else:
@@ -464,7 +482,12 @@ class ProtocolIO:
         if sys.stdout.isatty() or force_text:
             print(self.protocol)
         else:
-            pickle.dump(self, sys.stdout.buffer)
+            try:
+                pickle.dump(self, sys.stdout.buffer)
+            except Exception as err:
+                print_exc(file=sys.stderr)
+                io = ProtocolIO('', 1)
+                pickle.dump(io)
 
 def load(name, args):
     """
