@@ -10,12 +10,12 @@ from .utils import *
 
 class PrinterOptions:
 
-    def __init__(self, **kwargs):
-        self.options = kwargs
+    def __init__(self, printer, options):
+        self.printer = printer
+        self.options = options
 
     def __repr__(self):
-        kwargs = ', '.join([f'{k}={repr(v)}' for k,v in self.options.items()])
-        return f'PrinterOptions({kwargs})'
+        return f'{self.__class__.__qualname__}(printer={self.printer!r} options={self.options!r})'
 
     def __getattr__(self, key):
         return self.options[key]
@@ -27,8 +27,9 @@ class PrinterOptions:
 
         defaults = config.printer.data.get('default', {})
         overrides = config.printer.data.get(printer, {})
+        options = {**defaults, **overrides}
 
-        return cls(**defaults, **overrides)
+        return cls(printer, options)
 
 def print_protocol(protocol, printer=None):
     options = load_printer_options(printer)
@@ -41,6 +42,8 @@ def print_protocol(protocol, printer=None):
     pages = make_pages(protocol, options)
     pages = add_margin(pages, options)
     print_pages(pages, options)
+
+    return options
 
 def load_printer_options(printer=None):
     config = load_config()

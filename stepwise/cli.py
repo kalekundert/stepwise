@@ -215,9 +215,11 @@ and size, etc.) can be configured in:
             sys.exit(1)
             
         path.write_text(str(io.protocol))
+        print(f"Protocol saved to '{path}'")
 
     # Send to protocol to the printer.
     if not args['--no-print']:
-        print_protocol(io.protocol, args['--printer'])
+        options = print_protocol(io.protocol, args['--printer'])
+        print(f"Protocol sent to '{options.printer}'")
 
 
