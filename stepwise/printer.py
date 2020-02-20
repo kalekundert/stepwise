@@ -15,7 +15,7 @@ class PrinterOptions:
         self.options = options
 
     def __repr__(self):
-        return f'{self.__class__.__qualname__}(printer={self.printer!r} options={self.options!r})'
+        return f'{self.__class__.__qualname__}(printer={self.printer!r}, options={self.options!r})'
 
     def __getattr__(self, key):
         return self.options[key]
