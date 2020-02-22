@@ -6,6 +6,7 @@ import autoprop
 import functools
 import pandas as pd
 from operator import lt, le, eq, ne, ge, gt, add, sub, mul, truediv, floordiv
+from pathlib import Path
 from collections.abc import Iterable
 from nonstdlib import plural
 from more_itertools import one
@@ -45,6 +46,10 @@ class MasterMix:
 
 
     def __init__(self, reaction=None):
+        if isinstance(reaction, (str, Path, pd.DataFrame)):
+            raise TypeError(
+                    f"expected a Reaction, got a {type(reaction)}.\n\nDid you mean to call {self.__class__.__qualname__}.from_text()")
+
         self.reaction = reaction or Reaction()
         self.num_reactions = 1
         self.extra_fraction = 0.1
@@ -101,6 +106,9 @@ class MasterMix:
     def get_master_mix_reagents(self):
         yield from [x for x in self if x.master_mix]
 
+    def get_master_mix_volume(self):
+        return sum(x.volume for x in self.master_mix_reagents)
+
     def get_extra_percent(self):
         return 100 * self.extra_fraction
 
@@ -144,9 +152,11 @@ class MasterMix:
             return cols
 
         def scale_header():
-            scale_str = f"{self.scale:.1f}".rstrip('0.')
-            prefix = '' if scale_str == str(self.scale).rstrip('0.') else '≈'
-            return f'{prefix}{scale_str}x'
+            strip_0 = lambda x: x.rstrip('0').rstrip('.')
+            scale_str_1 = strip_0(f"{self.scale:.1f}")
+            scale_str_5 = strip_0(f"{self.scale:.5f}")
+            prefix = '' if scale_str_1 == scale_str_5 else '≈'
+            return f'{prefix}{scale_str_1}x'
 
         # Figure out how big the table should be.
 
@@ -164,7 +174,7 @@ class MasterMix:
         )
         column_getters = cols(
                 lambda x: x.name,
-                lambda x: (x.stock_conc or '') if isinstance(x, Reagent) else '',
+                lambda x: x.stock_conc or '',
                 lambda x: f'{x.volume:.2f}',
                 lambda x: f'{x.volume * self.scale:.2f}' if x.master_mix else '',
         )
@@ -359,9 +369,6 @@ class Reaction:
         for i, row in df.iterrows():
             key = row['Reagent']
             non_solvent = ns = (key != rxn.solvent)
-
-            if row['Stock Conc'] and (key == rxn.solvent):
-                raise UsageError(f"stock concentration {row['Stock Conc']!r} specified for solvent {key!r}")
 
             if (x := row['Stock Conc']):    rxn[key].stock_conc = x
             if (x := row['Volume']) and ns: rxn[key].volume = x
@@ -754,6 +761,7 @@ class Solvent:
     def __init__(self, reaction):
         self._reaction = reaction
         self._name = None
+        self._stock_conc = None
         self.master_mix = False
         self.order = None
 
@@ -782,6 +790,12 @@ class Solvent:
 
     def set_volume(self, volume):
         raise NotImplementedError("cannot directly set solvent volume, set the reaction volume instead.")
+
+    def get_stock_conc(self):
+        return self._stock_conc
+
+    def set_stock_conc(self, stock_conc):
+        self._stock_conc = Quantity.from_anything(stock_conc)
 
     def require_volume(self):
         self._reaction.require_volume()

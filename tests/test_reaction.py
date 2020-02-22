@@ -978,3 +978,57 @@ water            7.00 µL  14.00 µL
 buffer     10x   1.00 µL   2.00 µL
 enzyme      5x   2.00 µL          """
 
+def test_master_mix_show_scale_header():
+    mm = MasterMix.from_text("""\
+Reagent  Stock    Volume  MM?
+=======  =====  ========  ===
+water           to 10 µL  yes
+buffer     10x      1 µL  yes
+enzyme      5x      2 µL   no
+""")
+
+    # Scale is an exact integer ending with zero.
+    mm.num_reactions = 10
+    mm.extra_percent = 0
+    assert str(mm) == """\
+Reagent  Stock    Volume       10x
+──────────────────────────────────
+water            7.00 µL  70.00 µL
+buffer     10x   1.00 µL  10.00 µL
+enzyme      5x   2.00 µL          
+──────────────────────────────────
+                10.00 µL   8.00 µL/rxn"""
+
+    # Scale is an exact integer not ending with zero.
+    mm.extra_percent = 10
+    assert str(mm) == """\
+Reagent  Stock    Volume       11x
+──────────────────────────────────
+water            7.00 µL  77.00 µL
+buffer     10x   1.00 µL  11.00 µL
+enzyme      5x   2.00 µL          
+──────────────────────────────────
+                10.00 µL   8.00 µL/rxn"""
+
+    # Scale is exactly represented with one decimal point.
+    mm.extra_percent = 11
+    assert str(mm) == """\
+Reagent  Stock    Volume     11.1x
+──────────────────────────────────
+water            7.00 µL  77.70 µL
+buffer     10x   1.00 µL  11.10 µL
+enzyme      5x   2.00 µL          
+──────────────────────────────────
+                10.00 µL   8.00 µL/rxn"""
+
+    # Scale is not exactly represented with one decimal point.
+    mm.extra_percent = 11.1
+    assert str(mm) == """\
+Reagent  Stock    Volume    ≈11.1x
+──────────────────────────────────
+water            7.00 µL  77.77 µL
+buffer     10x   1.00 µL  11.11 µL
+enzyme      5x   2.00 µL          
+──────────────────────────────────
+                10.00 µL   8.00 µL/rxn"""
+
