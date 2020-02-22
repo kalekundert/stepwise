@@ -709,9 +709,6 @@ def test_reaction_from_csv(csv, volume, reagents):
             "Reagent,Stock,Volume,MM?\nx,,to 5 µL,yes\ny,,to 6 µL,yes",
             "multiple solvents specified",
         ), (
-            "Reagent,Stock,Volume,MM?\nw,10x,to 5 µL,yes",
-            "stock conc.* 'w'",
-        ), (
             "Reagent,Stock,Volume,MM?\nx,,to 5 µL,maybe",
             "expected 'yes' or 'no', got 'maybe'",
         )]

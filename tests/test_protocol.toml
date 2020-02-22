@@ -560,7 +560,6 @@ Notes:
 """
 footnotes = {1 = "Footnote 1", 2 = "Footnote 2"}
 
-
 [[test_parse_footnotes_err]]
 text = """
 Notes:
