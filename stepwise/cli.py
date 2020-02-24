@@ -84,7 +84,6 @@ Examples:
     except StepwiseError as err:
         err.terminate()
 
-
 def ls():
     """\
 List protocols known to stepwise.

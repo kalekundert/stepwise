@@ -5,18 +5,25 @@ Create impromptu protocols by using delimiters to spearate steps specified on
 the command line.
 
 Usage:
-    cut <protocol> [-d CHAR]
+    cut <protocol> [-d CHAR] [-W]
 
 Options:
     -d --delimiter CHAR  [default: ;]
         Indicate that the steps of the protocol are separated by the given 
         character (or characters).
+
+    -W --no-wrap
+        Do not wrap each step to fit within 50 characters.
 """
 
 from docopt import docopt
 from stepwise import Protocol
+from textwrap import fill
 
 args = docopt(__doc__)
 p = Protocol()
-p.steps = args['<protocol>'].split(args['--delimiter'])
+p.steps = [
+        x if args['--no-wrap'] else fill(x, width=50)
+        for x in args['<protocol>'].split(args['--delimiter'])
+]
 print(p)
