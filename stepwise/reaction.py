@@ -801,7 +801,6 @@ class Solvent:
         self._reaction.require_volume()
 
 
-
 @autoprop
 class Quantity:
     """
@@ -847,7 +846,11 @@ class Quantity:
 
     def __init__(self, value, unit):
         self._value = value
-        self._unit = unit
+
+        # There are two unicode "micro" characters (one is meant to be the 
+        # micro prefix, while the other is meant to be the Greek mu).  Replace 
+        # the "mu" with the "micro" to avoid confusion.
+        self._unit = unit.replace('\u03bc', 'µ')
 
     def __repr__(self):
         return f'Quantity({self.value}, {self.unit!r})'

@@ -38,6 +38,10 @@ def test_unit():
     q = Quantity(1, 'ng')
     assert q.unit == 'ng'
 
+    # Normalize unicode micro signs.
+    q = Quantity(1, '\u03bcL')  # GREEK SMALL LETTER MU
+    assert q.unit == '\u00b5L'  # MICRO SIGN
+
     # Quantities are immutable.
     with pytest.raises(AttributeError):
         q.unit = 'µL'
