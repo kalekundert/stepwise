@@ -544,7 +544,8 @@ def find_protocol_dirs():
     def add_dir(dir, type, name):
         dir, name = Path(dir), str(name)
         if dir.exists() and name not in config.search.ignore:
-            dirs.append(dict(dir=dir, type=type, name=name))
+            if not any(x['dir'] == dir for x in dirs):
+                dirs.append(dict(dir=dir, type=type, name=name))
 
     # Add specific directories specified by the user.
     for dir in config.search.path:
