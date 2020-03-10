@@ -34,12 +34,15 @@ class PrinterOptions:
 def print_protocol(protocol, printer=None):
     options = load_printer_options(printer)
 
+    lines = str(protocol).splitlines()
+    lines = truncate_lines(lines, options)
+
     try:
-        check_for_long_lines(protocol, options)
+        check_for_long_lines(lines, options)
     except PrinterWarning as err:
         err.report(informant=warn)
 
-    pages = make_pages(protocol, options)
+    pages = make_pages(lines, options)
     pages = add_margin(pages, options)
     print_pages(pages, options)
 
@@ -49,8 +52,16 @@ def load_printer_options(printer=None):
     config = load_config()
     return PrinterOptions.from_config(config, printer)
 
-def check_for_long_lines(text, options):
-    lines = str(text).splitlines()
+def truncate_lines(lines, options):
+    def do_truncate(line):
+        if line.startswith('$') and len(line) > options.content_width:
+            return line[:options.content_width - 1] + '…'
+        else:
+            return line
+
+    return [do_truncate(x) for x in lines]
+
+def check_for_long_lines(lines, options):
     too_long_lines = []
 
     for lineno, line in enumerate(lines, 1):
@@ -71,7 +82,7 @@ def check_for_long_lines(text, options):
     )
     raise PrinterWarning(warning)
     
-def make_pages(text, options):
+def make_pages(lines, options):
     """
     Split the given protocol into pages by trying to best take advantage of 
     natural paragraph breaks.
@@ -79,8 +90,6 @@ def make_pages(text, options):
     The return value is a list of "pages", where each page is a list of lines 
     (without trailing newlines).
     """
-    lines = str(text).splitlines()
-
     pages = []
     current_page = []
     skip_next_line = False
