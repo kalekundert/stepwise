@@ -54,7 +54,8 @@ class MasterMix:
         self.num_reactions = 1
         self.extra_fraction = 0.1
         self.extra_reactions = 0
-        self.extra_min_volume = 0
+        self.extra_volume = 0
+        self.extra_min_volume = 0  # Minimum volume of any reagent.
         self.show_1x = True
         self.show_master_mix = None
         self.show_totals = True
@@ -124,6 +125,7 @@ class MasterMix:
         return max((
             self.num_reactions * (1 + self.extra_fraction),
             self.num_reactions + self.extra_reactions,
+            self.num_reactions + self.extra_volume / self.volume,
             self.extra_min_volume / min_volume if min_volume is not None else 0,
         ))
 
@@ -247,11 +249,11 @@ class Reaction:
         "Master Mix" column must be either "yes", "no", or "" (which means 
         "no").
         """
-        lines = text.strip().splitlines()
+        lines = text.rstrip().splitlines()
 
         if len(lines) < 3:
             raise UsageError(f"reagent table has {plural(lines):? line/s}, but needs at least 3 (i.e. header, underline, first reagent).")
-        if not re.match(r'[-=\s]+', lines[1]):
+        if not re.fullmatch(r'[-=\s]+', lines[1]):
             raise UsageError(f"the 2nd line of the reagent table must be an underline (e.g. '===' or '---'), not {lines[1]!r}.")
 
         column_slices = [
@@ -327,7 +329,7 @@ class Reaction:
 
         def required_column(df, name):
             if name not in df.columns:
-                raise UsageError(f"no {name!r} column found.")
+                raise UsageError(f"no {name!r} column found: {list(df.columns)}")
 
         def optional_column(df, name, default):
             if name not in df.columns:
@@ -368,11 +370,12 @@ class Reaction:
 
         for i, row in df.iterrows():
             key = row['Reagent']
+            reagent = rxn.add_reagent(key)
             non_solvent = ns = (key != rxn.solvent)
 
-            if (x := row['Stock Conc']):    rxn[key].stock_conc = x
-            if (x := row['Volume']) and ns: rxn[key].volume = x
-            if (x := row['Master Mix']):    rxn[key].master_mix = parse_bool(x)
+            if (x := row['Stock Conc']):    reagent.stock_conc = x
+            if (x := row['Volume']) and ns: reagent.volume = x
+            if (x := row['Master Mix']):    reagent.master_mix = parse_bool(x)
 
         return rxn
 
@@ -413,13 +416,7 @@ class Reaction:
         )
 
     def __getitem__(self, key):
-        if key not in self._reagents:
-            if key == self._solvent:
-                self._reagents[key] = Solvent(self)
-            else:
-                self._reagents[key] = Reagent(self, key)
-
-        return self._reagents[key]
+        return self.add_reagent(key)
 
     def __delitem__(self, key):
         if key in self._reagents:
@@ -455,6 +452,15 @@ class Reaction:
         # Don't need to instantiate the solvent here.  It'll get instantiated 
         # when someone tries to access it; see `__getitem__()`.
         self._solvent = new_solvent
+
+    def add_reagent(self, key):
+        if key not in self._reagents:
+            if key == self._solvent:
+                self._reagents[key] = Solvent(self)
+            else:
+                self._reagents[key] = Reagent(self, key)
+
+        return self._reagents[key]
 
     @property
     def hold_ratios(self):
@@ -764,6 +770,10 @@ class Solvent:
         self._stock_conc = None
         self.master_mix = False
         self.order = None
+
+    def __repr__(self):
+        reaction_id = str(id(self._reaction))[-4:]
+        return f'Solvent(reaction={reaction_id}, name={self.name!r})'
 
     def get_key(self):
         return self._reaction.solvent
