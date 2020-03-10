@@ -183,6 +183,10 @@ Usage:
     stepwise lpr [options]
 
 Options:
+    -o --output PATH
+        The name of the file where the protocol will be recorded.  By default, 
+        this name will follow the pattern: `YYYYMMDD_all_protocol_names.txt`
+
     -f --force
         Overwrite existing files.
 
@@ -207,7 +211,10 @@ and size, etc.) can be configured in:
 
     # Write the protocol to a file.
     if not args['--no-file']:
-        path = Path(f'{io.protocol.pick_slug()}.txt')
+        if args['--output']:
+            path = Path(args['--output'])
+        else:
+            path = Path(f'{io.protocol.pick_slug()}.txt')
 
         if path.exists() and not args['--force']:
             print(f"'{path}' already exists, use '-f' to overwrite.")
