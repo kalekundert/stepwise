@@ -385,9 +385,20 @@ class Protocol:
         self.date = arrow.now()
 
     def set_current_command(self):
-        # But also figure out full name of current script.
+        nonprintable = {
+            ord('\n'): '\\n',
+            ord('\a'): '\\a',
+            ord('\b'): '\\b',
+            ord('\f'): '\\f',
+            ord('\n'): '\\n',
+            ord('\r'): '\\r',
+            ord('\t'): '\\t',
+            ord('\v'): '\\v',
+        }
+
         argv = Path(sys.argv[0]).name, *sys.argv[1:]
-        self.commands = [shlex.join(argv)]
+        command = shlex.join(argv).translate(nonprintable)
+        self.commands = [command]
 
 class ProtocolIO:
     """
