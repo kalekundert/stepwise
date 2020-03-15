@@ -589,25 +589,30 @@ class Reagent:
         changing its final concentration.
         
         The equation below gives the relation between the stock concentration 
-        :math:`C` of the reagent, the volume :math:`V` of the reagent, the 
+        :math:`C` of the reagent, the volume :math:`v` of the reagent, the 
         concentration :math:`c` of the reagent in the reaction, and the volume 
-        :math:`v` of the whole reaction:
+        :math:`V` of the whole reaction:
 
         .. math::
 
-            C V = c v
+            C v = c V
 
-        If we wish to change :math:`C` or :math:`V` without changing :math:`c` or :math:`v`:
+        We can only set :math:`C` and :math:`v` directly.  If we wish to set 
+        either without changing :math:`c`, we must use the following equations:
 
         .. math::
 
-            C V = c v = k
+            c = \frac{C v}{V}
 
-            C_1 V_1 = C_2 V_2
+            \frac{C_1 v_1}{V} = \frac{C_2 v_2}{V}
 
-            C_2 = C_1 \frac{V_1}{V_2}
+            C_2 = \frac{C_1 v_1}{v_2}
 
-            V_2 = V_1 \frac{C_1}{C_2}
+            v_2 = \frac{C_1 v_1}{C_2}
+
+        Note that the volume :math:`v_1` and stock concentration :math:`C_1` of 
+        the reagent must already be specified in order for these equations to 
+        be applied.
         """
 
         def __init__(self, reagent):
@@ -650,25 +655,25 @@ class Reagent:
         changing its volume.
         
         The equation below gives the relation between the stock concentration 
-        :math:`C` of the reagent, the volume :math:`V` of the reagent, the 
+        :math:`C` of the reagent, the volume :math:`v` of the reagent, the 
         concentration :math:`c` of the reagent in the reaction, and the volume 
-        :math:`v` of the whole reaction:
+        :math:`V` of the whole reaction:
 
         .. math::
 
-            C * V = c * v
+            C v = c V
 
-        If we wish to change :math:`C` or :math:`c` without changing :math:`V` or :math:`v`:
+        We can only set :math:`C` and :math:`v` directly, and in this case we 
+        want to hold :math:`v` constant.  If we wish to set :math:`c` to a 
+        particular value, we must set :math:`C` according to:
 
         .. math::
 
-            C / c = v / V = k
+            C = \frac{c V}{v}
 
-            C_1 / c_1 = C_2 / c_2
-
-            C_2 = C_1 \frac{c_2}{c_1}
-
-            c_2 = c_1 \frac{C_2}{C_1}
+        Note that the volumes of the reagent and the whole reaction must 
+        already be specified in order for the stock concentration to be set in 
+        this manner.
         """
 
         def __init__(self, reagent):
@@ -679,28 +684,19 @@ class Reagent:
 
         def set_conc(self, conc):
             self.reagent.require_volume()
-            self.reagent.require_stock_conc()
+            self.reagent.reaction.require_volume()
 
-            c1 = self.conc
-            s1 = self.stock_conc
-            c2 = Quantity.from_anything(conc)
-            s2 = s1 * (c2 / c1)
+            c = Quantity.from_anything(conc)
+            v_rxn = self.reagent.reaction.volume
+            v = self.reagent.volume
 
-            self.reagent.stock_conc = s2
+            self.reagent.stock_conc = c * (v_rxn / v)
 
         def get_stock_conc(self):
             return self.reagent.stock_conc
 
         def set_stock_conc(self, stock_conc):
-            self.reagent.require_volume()
-            self.reagent.require_stock_conc()
-
-            s1 = self.stock_conc
-            c1 = self.conc
-            s2 = Quantity.from_anything(stock_conc)
-            c2 = c1 * (s2 / s1)
-
-            self.reagent.stock_conc = s2
+            self.reagent.stock_conc = Quantity.from_anything(stock_conc)
 
     @autoprop
     class _HoldStockConc:
@@ -715,19 +711,19 @@ class Reagent:
 
         .. math::
 
-            C * V = c * v
+            C v = c V
 
-        If we wish to change :math:`V` or :math:`c` without changing :math:`C` or :math:`v`:
+        We can only set :math:`C` and :math:`v` directly, and in this case we 
+        want to hold :math:`C` constant.  If we wish to set :math:`c` to a 
+        particular value, we must set :math:`v` according to:
 
         .. math::
 
-            V / c = v / C = k
+            v = \frac{c V}{C}
 
-            V_1 / c_1 = V_2 / c_2
-
-            V_2 = V_1 \frac{c_2}{c_1}
-
-            c_2 = c_1 \frac{V_2}{V_1}
+        Note that the stock concentration of the reagent and the volume of the 
+        whole reaction must already be specified in order for the volume to be 
+        set in this manner.
         """
 
         def __init__(self, reagent):
@@ -737,29 +733,20 @@ class Reagent:
             return self.reagent.volume
 
         def set_volume(self, volume):
-            self.reagent.require_volume()
-            self.reagent.require_stock_conc()
-
-            v1 = self.volume
-            c1 = self.conc
-            v2 = Quantity.from_anything(volume)
-            c2 = c1 * (v2 / v1)
-
-            self.reagent.volume = v2
+            self.reagent.volume = Quantity.from_anything(volume)
 
         def get_conc(self):
             return self.reagent.conc
 
         def set_conc(self, conc):
-            self.reagent.require_volume()
             self.reagent.require_stock_conc()
+            self.reagent.reaction.require_volume()
 
-            c1 = self.conc
-            v1 = self.volume
-            c2 = Quantity.from_anything(conc)
-            v2 = v1 * (c2 / c1)
+            c = Quantity.from_anything(conc)
+            v_rxn = self.reagent.reaction.volume
+            s = self.reagent.stock_conc
 
-            self.reagent.volume = v2
+            self.reagent.volume = v_rxn * (c / s)
 
 @autoprop
 class Solvent:

@@ -164,28 +164,21 @@ def test_reagent_hold_conc_in_place():
 )
 def test_reagent_hold_volume(rxn_volume, v1, s1, c1, s2, c2):
     rxn = Reaction()
-    rxn.volume = rxn_volume
     x = Reagent(rxn, 'x')
+    y = Reagent(rxn, 'y')
 
     # Set stock concentration:
-    x.volume = v1
-    x.stock_conc = s1
-    assert x.conc == x.hold_volume.conc == c1
-    assert x.hold_volume.stock_conc == s1
-
     x.hold_volume.stock_conc = s2
-    assert x.volume == v1
     assert x.stock_conc == s2
-    assert x.conc == c2
 
     # Set concentration:
-    x.volume = v1
-    x.stock_conc = s1
+    rxn.volume = rxn_volume
+    y.volume = v1
 
-    x.hold_volume.conc = c2
-    assert x.volume == v1
-    assert x.stock_conc == s2
-    assert x.conc == c2
+    y.hold_volume.conc = c2
+    assert y.volume == v1
+    assert y.stock_conc == s2
+    assert y.conc == c2
 
 def test_reagent_hold_volume_in_place():
     rxn = Reaction()
@@ -222,27 +215,20 @@ def test_reagent_hold_volume_in_place():
 )
 def test_reagent_hold_stock_conc(rxn_volume, s1, v1, c1, v2, c2):
     rxn = Reaction()
-    rxn.volume = rxn_volume
     x = Reagent(rxn, 'x')
+    y = Reagent(rxn, 'y')
 
     # Set volume:
-    x.volume = v1
-    x.stock_conc = s1
-    assert x.conc == x.hold_stock_conc.conc == c1
-    assert x.hold_stock_conc.volume == v1
-
     x.hold_stock_conc.volume = v2
     assert x.volume == v2
-    assert x.stock_conc == s1
-    assert x.conc == c2
 
     # Set concentration:
-    x.volume = v1
-    x.stock_conc = s1
-    x.hold_stock_conc.conc = c2
-    assert x.volume == v2
-    assert x.stock_conc == s1
-    assert x.conc == c2
+    rxn.volume = rxn_volume
+    y.stock_conc = s1
+    y.hold_stock_conc.conc = c2
+    assert y.volume == v2
+    assert y.stock_conc == s1
+    assert y.conc == c2
 
 def test_reagent_hold_stock_conc_in_place():
     rxn = Reaction()
