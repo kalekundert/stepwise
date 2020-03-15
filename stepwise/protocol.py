@@ -56,6 +56,9 @@ class Protocol:
     def __str__(self):
         return self.show()
     
+    def __bool__(self):
+        return bool(self.steps)
+
     def __iadd__(self, other):
         self.append(other)
         return self

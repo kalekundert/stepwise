@@ -175,12 +175,12 @@ Usage:
     for path in paths:
         print(path['path'])
 
-def lpr():
+def go():
     usage = f"""\
 Write the protocol to a file and print a paper copy.
 
 Usage:
-    stepwise lpr [options]
+    stepwise go [options]
 
 Options:
     -o --output PATH
@@ -208,6 +208,10 @@ and size, etc.) can be configured in:
 """
     args = docopt(usage)
     io = ProtocolIO.from_stdin()
+
+    if not io.protocol:
+        print("Nothing to print.")
+        sys.exit()
 
     # Write the protocol to a file.
     if not args['--no-file']:
