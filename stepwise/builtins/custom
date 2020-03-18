@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 """\
-Create impromptu protocols by using delimiters to spearate steps specified on 
+Create impromptu protocols by using delimiters to separate steps specified on 
 the command line.
 
 Usage:
-    split <protocol> [-d CHAR] [-D char] [-W]
+    custom <protocol> [-d CHAR] [-D char] [-W]
 
 Options:
     -d --delimiter CHAR                                     [default: ;]
@@ -48,15 +48,14 @@ def format_substep(substep, wrap):
 
     return '- ' + '\n  '.join(textwrap.wrap(substep, width=48))
 
+if __name__ == '__main__':
+    args = docopt(__doc__)
 
-
-args = docopt(__doc__)
-
-protocol = Protocol()
-protocol.steps = format_steps(
-        args['<protocol>'],
-        not args['--no-wrap'],
-        args['--delimiter'],
-        args['--sub-delimiter'],
-)
-print(protocol)
+    protocol = Protocol()
+    protocol.steps = format_steps(
+            args['<protocol>'],
+            not args['--no-wrap'],
+            args['--delimiter'],
+            args['--sub-delimiter'],
+    )
+    print(protocol)
