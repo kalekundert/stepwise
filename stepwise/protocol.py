@@ -429,6 +429,7 @@ class ProtocolIO:
             return pickle.load(sys.stdin.buffer)
 
         except Exception as err:
+            print_exc(file=sys.stderr)
             error(
                     f"error parsing stdin: {err}",
                     codicil="This error commonly occurs when the output from a non-stepwise command is piped into a stepwise command.  When usings pipes to combine protocols, make sure that every command is a stepwise command.",
@@ -488,20 +489,28 @@ class ProtocolIO:
 
         return io
 
+
     def __init__(self, protocol=None, errors=0):
         self.protocol = protocol or Protocol()
         self.errors = errors
+
 
     def to_stdout(self, force_text=False):
         if sys.stdout.isatty() or force_text:
             print(self.protocol)
         else:
-            try:
-                pickle.dump(self, sys.stdout.buffer)
-            except Exception as err:
-                print_exc(file=sys.stderr)
-                io = ProtocolIO('', 1)
-                pickle.dump(io)
+            stdout = self.to_pickle()
+            sys.stdout.buffer.write(stdout)
+
+    def to_pickle(self):
+        try:
+            return pickle.dumps(self)
+        except Exception as err:
+            print_exc(file=sys.stderr)
+            io = ProtocolIO('', 1)
+            return pickle.dumps(io)
+
+
 
 def load(name, args):
     """

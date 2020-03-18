@@ -19,6 +19,7 @@ requires = [
   'nonstdlib',
   'pandas',
   'setuptools',
+  'sqlalchemy',
   'voluptuous',
 ]
 classifiers = [
@@ -31,13 +32,14 @@ test = [
 ]
 
 [tool.flit.scripts]
-stepwise = "stepwise:main"
+stepwise = "stepwise.cli.main:main"
 
 [tool.flit.entrypoints."stepwise.commands"]
-ls = "stepwise.cli:ls"
-which = "stepwise.cli:which"
-edit = "stepwise.cli:edit"
-lpr = "stepwise.cli:lpr"
+ls = "stepwise.cli.ls:main"
+which = "stepwise.cli.which:main"
+edit = "stepwise.cli.edit:main"
+go = "stepwise.cli.go:main"
+stash = "stepwise.cli.stash:main"
 
 [tool.flit.entrypoints."stepwise.protocol_dirs"]
 builtins = "stepwise:protocol_dirs"
