@@ -19,13 +19,13 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-split'
-cmd = "stepwise split 'A;B~b'"
+id = 'builtin-custom'
+cmd = "stepwise custom 'A;B~b'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise split 'A;B~b'
+\$ stepwise custom 'A;B~b'
 
 1\. A
 
@@ -37,13 +37,13 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-split-wrap'
-cmd = "stepwise split '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'"
+id = 'builtin-custom-wrap'
+cmd = "stepwise custom '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise split '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
+\$ stepwise custom '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
 
 1\. 123456789 123456789 123456789 123456789 123456789
    123456789
@@ -55,13 +55,13 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-split-no-wrap'
-cmd = "stepwise split -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'"
+id = 'builtin-custom-no-wrap'
+cmd = "stepwise custom -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise split -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
+\$ stepwise custom -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
 
 1\. 123456789 123456789 123456789 123456789 123456789 123456789
 
@@ -71,13 +71,13 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-split-delimiter'
-cmd = "stepwise split -dx 'AxB~b'"
+id = 'builtin-custom-delimiter'
+cmd = "stepwise custom -dx 'AxB~b'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise split -dx 'AxB~b'
+\$ stepwise custom -dx 'AxB~b'
 
 1\. A
 
@@ -89,13 +89,13 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-split-subdelimiter'
-cmd = "stepwise split -Dx 'A;Bxb'"
+id = 'builtin-custom-subdelimiter'
+cmd = "stepwise custom -Dx 'A;Bxb'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise split -Dx 'A;Bxb'
+\$ stepwise custom -Dx 'A;Bxb'
 
 1\. A
 
@@ -113,13 +113,13 @@ return_code = 0
 
 [[test_main]]
 id = 'pipeline-2'
-cmd = "stepwise split A | stepwise split B"
+cmd = "stepwise custom A | stepwise custom B"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise split A
-\$ stepwise split B
+\$ stepwise custom A
+\$ stepwise custom B
 
 1\. A
 
@@ -130,14 +130,14 @@ return_code = 0
 
 [[test_main]]
 id = 'pipeline-3'
-cmd = "stepwise split A | stepwise split B | stepwise split C"
+cmd = "stepwise custom A | stepwise custom B | stepwise custom C"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise split A
-\$ stepwise split B
-\$ stepwise split C
+\$ stepwise custom A
+\$ stepwise custom B
+\$ stepwise custom C
 
 1\. A
 
@@ -196,12 +196,12 @@ return_code = 1
 
 [[test_main]]
 id = 'err-bad-stdin'
-cmd = "echo foo | stepwise split A"
+cmd = "echo foo | stepwise custom A"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise split A
+\$ stepwise custom A
 
 1\. A
 '''
@@ -224,8 +224,8 @@ env = {}
 stdout = '''
 .*\
 stepwise\.builtins
+  custom
   echo
-  split
 .*\
 '''
 stderr = '^$'
@@ -249,8 +249,8 @@ cmd = "stepwise ls -p"
 env = {}
 stdout = '''
 .*\
+custom
 echo
-split
 .*\
 '''
 stderr = '^$'
