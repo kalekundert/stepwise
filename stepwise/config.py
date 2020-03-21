@@ -5,7 +5,6 @@ from pathlib import Path
 from appdirs import AppDirs
 from configurator import Config
 from voluptuous import Schema, All, Invalid
-from gitignore_parser import parse_gitignore, rule_from_pattern
 
 config = None
 config_dirs = AppDirs("stepwise")
@@ -61,35 +60,4 @@ def load_config():
         print(f"Warning: {err}", file=sys.stdout)
 
     return config
-
-def load_ignore_matcher():
-    matcher = IgnoreMatcher()
-    matcher.parse(site_config_path / 'ignore')
-    matcher.parse(user_config_path / 'ignore')
-
-    # By default, ignore files starting with '.' or '__'.
-    if not matcher.matchers:
-        rules = [rule_from_pattern(x) for x in ['.*', '__*']]
-        matcher.matchers = [lambda p: any(r.match(p) for r in rules)]
-
-    pprint(matcher.matchers)
-    return matcher
-
-class IgnoreMatcher:
-
-    def __init__(self):
-        self.matchers = []
-
-    def parse(self, path):
-        path = Path(path)
-
-        if path.is_dir():
-            path = path / '.stepwiseignore'
-
-        if path.exists():
-            matcher = parse_gitignore(path)
-            self.matchers.append(matcher)
-
-    def match(self, path):
-        return any(x(path) for x in self.matchers)
 
