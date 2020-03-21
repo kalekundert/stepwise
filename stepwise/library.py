@@ -7,7 +7,7 @@ from pathlib import Path
 from pkg_resources import iter_entry_points
 from inform import warn
 from .protocol import ProtocolIO
-from .config import load_config, load_ignore_matcher
+from .config import load_config
 from .errors import *
 
 class Library:
