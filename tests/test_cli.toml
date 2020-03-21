@@ -189,7 +189,7 @@ stdout = '''
 '''
 stderr = '''
 .*stepwise warning.*the protocol could not be properly rendered due to error\(s\):
-.*stepwise warning.*`.*echo 'Formatting error'`, 1.*
+.*stepwise warning.*echo, 1.*
     expected a step \(e.g. '- ...' or '1. ...'\), not 'Formatting error'
 '''
 return_code = 1

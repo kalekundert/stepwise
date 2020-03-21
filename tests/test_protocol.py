@@ -3,8 +3,11 @@
 import pytest, arrow
 import subprocess as subp
 from pytest import raises
-from stepwise import parse, merge, Protocol, ParseError
+from stepwise import Protocol, ParseError
 from utils import *
+
+parse = Protocol.parse
+merge = Protocol.merge
 
 def test_repr():
     p = Protocol()
@@ -555,33 +558,6 @@ Notes:
 def test_parse_err():
     with raises(ParseError, match="not <class 'int'>"):
         parse(1)
-
-
-def test_check_version_control(tmp_path):
-    from stepwise import check_version_control, VersionControlWarning
-
-    repo = tmp_path / 'repo'
-    repo.mkdir()
-    protocol = repo / 'protocol'
-    protocol.write_text("version 1")
-
-    with raises(VersionControlWarning, match="not in a git repository"):
-        check_version_control(protocol)
-
-    subp.run('git init', cwd=repo, shell=True)
-
-    with raises(VersionControlWarning, match="not committed"):
-        check_version_control(protocol)
-    
-    subp.run(f'git add {protocol.name}', cwd=repo, shell=True)
-    subp.run(f'git commit -m "Initial commit"', cwd=repo, shell=True)
-
-    check_version_control(protocol)
-
-    protocol.write_text("version 2")
-
-    with raises(VersionControlWarning, match="uncommitted changes"):
-        check_version_control(protocol)
 
 
 def int_keys(d):

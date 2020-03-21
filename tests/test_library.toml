@@ -1,0 +1,362 @@
+# Library tests:
+[[test_library_find_entries]]
+collections = []
+tag = 'proto'
+expected = []
+
+[[test_library_find_entries]]
+collections = ['1']
+tag = 'a'
+expected = ['protocol_a']
+
+[[test_library_find_entries]]
+collections = ['1']
+tag = 'z'
+expected = []
+
+[[test_library_find_entries]]
+collections = ['1']
+tag = 'proto'
+expected = ['protocol_a', 'subdir/protocol_b']
+
+[[test_library_find_entries]]
+collections = ['2']
+tag = 'a'
+expected = []
+
+[[test_library_find_entries]]
+collections = ['2']
+tag = 'z'
+expected = ['protocol_z']
+
+[[test_library_find_entries]]
+collections = ['2']
+tag = 'proto'
+expected = ['protocol_z']
+
+[[test_library_find_entries]]
+collections = ['1', '2']
+tag = 'a'
+expected = ['protocol_a']
+
+[[test_library_find_entries]]
+collections = ['1', '2']
+tag = 'z'
+expected = ['protocol_z']
+
+[[test_library_find_entries]]
+collections = ['1', '2']
+tag = 'proto'
+expected = ['protocol_a', 'subdir/protocol_b', 'protocol_z']
+
+
+# Collection tests:
+[[test_collection_is_unique]]
+name = 'a'
+names = []
+expected = true
+
+[[test_collection_is_unique]]
+name = 'a'
+names = ['a']
+expected = false
+
+[[test_collection_is_unique]]
+name = 'a'
+names = ['b']
+expected = true
+
+[[test_collection_is_unique]]
+name = 'a'
+names = ['a', 'b']
+expected = false
+
+[[test_path_collection_find_entries]]
+tag = 'no match'
+expected = []
+
+[[test_path_collection_find_entries]]
+tag = 'a'
+expected = ['protocol_a']
+
+[[test_path_collection_find_entries]]
+tag = 'b'
+expected = ['subdir/protocol_b']
+
+[[test_path_collection_find_entries]]
+tag = 'proto'
+expected = ['protocol_a', 'subdir/protocol_b']
+
+[[test_path_collection_find_entries]]
+tag = 'dir/proto'
+expected = ['subdir/protocol_b']
+
+[[test_cwd_collection_find_entries]]
+tag = 'a'
+expected = []
+
+[[test_cwd_collection_find_entries]]
+tag = 'protocol_a.txt'
+expected = ['protocol_a']
+
+[[test_cwd_collection_find_entries]]
+tag = 'protocol_b.txt'
+expected = []
+
+[[test_cwd_collection_find_entries]]
+tag = 'subdir/protocol_b.txt'
+expected = ['subdir/protocol_b']
+
+
+# Entry tests:
+[[test_entry_full_name]]
+collection_name = 'a'
+entry_name = 'b'
+full_name = 'a/b'
+
+[[test_entry_full_name]]
+collection_name = 'a/'
+entry_name = 'b/'
+full_name = 'a/b'
+
+[[test_path_entry_load_protocol]]
+relpath = 'protocol_a.txt'
+args = []
+steps = ["A"]
+
+[[test_path_entry_load_protocol]]
+relpath = 'subdir/protocol_b.txt'
+args = []
+steps = ["B"]
+
+[[test_path_entry_load_protocol]]
+relpath = 'script_x.sh'
+args = []
+steps = ["X"]
+
+[[test_path_entry_load_protocol]]
+relpath = 'script_x.sh'
+args = ["Y", "Z"]
+steps = ["X Y Z"]
+
+
+# Tag-matching tests:
+## None
+[[test_match_entry]]
+tag = ''
+name = 'a'
+expected = [0]
+
+[[test_match_entry]]
+tag = ''
+name = 'a/b'
+expected = [0]
+
+[[test_match_entry]]
+tag = ''
+name = 'a/b/c'
+expected = [0]
+
+
+## One part
+[[test_match_entry]]
+tag = 'ab'
+name = 'ab'
+expected = [3]
+
+[[test_match_entry]]
+tag = 'a'
+name = 'ab'
+expected = [2]
+
+[[test_match_entry]]
+tag = 'b'
+name = 'ab'
+expected = [1]
+
+[[test_match_entry]]
+tag = 'z'
+name = 'abc'
+expected = []
+
+
+## Two parts
+[[test_match_entry]]
+tag = 'ab'
+name = 'ab/cd'
+expected = []
+
+[[test_match_entry]]
+tag = 'cd'
+name = 'ab/cd'
+expected = [3]
+
+[[test_match_entry]]
+tag = 'a'
+name = 'ab/cd'
+expected = []
+
+[[test_match_entry]]
+tag = 'b'
+name = 'ab/cd'
+expected = []
+
+[[test_match_entry]]
+tag = 'c'
+name = 'ab/cd'
+expected = [2]
+
+[[test_match_entry]]
+tag = 'd'
+name = 'ab/cd'
+expected = [1]
+
+[[test_match_entry]]
+tag = 'z'
+name = 'ab/cd'
+expected = []
+
+[[test_match_entry]]
+tag = 'ab/cd'
+name = 'ab/cd'
+expected = [3, 3]
+
+[[test_match_entry]]
+tag = 'ab/c'
+name = 'ab/cd'
+expected = [2, 3]
+
+[[test_match_entry]]
+tag = 'ab/d'
+name = 'ab/cd'
+expected = [1, 3]
+
+[[test_match_entry]]
+tag = 'ab/z'
+name = 'ab/cd'
+expected = []
+
+[[test_match_entry]]
+tag = 'a/cd'
+name = 'ab/cd'
+expected = [3, 2]
+
+[[test_match_entry]]
+tag = 'a/c'
+name = 'ab/cd'
+expected = [2, 2]
+
+[[test_match_entry]]
+tag = 'a/d'
+name = 'ab/cd'
+expected = [1, 2]
+
+[[test_match_entry]]
+tag = 'a/z'
+name = 'ab/cd'
+expected = []
+
+[[test_match_entry]]
+tag = 'b/cd'
+name = 'ab/cd'
+expected = [3, 1]
+
+[[test_match_entry]]
+tag = 'b/c'
+name = 'ab/cd'
+expected = [2, 1]
+
+[[test_match_entry]]
+tag = 'b/d'
+name = 'ab/cd'
+expected = [1, 1]
+
+[[test_match_entry]]
+tag = 'b/z'
+name = 'ab/cd'
+expected = []
+
+[[test_match_entry]]
+tag = 'z/cd'
+name = 'ab/cd'
+expected = []
+
+[[test_match_entry]]
+tag = 'z/c'
+name = 'ab/cd'
+expected = []
+
+[[test_match_entry]]
+tag = 'z/d'
+name = 'ab/cd'
+expected = []
+
+[[test_match_entry]]
+tag = 'z/z'
+name = 'ab/cd'
+expected = []
+
+[[test_match_entry]]
+tag = 'a/a'
+name = 'a'
+expected = []
+
+
+## Three parts
+[[test_match_entry]]
+tag = 'a/b'
+name = 'a/b/c'
+expected = []
+
+[[test_match_entry]]
+tag = 'a/c'
+name = 'a/b/c'
+expected = [3, 0, 3]
+
+[[test_match_entry]]
+tag = 'b/c'
+name = 'a/b/c'
+expected = [3, 3]
+
+
+## Redundancy
+[[test_match_entry]]
+tag = 'a'
+name = 'ab/bc'
+expected = []
+
+[[test_match_entry]]
+tag = 'b'
+name = 'ab/bc'
+expected = [2]
+
+[[test_match_entry]]
+tag = 'c'
+name = 'ab/bc'
+expected = [1]
+
+[[test_match_entry]]
+tag = 'a/b'
+name = 'ab/bc'
+expected = [2, 2]
+
+[[test_match_entry]]
+tag = 'b/a'
+name = 'ab/bc'
+expected = []
+
+[[test_match_entry]]
+tag = 'b/b'
+name = 'ab/bc'
+expected = [2, 1]
+
+[[test_match_entry]]
+tag = 'b/c'
+name = 'ab/bc'
+expected = [1, 1]
+
+[[test_match_entry]]
+tag = 'c/b'
+name = 'ab/bc'
+expected = []
+

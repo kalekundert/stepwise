@@ -22,21 +22,23 @@ class VersionControlWarning(LoadError):
 
 class NoProtocolsFound(LoadError):
 
-    def __init__(self, name, search_dirs):
+    def __init__(self, name, collections):
         codicil = f"no protocols matching '{name}' in:\n"
-        for dir in search_dirs:
-            codicil += f"    {dir['dir']}\n"
+        for collection in collections:
+            codicil += f"    {collection.name}\n"
 
         super().__init__(codicil=codicil)
+
 
 class MultipleProtocolsFound(LoadError):
 
-    def __init__(self, name, hits):
-        codicil = f"multiple protocols matching '{name}':\n"
-        for hit in hits:
-            codicil += f"    {hit['relpath'].with_suffix('')}\n"
+    def __init__(self, tag, entries):
+        codicil = f"multiple protocols matching '{tag}':\n"
+        for entry in entries:
+            codicil += f"    {entry.name}\n"
 
         super().__init__(codicil=codicil)
+
 
 class PrinterWarning(IOError):
     pass

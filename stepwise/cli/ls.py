@@ -4,12 +4,12 @@
 List protocols known to stepwise.
 
 Usage:
-    stepwise ls [-d|--dirs] [-p|--paths] [<protocol>]
+    stepwise ls [-d] [-p] [<protocol>]
 
 Options:
     -d --dirs
-        Show the directories that will be search for protocols, rather than the 
-        protocols themselves.
+        Show the directories that will be searched for protocols, rather than 
+        the protocols themselves.
 
     -p --paths
         Don't organize paths by directory.
@@ -18,50 +18,26 @@ Options:
 import docopt
 from itertools import groupby
 from operator import itemgetter
-from ..protocol import find_protocol_paths, find_protocol_dirs
-from ..config import config
+from ..library import Library
+from ..config import load_config
 
 def main():
     args = docopt.docopt(__doc__)
+    config = load_config()
 
-    def by_type(x):
-        type_order = {
-                'parent': 1,
-                'path': 2,
-                'plugin': 3,
-        }
-        return type_order[x['type']]
-
-    def by_name(x):
-        if x['type'] == 'parent':
-            return -len(x['name'])
-
-        if x['type'] == 'path':
-            return config.search.path.data.index(str(x['dir'])),
-
-        return x['name']
-
-    def by_relpath(x):
-        return x['relpath']
-
-    def by_type_then_name_then_relpath(x):
-        return by_type(x), by_name(x), by_relpath(x)
-
-    paths = find_protocol_paths(args['<protocol>'])
-    paths = sorted(paths, key=by_type_then_name_then_relpath)
+    library = Library()
+    entries = library.find_entries(args['<protocol>'])
     indent = '' if args['--paths'] else '  '
 
-    for type, dirs in groupby(paths, by_type):
-        for name, subpaths in groupby(dirs, itemgetter('name')):
+    for collection, entry_group in groupby(entries, lambda x: x.collection):
+        if not args['--paths']:
+            print(collection.name)
+        if args['--dirs']:
+            continue
 
-            if not args['--paths']:
-                print(name)
-            if args['--dirs']:
-                continue
+        for entry in entry_group:
+            print(indent + entry.name)
 
-            for path in subpaths:
-                print(f'{indent}{path["relpath"].with_suffix("")}')
-
-            if not args['--paths']:
-                print()
+        if not args['--paths']:
+            print()
 

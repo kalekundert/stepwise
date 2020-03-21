@@ -10,7 +10,7 @@ from pathlib import Path
 from collections.abc import Iterable
 from nonstdlib import plural
 from more_itertools import one
-from .utils import *
+from .errors import *
 
 # Solvent handling
 # ================

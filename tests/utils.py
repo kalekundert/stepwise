@@ -4,6 +4,8 @@ import pytest, toml, inspect
 from pathlib import Path
 from functools import lru_cache
 
+TEST_DIR = Path(__file__).parent
+
 def parametrize_via_toml(relpath):
 
     def decorator(f):

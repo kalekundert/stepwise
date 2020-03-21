@@ -10,11 +10,12 @@ Usage:
 import os
 import docopt
 import subprocess as subp
-from ..protocol import find_protocol_path
+from ..library import Library
 
 def main():
     args = docopt.docopt(__doc__)
-    path = find_protocol_path(args['<protocol>'])
-    cmd = os.environ['EDITOR'], path['path']
+    library = Library()
+    entry = library.find_entry(args['<protocol>'])
+    cmd = os.environ['EDITOR'], entry.path
     subp.run(cmd)
 

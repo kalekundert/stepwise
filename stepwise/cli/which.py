@@ -8,12 +8,13 @@ Usage:
 """
 
 import docopt
-from ..protocol import find_protocol_paths
+from ..library import Library
 
 def main():
     args = docopt.docopt(__doc__)
-    paths = find_protocol_paths(args['<protocol>'])
+    library = Library()
+    entries = library.find_entries(args['<protocol>'])
 
-    for path in paths:
-        print(path['path'])
+    for entry in entries:
+        print(entry.path)
 

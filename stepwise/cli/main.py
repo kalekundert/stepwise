@@ -43,7 +43,7 @@ import docopt
 from inform import Inform
 from pkg_resources import iter_entry_points
 from ..protocol import ProtocolIO
-from ..utils import StepwiseError
+from ..errors import StepwiseError
 from .. import __version__
 
 def main():
@@ -66,12 +66,14 @@ def main():
 
         else:
             io_stdin = ProtocolIO.from_stdin()
-            io_cli = ProtocolIO.from_cli(
+            io_cli = ProtocolIO.from_library(
+                    io_stdin.library,
                     args['<command>'],
                     args['<args>'],
-                    quiet=args['--quiet'],
-                    show_error_header=not io_stdin.errors,
             )
+            if args['--quiet']:
+                io_cli.protocol.clear_footnotes()
+                
             io_stdout = ProtocolIO.merge(io_stdin, io_cli)
             io_stdout.to_stdout(args['--force-text'])
             sys.exit(io_stdout.errors)
