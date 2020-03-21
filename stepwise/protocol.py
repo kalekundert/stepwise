@@ -41,6 +41,7 @@ class Protocol:
         self.commands = commands or []
         self.steps = steps or []
         self.footnotes = footnotes or {}
+        self.attachments = []
 
     def __repr__(self):
         return f'Protocol(date={self.date!r}, commands={self.commands!r}, steps={self.steps!r}, footnotes={self.footnotes!r})'

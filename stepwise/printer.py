@@ -44,7 +44,9 @@ def print_protocol(protocol, printer=None):
 
     pages = make_pages(lines, options)
     pages = add_margin(pages, options)
+
     print_pages(pages, options)
+    print_files(protocol.attachments, options)
 
     return options
 
@@ -149,6 +151,11 @@ def print_pages(pages, options):
     ])
     lpr = Popen(print_cmd, shell=True, stdin=PIPE)
     lpr.communicate(input=document)
+
+def print_files(files, options):
+    if files:
+        lpr = ['lpr', *shlex.split(options.lpr_flags), *files]
+        subp.run(lpr)
 
 def get_default_printer():
     lpstat = shlex.split('lpstat -d')
