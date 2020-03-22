@@ -1,3 +1,28 @@
+[[test_truncate_lines]]
+text_in  = ["12345"]
+text_out = ["12345"]
+content_width = 5
+
+[[test_truncate_lines]]
+text_in  = ["123456"]
+text_out = ["123456"]
+content_width = 5
+
+[[test_truncate_lines]]
+text_in  = ["$2345"]
+text_out = ["$2345"]
+content_width = 5
+
+[[test_truncate_lines]]
+text_in  = ["$23456"]
+text_out = ["$234…"]
+content_width = 5
+
+[[test_truncate_lines]]
+text_in  = ["$2345", "$23456", "123456"]
+text_out = ["$2345", "$234…",  "123456"]
+content_width = 5
+
 [[test_check_for_long_lines]]
 text = ["12345"]
 content_width = 5
