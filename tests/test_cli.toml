@@ -213,6 +213,7 @@ stderr = '''
 '''
 return_code = 1
 
+
 ###############################################################################
 ### Subcommands
 ###############################################################################
@@ -222,7 +223,10 @@ id = 'ls'
 cmd = "stepwise ls"
 env = {}
 stdout = '''
-.*\
+.*/dummy_home/protocols
+  a
+  b
+.*
 stepwise\.builtins
   custom
   echo
@@ -236,7 +240,8 @@ id = 'ls-d'
 cmd = "stepwise ls -d"
 env = {}
 stdout = '''
-.*\
+.*/dummy_home/protocols
+.*
 stepwise\.builtins
 .*\
 '''
@@ -248,7 +253,9 @@ id = 'ls-p'
 cmd = "stepwise ls -p"
 env = {}
 stdout = '''
-.*\
+a
+b
+.*
 custom
 echo
 .*\
@@ -266,9 +273,9 @@ return_code = 0
 
 [[test_main]]
 id = 'which'
-cmd = "stepwise which echo"
+cmd = "stepwise which a"
 env = {}
-stdout = '.*/builtins/echo$'
+stdout = '.*/dummy_home/protocols/a.txt$'
 stderr = '^$'
 return_code = 0
 

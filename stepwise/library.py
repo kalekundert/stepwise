@@ -184,7 +184,7 @@ class PathCollection(Collection):
     """
 
     def __init__(self, root, name=None):
-        self.root = Path(root).resolve()
+        self.root = Path(root).expanduser().resolve()
         super().__init__(name or str(self.root))
 
     def is_available(self):

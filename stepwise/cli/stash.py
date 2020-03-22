@@ -5,7 +5,7 @@ Save protocols for later use.
 
 Usage:
     stepwise stash [add] [-c <categories>] [-m <message>]
-    stepwise stash list [-c <categories>]
+    stepwise stash ls [-c <categories>]
     stepwise stash peek [<id>]
     stepwise stash pop [<id>]
     stepwise stash drop [<id>]
@@ -16,12 +16,12 @@ Commands:
         Read a protocol from stdin and save it for later use.  This command is 
         meant to be used at the end of pipelines, like `stepwise go`.
 
-    list
+    ls
         Display any protocols that have saved for later use.  
 
     peek [<id>]
         Write the indicated protocol to stdout, but do not remove it from the 
-        stash.  The <id> for each stashed protocol is displayed by the `list` 
+        stash.  The <id> for each stashed protocol is displayed by the `ls` 
         command.  If only one protocol is stashed, the <id> does not need to be 
         specified.
 
@@ -51,9 +51,11 @@ Options:
         The message will be displayed by the `list` command.
 
 Note that stashed protocols are not meant to be stored indefinitely.  It is 
-possible that upgrading either stepwise or python could corrupt the stash.
+possible (although hopefully unlikely) that upgrading either stepwise or 
+python could corrupt the stash.
 """
 
+import sys
 import docopt
 import pickle
 import sqlite3
@@ -101,7 +103,7 @@ def main():
     args = docopt.docopt(__doc__)
 
     with open_db() as db:
-        if args['list']:
+        if args['ls']:
             list_protocols(db, parse_categories(args['--categories']))
 
         elif args['peek']:
@@ -149,8 +151,15 @@ def open_db():
         session.close()
 
 def list_protocols(db, categories=[]):
+    from shutil import get_terminal_size
+    from textwrap import shorten
+
     stash = load_stash(db)
     categories = set(categories)
+
+    if not stash:
+        print("No stashed protocols.")
+        sys.exit()
 
     table = []
     headers = dict(
@@ -159,17 +168,60 @@ def list_protocols(db, categories=[]):
             categories="Cat.",
             message="Message",
     )
+    alignments = dict(
+            id='>',
+            slug='<',
+            categories='<',
+            message='<',
+    )
 
     for i, row in enumerate(stash, 1):
         if not categories or categories.intersection(row.categories):
             table.append(dict(
-                id=i,
+                id=str(i),
                 slug=row.protocol.pick_slug(),
                 categories=','.join(row.categories),
-                message=row.message,
+                message=row.message or '',
             ))
 
-    print(tabulate(table, headers))
+    table_with_header = [headers] + table
+    max_width = get_terminal_size().columns - 1
+    max_widths = {
+            col: max(len(row[col]) for row in table_with_header)
+            for col in headers
+    }
+    max_widths['message'] = min(
+            max_widths['message'], (
+                max_width
+                - max_widths['id'] - 2
+                - max_widths['slug'] - 2
+                - max_widths['categories'] - 2
+            )
+    )
+    table_width = sum(max_widths.values()) + 6
+
+    for row in table:
+        row['message'] = shorten(
+                row['message'],
+                width=max_widths['message'],
+                placeholder='…',
+        )
+
+    format_col = lambda x: \
+            f'{{row[{x}]:{{alignments[{x}]}}{{max_widths[{x}]}}}}'
+    format_row = lambda x: \
+            '  '.join(format_col(x) for x in headers).format(
+                    row=x,
+                    alignments=alignments,
+                    max_widths=max_widths,
+            ).rstrip()
+
+    print(format_row(headers))
+    print('─' * table_width)
+    for row in table:
+        print(format_row(row))
+
+    #print(tabulate(table, headers))
 
 def add_protocol(db, protocol, categories=None, message=None):
     protocol.date = None
@@ -183,10 +235,12 @@ def add_protocol(db, protocol, categories=None, message=None):
 
 def peek_protocol(db, id=None):
     row = load_protocol(db, id)
+    row.protocol.set_current_date()
     ProtocolIO(row.protocol).to_stdout()
 
 def pop_protocol(db, id=None):
     row = load_protocol(db, id)
+    row.protocol.set_current_date()
     ProtocolIO(row.protocol).to_stdout()
     db.delete(row)
 

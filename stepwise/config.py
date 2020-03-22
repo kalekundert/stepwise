@@ -3,7 +3,7 @@
 import sys
 from pathlib import Path
 from appdirs import AppDirs
-from configurator import Config
+from configurator import Config, default_mergers
 from voluptuous import Schema, All, Invalid
 
 config = None
@@ -15,7 +15,12 @@ def load_config():
     global config
     if config: return config
 
-    defaults = Config({
+    def overwrite_list(context, source, target):
+        return source
+
+    mergers = default_mergers + {list: overwrite_list}
+
+    config = Config({
         'search': {
             'find': ['protocols'],
             'path': [],
@@ -32,15 +37,17 @@ def load_config():
             },
         },
     })
-    user = Config.from_path(user_config_path, optional=True)
     site = Config.from_path(site_config_path, optional=True)
-    config = defaults + site + user
+    user = Config.from_path(user_config_path, optional=True)
+
+    config.merge(site, mergers=mergers)
+    config.merge(user, mergers=mergers)
 
     schema = Schema({
         'search': {
-            'find': list,
-            'path': list,
-            'ignore': list,
+            'find': [str],
+            'path': [str],
+            'ignore': [str],
         },
         'printer': {
             'default': {
