@@ -226,7 +226,7 @@ stdout = '''
 .*/dummy_home/protocols
   a
   b
-.*
+.*\
 stepwise\.builtins
   custom
   echo
@@ -241,7 +241,7 @@ cmd = "stepwise ls -d"
 env = {}
 stdout = '''
 .*/dummy_home/protocols
-.*
+.*\
 stepwise\.builtins
 .*\
 '''
@@ -255,7 +255,7 @@ env = {}
 stdout = '''
 a
 b
-.*
+.*\
 custom
 echo
 .*\
