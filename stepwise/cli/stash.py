@@ -62,7 +62,6 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime
 from contextlib import contextmanager
-from tabulate import tabulate
 from inform import Error, fatal
 from ..protocol import ProtocolIO
 from ..config import config_dirs
@@ -220,8 +219,6 @@ def list_protocols(db, categories=[]):
     print('─' * table_width)
     for row in table:
         print(format_row(row))
-
-    #print(tabulate(table, headers))
 
 def add_protocol(db, protocol, categories=None, message=None):
     protocol.date = None
