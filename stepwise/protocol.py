@@ -367,9 +367,16 @@ class Protocol:
         if self.date:
             slug.append(self.date.format("YYYYMMDD"))
 
+        def is_command(x):
+            return 
+
+
         for cmd in self.commands:
             argv = shlex.split(cmd)
-            arg0 = argv[0] if argv[0] != 'stepwise' else argv[1]
+            for arg0 in argv:
+                if arg0 == 'stepwise': continue
+                if arg0.startswith('-'): continue
+                break
             slug.append(Path(arg0).stem)
 
         if slug:

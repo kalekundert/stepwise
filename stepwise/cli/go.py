@@ -24,6 +24,9 @@ Options:
         Print to the specified printer, rather than the system default.  The 
         current system default is: {default_printer}
 
+    -q --quiet
+        Remove footnotes from the protocol.
+
 Many aspects of the print job (e.g. the dimensions of the paper, the font face 
 and size, etc.) can be configured in:
 
@@ -49,6 +52,9 @@ def main():
 
     if not io.protocol:
         fatal("No protocol specified.")
+
+    if args['--quiet']:
+        io.protocol.clear_footnotes()
 
     # Write the protocol to a file.
     if not args['--no-file']:
