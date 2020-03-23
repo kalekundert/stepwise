@@ -40,9 +40,10 @@ which = "stepwise.cli.which:main"
 edit = "stepwise.cli.edit:main"
 go = "stepwise.cli.go:main"
 stash = "stepwise.cli.stash:main"
+config = "stepwise.cli.config:main"
 
 [tool.flit.entrypoints."stepwise.protocols"]
-builtins = "stepwise:protocol_dir"
+builtins = "stepwise:Builtins"
 
 [tool.flit.metadata.urls]
 'Documentation' = 'https://stepwise.readthedocs.io/en/latest/'

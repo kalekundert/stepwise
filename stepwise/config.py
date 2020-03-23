@@ -4,7 +4,10 @@ import sys
 from pathlib import Path
 from appdirs import AppDirs
 from configurator import Config, default_mergers
-from voluptuous import Schema, All, Invalid
+from voluptuous import Schema, Invalid
+from pkg_resources import iter_entry_points
+from collections.abc import Mapping
+from inform import warn
 
 config = None
 config_dirs = AppDirs("stepwise")
@@ -15,10 +18,32 @@ def load_config():
     global config
     if config: return config
 
+    # Specify that list should be overridden, rather than appended to.
+
     def overwrite_list(context, source, target):
         return source
 
     mergers = default_mergers + {list: overwrite_list}
+
+    # Load config data from plugins.
+
+    plugin_configs = {}
+    plugin_schemas = {}
+
+    for entry in iter_entry_points('stepwise.protocols'):
+        plugin = entry.load()
+        defaults = getattr(plugin, 'config_defaults', {})
+        schema = getattr(plugin, 'config_schema', {})
+
+        if defaults:
+            plugin_configs[entry.name] = (
+                    defaults if isinstance(defaults, Mapping) else
+                    Config.from_path(defaults).data
+            )
+        if schema:
+            plugin_schemas[entry.name] = schema
+
+    # Load config data from the local system.
 
     config = Config({
         'search': {
@@ -36,12 +61,15 @@ def load_config():
                 'lpr_flags': '-o sides=one-sided',
             },
         },
+        **plugin_configs,
     })
     site = Config.from_path(site_config_path, optional=True)
     user = Config.from_path(user_config_path, optional=True)
 
     config.merge(site, mergers=mergers)
     config.merge(user, mergers=mergers)
+
+    # Validate the config data.
 
     schema = Schema({
         'search': {
@@ -59,12 +87,13 @@ def load_config():
                 'lpr_flags': str,
             },
         },
+        **plugin_schemas,
     })
 
     try:
         schema(config.data)
     except Invalid as err:
-        print(f"Warning: {err}", file=sys.stdout)
+        warn(err)
 
     return config
 

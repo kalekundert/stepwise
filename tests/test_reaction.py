@@ -277,6 +277,11 @@ def test_reagent_order():
     assert x.order == 1
 
 
+def test_solvent_repr():
+    rxn = Reaction()
+    rxn.solvent = 'w'
+    assert re.match(r"Solvent\(reaction=\d{4}, name='w'\)", repr(rxn['w']))
+
 def test_solvent_key():
     rxn = Reaction()
     rxn.solvent = 'w'

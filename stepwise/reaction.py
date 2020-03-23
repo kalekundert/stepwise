@@ -705,9 +705,9 @@ class Reagent:
         stock concentration.
         
         The equation below gives the relation between the stock concentration 
-        :math:`C` of the reagent, the volume :math:`V` of the reagent, the 
+        :math:`C` of the reagent, the volume :math:`v` of the reagent, the 
         concentration :math:`c` of the reagent in the reaction, and the volume 
-        :math:`v` of the whole reaction:
+        :math:`V` of the whole reaction:
 
         .. math::
 

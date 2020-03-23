@@ -14,4 +14,6 @@ from .config import *
 from .errors import *
 
 from pathlib import Path
-protocol_dir = Path(__file__).parent / 'builtins'
+
+class Builtins:
+    protocol_dir = Path(__file__).parent / 'builtins'

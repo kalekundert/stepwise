@@ -65,6 +65,7 @@ from contextlib import contextmanager
 from inform import Error, fatal
 from ..protocol import ProtocolIO
 from ..config import config_dirs
+from ..errors import UsageError
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, DateTime, String, PickleType
@@ -91,12 +92,6 @@ class Stash(Base):
     categories = Column(CategoriesType)
     message = Column(String)
     protocol = Column(PickleType)
-
-class StashError(Error):
-    pass
-
-class UserInputError(StashError):
-    pass
 
 def main():
     args = docopt.docopt(__doc__)
@@ -260,7 +255,7 @@ def load_protocol(db, id):
     try:
         return stash[id - 1]  # `id` is 1-indexed.
     except IndexError:
-        raise UserInputError("No stashed protocol with id '{id}.'", id=id)
+        raise UsageError(f"No stashed protocol with id '{id}.'")
 
 def parse_id(id):
     if id is None:
@@ -269,7 +264,7 @@ def parse_id(id):
     try:
         return int(id)
     except ValueError:
-        raise UserInputError("Expected an integer id, not {id!r}.", id=id)
+        raise UsageError(f"Expected an integer id, not {id!r}.")
         
 def parse_categories(categories):
     if categories is None:

@@ -367,10 +367,6 @@ class Protocol:
         if self.date:
             slug.append(self.date.format("YYYYMMDD"))
 
-        def is_command(x):
-            return 
-
-
         for cmd in self.commands:
             argv = shlex.split(cmd)
             for arg0 in argv:

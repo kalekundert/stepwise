@@ -72,7 +72,11 @@ class Library:
                 ),
         )
         for plugin in plugins:
-            add(PluginCollection(plugin))
+            try:
+                add(PluginCollection(plugin))
+            except AttributeError as err:
+                warn(f"no protocol directory specified for '{plugin.module_name}.{plugin.name}' plugin.")
+                codicil(str(err))
 
         # Add the current working directory.
 
@@ -241,7 +245,7 @@ class PluginCollection(PathCollection):
 
     def __init__(self, plugin):
         super().__init__(
-                root=plugin.load(),
+                root=plugin.load().protocol_dir,
                 name=f'{plugin.module_name}.{plugin.name}',
         )
     def _load_entry(self, rel_path):
