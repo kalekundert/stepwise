@@ -375,6 +375,15 @@ def test_prepend():
     assert b.steps == ['Step 1', 'Step 2']
     assert b.footnotes == {1: 'Footnote A', 2: 'Footnote B'}
 
+def test_add():
+    p1 = Protocol(steps=["Step 1"])
+    p2 = Protocol(steps=["Step 2"])
+    p3 = p1 + p2
+
+    assert p1.steps == ["Step 1"]
+    assert p2.steps == ["Step 2"]
+    assert p3.steps == ["Step 1", "Step 2"]
+
 def test_iadd():
     p = Protocol()
     assert p.steps == []

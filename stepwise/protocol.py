@@ -52,6 +52,9 @@ class Protocol:
     def __bool__(self):
         return bool(self.steps)
 
+    def __add__(self, other):
+        return Protocol.merge(self, other)
+
     def __iadd__(self, other):
         self.append(other)
         return self
