@@ -5,7 +5,7 @@ Save protocols for later use.
 
 Usage:
     stepwise stash [add] [-c <categories>] [-m <message>]
-    stepwise stash ls [-c <categories>]
+    stepwise stash [ls] [-c <categories>]
     stepwise stash peek [<id>]
     stepwise stash pop [<id>]
     stepwise stash drop [<id>]
@@ -14,10 +14,12 @@ Usage:
 Commands:
     [add]
         Read a protocol from stdin and save it for later use.  This command is 
-        meant to be used at the end of pipelines, like `stepwise go`.
+        meant to be used at the end of pipelines, like `stepwise go`.  This is 
+        the default command if stdin is connected to a pipe.
 
-    ls
-        Display any protocols that have saved for later use.  
+    [ls]
+        Display any protocols that have saved for later use.  This is the 
+        default command if stdin is not connected to a pipe.
 
     peek [<id>]
         Write the indicated protocol to stdout, but do not remove it from the 
@@ -115,16 +117,18 @@ def main():
         else:
             io = ProtocolIO.from_stdin()
             if io.errors:
-                fatal("Protocol has errors, not stashing.")
-            if not io.protocol:
-                fatal("No protocol specified.")
+                fatal("protocol has errors, not stashing.")
 
-            add_protocol(
-                    db,
-                    io.protocol,
-                    parse_categories(args['--categories']),
-                    args['--message'],
-            )
+            if not io.protocol:
+                if args['add']: fatal("no protocol specified.")
+                list_protocols(db, parse_categories(args['--categories']))
+            else:
+                add_protocol(
+                        db,
+                        io.protocol,
+                        parse_categories(args['--categories']),
+                        args['--message'],
+                )
 
 @contextmanager
 def open_db():
@@ -159,7 +163,7 @@ def list_protocols(db, categories=[]):
     headers = dict(
             id="#",
             slug="Name",
-            categories="Cat.",
+            categories="Category",
             message="Message",
     )
     alignments = dict(
@@ -178,7 +182,16 @@ def list_protocols(db, categories=[]):
                 message=row.message or '',
             ))
 
+
     table_with_header = [headers] + table
+
+    # Remove the "Category" column if it would be empty.
+    if not any(x['categories'] for x in table):
+        del headers['categories']
+        for row in table:
+            del row['categories']
+
+    total_pad = 2 * (len(headers) - 1)
     max_width = get_terminal_size().columns - 1
     max_widths = {
             col: max(len(row[col]) for row in table_with_header)
@@ -187,12 +200,11 @@ def list_protocols(db, categories=[]):
     max_widths['message'] = min(
             max_widths['message'], (
                 max_width
-                - max_widths['id'] - 2
-                - max_widths['slug'] - 2
-                - max_widths['categories'] - 2
+                - sum(max_widths.values(), start=-max_widths['message'])
+                - total_pad
             )
     )
-    table_width = sum(max_widths.values()) + 6
+    table_width = sum(max_widths.values()) + total_pad
 
     for row in table:
         row['message'] = shorten(

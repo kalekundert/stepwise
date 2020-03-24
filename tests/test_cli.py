@@ -15,26 +15,34 @@ def test_stash():
     # Test `ls` and `add`:
     check_command('stepwise stash clear')
     check_command('stepwise stash ls', '^No stashed protocols.$')
+    check_command('stepwise stash', '^No stashed protocols.$')
 
-    check_command('stepwise custom A | stepwise stash')
-    check_command('stepwise custom B1 | stepwise stash -c b')
-    check_command('stepwise custom B2 | stepwise stash -c b')
-    check_command('stepwise custom C | stepwise stash add -m "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam justo sem, malesuada ut ultricies ac, bibendum eu neque."')
+    check_command('stepwise custom A | stepwise stash add')
+    check_command('stepwise custom B | stepwise stash -c b')
+    check_command('stepwise custom BC | stepwise stash -c b,c')
+    check_command('stepwise custom D | stepwise stash -m "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam justo sem, malesuada ut ultricies ac, bibendum eu neque."')
 
-    check_command('stepwise stash ls', '''\
-#  Name    Cat.  Message
+    check_command('stepwise stash', '''\
+#  Name    Category  Message
 ───────────────────────────────────────────────────────────────────────────────
 1  custom
 2  custom  b
-3  custom  b
-4  custom        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam… 
+3  custom  b,c
+4  custom            Lorem ipsum dolor sit amet, consectetur adipiscing elit.…
+
 ''')
 
-    check_command('stepwise stash ls -c b', '''\
-#  Name    Cat.  Message
-────────────────────────
+    check_command('stepwise stash -c b', '''\
+#  Name    Category  Message
+────────────────────────────
 2  custom  b
-3  custom  b
+3  custom  b,c
+''')
+
+    check_command('stepwise stash -c c', '''\
+#  Name    Category  Message
+────────────────────────────
+3  custom  b,c
 ''')
 
     # Test `peek`:
@@ -56,26 +64,49 @@ def test_stash():
 ''')
 
     check_command('stepwise stash ls', '''\
-#  Name    Cat.  Message
+#  Name    Category  Message
 ───────────────────────────────────────────────────────────────────────────────
 1  custom  b
-2  custom  b
-3  custom        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam… 
+2  custom  b,c
+3  custom            Lorem ipsum dolor sit amet, consectetur adipiscing elit.… 
 ''')
 
     # Test `drop`:
-    check_command('stepwise stash drop 3')
-
+    check_command('stepwise stash drop 1')
     check_command('stepwise stash ls', '''\
-#  Name    Cat.  Message
-────────────────────────
-1  custom  b
-2  custom  b
+#  Name    Category  Message
+───────────────────────────────────────────────────────────────────────────────
+1  custom  b,c
+2  custom            Lorem ipsum dolor sit amet, consectetur adipiscing elit.… 
+''')
+
+    check_command('stepwise stash drop 1')
+    check_command('stepwise stash ls', '''\
+#  Name    Message
+───────────────────────────────────────────────────────────────────────────────
+1  custom  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam justo…
+''')
+
+    # Test implicit id:
+    check_command('stepwise stash peek', '''\
+{DATE}
+
+\\$ stepwise custom D
+
+1\\. D
+''')
+
+    check_command('stepwise stash pop', '''\
+{DATE}
+
+\\$ stepwise custom D
+
+1\\. D
 ''')
 
     # Test `clear`:
     check_command('stepwise stash clear')
-    check_command('stepwise stash ls', '^No stashed protocols.$')
+    check_command('stepwise stash', '^No stashed protocols.$')
 
 
 def check_command(cmd, stdout='^$', stderr='^$', return_code=0, env={}):
