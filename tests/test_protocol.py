@@ -9,30 +9,11 @@ from utils import *
 parse = Protocol.parse
 merge = Protocol.merge
 
-def test_repr():
-    p = Protocol()
-    assert repr(p) == 'Protocol(date=None, commands=[], steps=[], footnotes={})'
+class MergeParams(Params):
+    args = 'inputs, output'
 
-@pytest.mark.parametrize(
-        'input,steps', [
-            ("Step 1",                   ["Step 1"]),
-            (["Step 1", "Step 2"],       ["Step 1", "Step 2"]),
-            (Protocol(steps=["Step 1"]), ["Step 1"]),
-        ]
-)
-def test_from_anything(input, steps):
-    p = Protocol.from_anything(input)
-    assert p.steps == steps
+    params_empty = [
 
-def test_from_anything_err():
-    with raises(ParseError, match="cannot interpret 42 as a protocol"):
-        Protocol.from_anything(42)
-
-@pytest.mark.parametrize(
-        'inputs,output', [
-
-            ####################################
-            # Empty
             ####################################
             ([
                 Protocol(),
@@ -46,9 +27,9 @@ def test_from_anything_err():
             ],
                 Protocol(),
             ),
-
             ####################################
-            # Dates
+    ]
+    params_dates = [
             ####################################
             ([
                 Protocol(
@@ -83,9 +64,8 @@ def test_from_anything_err():
                     date=arrow.get(1988, 11, 8),
                 ),
             ),
-
-            ####################################
-            # Commands
+    ]
+    params_commands = [
             ####################################
             ([
                 Protocol(
@@ -133,9 +113,8 @@ def test_from_anything_err():
                     commands=['command-1', 'command-2', 'command-3', 'command-4']
                 ),
             ),
-
-            ####################################
-            # Steps
+    ]
+    params_steps = [
             ####################################
             ([
                 Protocol(
@@ -218,9 +197,8 @@ def test_from_anything_err():
                     steps=['Step 1', 'Step 2', 'Step 3', 'Step 4'],
                 ),
             ),
-
-            ####################################
-            # Footnotes
+    ]
+    params_footnotes = [
             ####################################
             ([
                 Protocol(
@@ -325,9 +303,195 @@ def test_from_anything_err():
                                3: 'Footnote C', 4: 'Footnote D'},
                 ),
             ),
+    ]
+    params_footnotes_shared = [
             ####################################
+            ([
+                Protocol(
+                    steps=['Step A [1]'],
+                    footnotes={1: 'Same footnote'},
+                ),
+                Protocol(
+                    steps=['Step B [1]'],
+                    footnotes={1: 'Same footnote'},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1]', 'Step B [1]'],
+                    footnotes={1: 'Same footnote'}
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step A [2]'],
+                    footnotes={2: 'Same footnote'},
+                ),
+                Protocol(
+                    steps=['Step B [1]'],
+                    footnotes={1: 'Same footnote'},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1]', 'Step B [1]'],
+                    footnotes={1: 'Same footnote'}
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step A [1]'],
+                    footnotes={1: 'Same footnote'},
+                ),
+                Protocol(
+                    steps=['Step B [2]'],
+                    footnotes={2: 'Same footnote'},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1]', 'Step B [1]'],
+                    footnotes={1: 'Same footnote'}
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step A [2]'],
+                    footnotes={2: 'Same footnote'},
+                ),
+                Protocol(
+                    steps=['Step B [2]'],
+                    footnotes={2: 'Same footnote'},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1]', 'Step B [1]'],
+                    footnotes={1: 'Same footnote'}
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step A [1] [2]',],
+                    footnotes={1: 'Footnote 1', 2: 'Same footnote'},
+                ),
+                Protocol(
+                    steps=['Step B [1]'],
+                    footnotes={1: 'Same footnote'},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1] [2]', 'Step B [2]'],
+                    footnotes={1: 'Footnote 1', 2: 'Same footnote'}
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step A [1] [2]',],
+                    footnotes={1: 'Footnote 1', 2: 'Same footnote'},
+                ),
+                Protocol(
+                    steps=['Step B [2]'],
+                    footnotes={2: 'Same footnote'},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1] [2]', 'Step B [2]'],
+                    footnotes={1: 'Footnote 1', 2: 'Same footnote'}
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step A [1] [2]',],
+                    footnotes={1: 'Same footnote', 2: 'Footnote 2'},
+                ),
+                Protocol(
+                    steps=['Step B [1]'],
+                    footnotes={1: 'Same footnote'},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1] [2]', 'Step B [1]'],
+                    footnotes={1: 'Same footnote', 2: 'Footnote 2'},
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step A [1] [2]',],
+                    footnotes={1: 'Same footnote', 2: 'Footnote 2'},
+                ),
+                Protocol(
+                    steps=['Step B [2]'],
+                    footnotes={2: 'Same footnote'},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1] [2]', 'Step B [1]'],
+                    footnotes={1: 'Same footnote', 2: 'Footnote 2'},
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step A [1] [2]',],
+                    footnotes={1: 'Same footnote', 2: 'Footnote 2'},
+                ),
+                Protocol(
+                    steps=['Step B [1] [2]'],
+                    footnotes={1: 'Footnote 1', 2: 'Same footnote'},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1] [2]', 'Step B [3] [1]'],
+                    footnotes={1: 'Same footnote', 2: 'Footnote 2', 3: 'Footnote 1'}
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step A [1] [2]',],
+                    footnotes={1: 'Same footnote X', 2: 'Same footnote Y'},
+                ),
+                Protocol(
+                    steps=['Step B [1] [2]'],
+                    footnotes={1: 'Same footnote Y', 2: 'Same footnote Z'},
+                ),
+                Protocol(
+                    steps=['Step C [1] [2]'],
+                    footnotes={1: 'Same footnote Z', 2: 'Same footnote X'},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1] [2]', 'Step B [2] [3]', 'Step C [3] [1]'],
+                    footnotes={1: 'Same footnote X', 2: 'Same footnote Y', 3: 'Same footnote Z'}
+                ),
+            ),
+            ####################################
+    ]
+
+def test_repr():
+    p = Protocol()
+    assert repr(p) == 'Protocol(date=None, commands=[], steps=[], footnotes={})'
+
+@pytest.mark.parametrize(
+        'input,steps', [
+            ("Step 1",                   ["Step 1"]),
+            (["Step 1", "Step 2"],       ["Step 1", "Step 2"]),
+            (Protocol(steps=["Step 1"]), ["Step 1"]),
         ]
 )
+def test_from_anything(input, steps):
+    p = Protocol.from_anything(input)
+    assert p.steps == steps
+
+def test_from_anything_err():
+    with raises(ParseError, match="cannot interpret 42 as a protocol"):
+        Protocol.from_anything(42)
+
+@MergeParams.parametrize
 def test_merge(inputs, output):
     merged = merge(*inputs)
     assert merged.date == output.date
@@ -404,11 +568,17 @@ def test_iadd():
     assert p.footnotes == {1: "Footnote 1"}
 
 @parametrize_via_toml('test_protocol.toml')
-def test_renumber_footnotes(start, steps_before, footnotes_before, steps_after, footnotes_after):
+def test_renumber_footnotes(new_ids, steps_before, footnotes_before, steps_after, footnotes_after):
+
+    if isinstance(new_ids, dict):
+        new_ids = int_keys(new_ids)
+    if isinstance(new_ids, str) and new_ids.startswith('lambda'):
+        new_ids = eval(new_ids)
+
     p = Protocol()
     p.steps = steps_before
     p.footnotes = int_keys(footnotes_before)
-    p.renumber_footnotes(start=start)
+    p.renumber_footnotes(new_ids)
     assert p.steps == steps_after
     assert p.footnotes == int_keys(footnotes_after)
 

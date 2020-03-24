@@ -281,29 +281,34 @@ class Protocol:
         # Concatenate all the commands.
         target.commands = sum([x.commands for x in protocols], [])
 
-        # Merge the steps and footnotes.  This requires renumbering the 
-        # footnotes.
-        cursor = 0
+        # Concatenate the steps and merge/renumber the footnotes.
         target.steps = []
         target.footnotes = {}
+        next_footnote_key = 1
 
         for protocol in protocols:
             p = copy(protocol)
 
+            footnote_map = {}
+            footnote_keys = {v: k for k, v in target.footnotes.items()}
+            
+            for i, note in p.footnotes.items():
+                if note in footnote_keys:
+                    footnote_map[i] = footnote_keys[note]
+                else:
+                    footnote_map[i] = next_footnote_key
+                    next_footnote_key += 1
+
             # Don't try to renumber the footnotes if there aren't any.  This 
             # happens when using the += operator to add steps.  The steps might 
             # reference footnotes that haven't been defined yet, and trying to 
-            # renumber them causes the code to crash.
+            # renumber them causes the code to crash.  Honestly this might be a 
+            # sign that += is too overloaded, but for now this fix works.
             if p.footnotes:
-                p.renumber_footnotes(cursor + 1)
-
-            # Footnotes should never be clobbered.
-            assert not set(p.footnotes) & set(target.footnotes)
+                p.renumber_footnotes(footnote_map)
 
             target.steps.extend(p.steps)
             target.footnotes.update(p.footnotes)
-
-            cursor = max(target.footnotes, default=0)
 
         return target
 
@@ -325,17 +330,29 @@ class Protocol:
         }
         self.renumber_footnotes()
 
-    def renumber_footnotes(self, start=1):
+    def renumber_footnotes(self, new_ids=1):
         """
-        Renumber the footnotes consecutively from the given starting value.
+        Renumber the footnotes.
 
-        The new numbers will start at the given value and increase one-by-one 
-        without gaps.  The footnotes will remain in the same order as they were 
-        previously.  References to the footnotes in the steps will be updated.
+        The footnotes will remain in the same order as they were previously.  
+        References to the footnotes in the steps will be updated.  There are 
+        three ways to specify what the new footnote numbers should be:
+
+        - int: The new numbers will start at the given value and increase 
+          one-by-one without gaps.  
+
+        - dict: The keys are the current footnote numbers, and the values are 
+          the new ones.  Each current number must be present in the dictionary.
+
+        - callable: The 
         """
 
         old_ids = sorted(self.footnotes)
-        new_ids = {j: i for i, j in enumerate(old_ids, start=start)}
+
+        if isinstance(new_ids, int):
+            new_ids = {j: i for i, j in enumerate(old_ids, start=new_ids)}
+        if callable(new_ids):
+            new_ids = {j: new_ids(j) for j in old_ids}
         
         def renumber_footnote(m):
             ii = indices_from_str(m.group(1))
@@ -571,8 +588,10 @@ class ProtocolIO:
                 return cls.from_text(text)
 
         io = from_file(path, args, name)
-        io.protocol.set_current_date()
-        io.protocol.set_current_command()
+        if not io.errors:
+            io.protocol.set_current_date()
+            io.protocol.set_current_command()
+
         return io
 
     @no_errors
