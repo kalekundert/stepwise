@@ -80,13 +80,14 @@ def test_stash():
 
 def check_command(cmd, stdout='^$', stderr='^$', return_code=0, env={}):
     p = tty_capture(cmd, env=env, shell=True)
-    assert p.returncode == return_code
+
+    print(cmd, file=sys.stderr)
+    check_output(p.stderr, stderr, sys.stderr)
 
     print(cmd)
     check_output(p.stdout, stdout, sys.stdout)
 
-    print(cmd, file=sys.stderr)
-    check_output(p.stderr, stderr, sys.stderr)
+    assert p.returncode == return_code
 
 def check_output(captured, expected, file=sys.stdout):
     expected = expected.format(DATE=DATE).strip()

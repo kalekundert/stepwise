@@ -473,40 +473,6 @@ class ProtocolIO:
         self.protocol = protocol or Protocol()
         self.errors = errors
 
-    def to_stdout(self, force_text=False):
-        """
-        Write the protocol to stdout.
-
-        If stdout is attached to a pipe (i.e. not a TTY), write the pickled 
-        `ProtocolIO` instance.  The command attached to the pipe (assumed to 
-        be a stepwise command) can recover this instance using 
-        `ProtocolIO.from_stdin()`.  This format allows arbitrary python 
-        objects to be passed between processes, and prevents the need to parse 
-        any protocol steps more than once.
-
-        Otherwise, print the formatted protocol to stdout for the user to see.  
-        This behavior can also be forced with the `force_text` argument.
-        """
-        if sys.stdout.isatty() or force_text:
-            print(self.protocol)
-        else:
-            stdout = self.to_pickle()
-            sys.stdout.buffer.write(stdout)
-
-    def to_pickle(self):
-        """
-        Write the protocol to the pickle format.
-
-        If this fails (e.g. if the protocol has non-pickle-able attributes), 
-        record the error and pickle an empty `ProtocolIO` instead.
-        """
-        try:
-            return pickle.dumps(self)
-        except Exception as err:
-            print_exc(file=sys.stderr)
-            io = ProtocolIO('', 1)
-            return pickle.dumps(io)
-
     @no_errors
     def from_stdin(cls):
         """
@@ -518,11 +484,20 @@ class ProtocolIO:
         objects to be passed between processes, and prevents the need to parse 
         any protocol steps more than once.
         """
+
+        # Don't try to read from a TTY, because it will hang until the user 
+        # enters an EOF.
         if sys.stdin.isatty():
             return cls()
 
         try:
-            return pickle.load(sys.stdin.buffer)
+            # If there's input in stdin, assume it's a pickled `ProtocolIO` 
+            # from another stepwise process.  It's also possible for stdin to 
+            # be empty, e.g. if there are nested stepwise processes (e.g. if a 
+            # protocol calls stepwise itself).  In this case, the outer process 
+            # will read stdin, and the inner process will have nothing to read.
+            stdin = sys.stdin.buffer.read()
+            return cls.from_pickle(stdin) if stdin else cls()
 
         except Exception as err:
             print_exc(file=sys.stderr)
@@ -564,34 +539,41 @@ class ProtocolIO:
         - Otherwise, the file will be taken as an "attachment".  A simple 
           protocol will be created containing the attachment.
         """
-        path = Path(path)
+
+        def from_file(path, args, name):
+            path = Path(path)
+
+            # If the path is a script, run it:
+            if is_executable(path):
+                cmd = str(path), *args
+                p = subp.run(cmd, stdout=subp.PIPE)
+                if p.returncode != 0:
+                    raise LoadError(f"command failed with status {p.returncode}")
+
+                try:
+                    return pickle.loads(p.stdout)
+                except Exception:
+                    return from_text(p.stdout.decode())
+
+            # If the path is a text file, read it:
+            elif path.suffix in '.txt':
+                return from_text(path.read_text())
+
+            # Otherwise, attach the file to a new protocol:
+            else:
+                io = cls()
+                io.protocol = Protocol(steps=[f"<{name or path.name}>"])
+                io.protocol.attachments = [path]
+                return io
 
         def from_text(text):
             with inform.set_culprit(name or path):
                 return cls.from_text(text)
 
-        # If the path is a script, run it:
-        if is_executable(path):
-            cmd = str(path), *args
-            p = subp.run(cmd, stdout=subp.PIPE)
-            if p.returncode != 0:
-                raise LoadError(f"command failed with status {p.returncode}")
-
-            try:
-                return pickle.loads(p.stdout)
-            except Exception:
-                return from_text(p.stdout.decode())
-
-        # If the path is a text file, read it:
-        elif path.suffix in '.txt':
-            return from_text(path.read_text())
-
-        # Otherwise, attach the file to a new protocol:
-        else:
-            io = cls()
-            io.protocol = Protocol(steps=[f"<{name or path.name}>"])
-            io.protocol.attachments = [path]
-            return io
+        io = from_file(path, args, name)
+        io.protocol.set_current_date()
+        io.protocol.set_current_command()
+        return io
 
     @no_errors
     def from_text(cls, text):
@@ -617,9 +599,6 @@ class ProtocolIO:
         else:
             if not io.protocol.steps:
                 warn("protocol is empty.", culprit=inform.get_culprit())
-
-            io.protocol.set_current_date()
-            io.protocol.set_current_command()
 
         return io
 
@@ -648,6 +627,41 @@ class ProtocolIO:
             io.protocol = '\n'.join((str(x.protocol) for x in others)).strip()
 
         return io
+    def to_stdout(self, force_text=False):
+        """
+        Write the protocol to stdout.
+
+        If stdout is attached to a pipe (i.e. not a TTY), write the pickled 
+        `ProtocolIO` instance.  The command attached to the pipe (assumed to 
+        be a stepwise command) can recover this instance using 
+        `ProtocolIO.from_stdin()`.  This format allows arbitrary python 
+        objects to be passed between processes, and prevents the need to parse 
+        any protocol steps more than once.
+
+        Otherwise, print the formatted protocol to stdout for the user to see.  
+        This behavior can also be forced with the `force_text` argument.
+        """
+        if sys.stdout.isatty() or force_text:
+            print(self.protocol)
+        else:
+            return pickle.dump(self, sys.stdout.buffer)
+
+            stdout = self.to_pickle()
+            sys.stdout.buffer.write(stdout)
+
+    def to_pickle(self):
+        """
+        Write the protocol to the pickle format.
+
+        If this fails (e.g. if the protocol has non-pickle-able attributes), 
+        record the error and pickle an empty `ProtocolIO` instead.
+        """
+        try:
+            return pickle.dumps(self)
+        except Exception as err:
+            print_exc(file=sys.stderr)
+            io = ProtocolIO('', 1)
+            return pickle.dumps(io)
 
     del no_errors
 

@@ -148,6 +148,26 @@ stdout = '''
 stderr = '^$'
 return_code = 0
 
+[[test_main]]
+id = 'pipeline-nested'
+cmd = "stepwise nested A | stepwise nested B | stepwise nested C"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ stepwise nested A
+\$ stepwise nested B
+\$ stepwise nested C
+
+1\. A
+
+2\. B
+
+3\. C
+'''
+stderr = '^$'
+return_code = 0
+
 
 ###############################################################################
 ### Errors
