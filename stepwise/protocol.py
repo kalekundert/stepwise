@@ -3,12 +3,13 @@
 import sys, pickle, shlex, re, textwrap, io, shutil
 import subprocess as subp
 import arrow, inform
-from nonstdlib import plural, indices_from_str, pretty_range as str_from_indices
-from more_itertools import first_true
 from copy import copy
 from pathlib import Path
-from inform import warn, error
 from traceback import print_exc
+from collections.abc import Iterable
+from inform import warn, error, plural
+from nonstdlib import indices_from_str, pretty_range as str_from_indices
+from more_itertools import first_true
 from .errors import *
 
 import functools
@@ -22,19 +23,6 @@ class Protocol:
     FOOTNOTE_REGEX = r'\[(\d+(?:[-,]\d+)*)\]'
     FOOTNOTE_DEF_REGEX = fr'^({FOOTNOTE_REGEX} )(.+)'
     INDENT_OR_BLANK_REGEX = lambda n: fr'^({" "*n}|\s*$)(.*)$'
-
-    @classmethod
-    def from_anything(cls, x):
-        from collections.abc import Iterable
-
-        if isinstance(x, Protocol):
-            return x
-        if isinstance(x, str):
-            return cls(steps=[x])
-        if isinstance(x, Iterable):
-            return cls(steps=x)
-
-        raise ParseError(f"cannot interpret {x!r} as a protocol")
 
     def __init__(self, *, date=None, commands=None, steps=None, footnotes=None):
         self.date = date
@@ -267,16 +255,37 @@ class Protocol:
         self.merge(other, self, target=self)
 
     @classmethod
-    def merge(cls, *protocols, target=None):
+    def merge(cls, *protocol_like, target=None):
         if target is None: target = cls()
-        protocols = [
-                cls.from_anything(copy(x) if x is target else x)
-                for x in protocols
-        ]
+
+        # Support different ways of specifying protocol steps.
+        protocols = []
+        for obj in protocol_like:
+
+            if isinstance(obj, Protocol):
+                protocol = obj
+
+            elif isinstance(obj, ProtocolIO):
+                if obj.errors: continue
+                protocol = obj.protocol
+
+            elif isinstance(obj, str):
+                protocol = cls(steps=[obj])
+
+            elif isinstance(obj, Iterable):
+                protocol = cls(steps=obj)
+
+            else:
+                raise ParseError(f"cannot interpret {obj!r} as a protocol.")
+
+            if protocol is target:
+                protocol = copy(protocol)
+
+            protocols.append(protocol)
 
         # Use the most recent date.
         dates = [x.date for x in protocols if x.date is not None]
-        target.date = sorted(dates)[-1] if dates else None
+        target.date = max(dates, default=None)
 
         # Concatenate all the commands.
         target.commands = sum([x.commands for x in protocols], [])
@@ -292,6 +301,7 @@ class Protocol:
             footnote_map = {}
             footnote_keys = {v: k for k, v in target.footnotes.items()}
             
+            # Avoid duplicate footnotes.
             for i, note in p.footnotes.items():
                 if note in footnote_keys:
                     footnote_map[i] = footnote_keys[note]
@@ -302,8 +312,8 @@ class Protocol:
             # Don't try to renumber the footnotes if there aren't any.  This 
             # happens when using the += operator to add steps.  The steps might 
             # reference footnotes that haven't been defined yet, and trying to 
-            # renumber them causes the code to crash.  Honestly this might be a 
-            # sign that += is too overloaded, but for now this fix works.
+            # renumber them triggers an error.  Honestly this is probably a 
+            # sign that += is too overloaded, but for now this approach works.
             if p.footnotes:
                 p.renumber_footnotes(footnote_map)
 
@@ -526,7 +536,7 @@ class ProtocolIO:
             return cls("", 1)
 
     @no_errors
-    def from_library(cls, library, tag, args):
+    def from_library(cls, library, tag, args=None):
         """
         Read a protocol matching the given tag.
 
@@ -535,7 +545,7 @@ class ProtocolIO:
         """
         from .library import Library
         library = library or Library()
-        io = library.find_entry(tag).load_protocol(args)
+        io = library.find_entry(tag).load_protocol(args or [])
         io.library = library
         return io
 
@@ -684,10 +694,17 @@ class ProtocolIO:
 
     del no_errors
 
+def load(tag, args=None, library=None):
+    return ProtocolIO.from_library(library, tag, args)
+
+def load_file(path, args=None):
+    return ProtocolIO.from_file(path, args)
+
 def is_executable(path):
     """
     Return true if the given path is executable.
     """
     import os, stat
     return stat.S_IXUSR & os.stat(path)[stat.ST_MODE]
+
 

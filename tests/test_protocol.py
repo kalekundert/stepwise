@@ -3,7 +3,7 @@
 import pytest, arrow
 import subprocess as subp
 from pytest import raises
-from stepwise import Protocol, ParseError
+from stepwise import Protocol, ProtocolIO, ParseError
 from utils import *
 
 parse = Protocol.parse
@@ -13,7 +13,6 @@ class MergeParams(Params):
     args = 'inputs, output'
 
     params_empty = [
-
             ####################################
             ([
                 Protocol(),
@@ -471,25 +470,51 @@ class MergeParams(Params):
             ),
             ####################################
     ]
+    params_typecasts = [
+            ####################################
+            ([
+                Protocol(steps=['Step 1']),
+                'Step 2',
+            ],
+                Protocol(steps=['Step 1', 'Step 2']),
+            ),
+            ####################################
+            ([
+                Protocol(steps=['Step 1']),
+                ['Step 2', 'Step 3'],
+            ],
+                Protocol(steps=['Step 1', 'Step 2', 'Step 3']),
+            ),
+            ####################################
+            ([
+                Protocol(steps=['Step 1']),
+                ProtocolIO(
+                    protocol=Protocol(steps=['Step 2']),
+                    errors=0,
+                )
+            ],
+                Protocol(
+                    steps=['Step 1', 'Step 2'],
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(steps=['Step 1']),
+                ProtocolIO(
+                    protocol='Error',
+                    errors=1,
+                )
+            ],
+                Protocol(
+                    steps=['Step 1'],
+                ),
+            ),
+            ####################################
+    ]
 
 def test_repr():
     p = Protocol()
     assert repr(p) == 'Protocol(date=None, commands=[], steps=[], footnotes={})'
-
-@pytest.mark.parametrize(
-        'input,steps', [
-            ("Step 1",                   ["Step 1"]),
-            (["Step 1", "Step 2"],       ["Step 1", "Step 2"]),
-            (Protocol(steps=["Step 1"]), ["Step 1"]),
-        ]
-)
-def test_from_anything(input, steps):
-    p = Protocol.from_anything(input)
-    assert p.steps == steps
-
-def test_from_anything_err():
-    with raises(ParseError, match="cannot interpret 42 as a protocol"):
-        Protocol.from_anything(42)
 
 @MergeParams.parametrize
 def test_merge(inputs, output):
@@ -498,6 +523,10 @@ def test_merge(inputs, output):
     assert merged.commands == output.commands
     assert merged.steps == output.steps
     assert merged.footnotes == output.footnotes
+
+def test_merge_err():
+    with raises(ParseError, match="cannot interpret 42 as a protocol"):
+        Protocol.merge(42)
 
 def test_append():
     a = Protocol(
