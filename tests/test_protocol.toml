@@ -385,6 +385,13 @@ text = "\n"
 [[test_parse_empty]]
 text = "\n\n"
 
+[[test_parse_empty]]
+text = """
+
+# Comment
+
+"""
+
 [[test_parse_date]]
 text = """
 November 8, 1988
@@ -615,6 +622,13 @@ Notes:
 [2] Footnote 2
 """
 footnotes = {1 = "Footnote 1", 2 = "Footnote 2"}
+
+[[test_parse_footnotes]]
+text = """
+Notes:
+ [1] Footnote 1
+"""
+footnotes = {1 = 'Footnote 1'}
 
 [[test_parse_footnotes_err]]
 text = """

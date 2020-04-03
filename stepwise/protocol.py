@@ -15,13 +15,13 @@ from .errors import *
 import functools
 
 class Protocol:
-    BLANK_REGEX = r'^\s*$'
+    BLANK_REGEX = r'^\s*$|^#.*'
     DATE_FORMAT = 'MMMM D, YYYY'
     COMMAND_REGEX = r'^[$] (.+)'
     STEP_REGEX = r'^(- |\s*\d+\. )(.+)'
     FOOTNOTE_HEADER_REGEX = r'Notes?:|Footnotes?:'
     FOOTNOTE_REGEX = r'\[(\d+(?:[-,]\d+)*)\]'
-    FOOTNOTE_DEF_REGEX = fr'^({FOOTNOTE_REGEX} )(.+)'
+    FOOTNOTE_DEF_REGEX = fr'^\s*({FOOTNOTE_REGEX} )(.+)'
     INDENT_OR_BLANK_REGEX = lambda n: fr'^({" "*n}|\s*$)(.*)$'
 
     def __init__(self, *, date=None, commands=None, steps=None, footnotes=None):
@@ -115,7 +115,7 @@ class Protocol:
                 return Transition(parse_continued_step, state=state)
 
             raise ParseError(
-                    template=truncate_error("expected a step (e.g. '- ...' or '1. ...'), not '{}'", line),
+                    template=truncate_error("expected a step (e.g. '- …' or '1. …'), not '{}'", line),
                     culprit=inform.get_culprit(),
             )
 
@@ -138,8 +138,9 @@ class Protocol:
             if re.match(cls.BLANK_REGEX, line):
                 return Transition(parse_new_footnote)
 
+            print(repr(line))
             raise ParseError(
-                    template=truncate_error("expected a footnote (e.g. '[1] ...'), not '{}'", line),
+                    template=truncate_error("expected a footnote (e.g. '[1] …'), not '{}'", line),
                     culprit=inform.get_culprit(),
             )
 
@@ -159,7 +160,7 @@ class Protocol:
             max_width = shutil.get_terminal_size().columns
             max_problem_width = max_width - len(message.format('')) - 1
             truncated_problem = textwrap.shorten(
-                    problem, max_problem_width, placeholder='...')
+                    problem, max_problem_width, placeholder='…')
             return message.format(truncated_problem)
 
         def check_footnotes(footnotes):

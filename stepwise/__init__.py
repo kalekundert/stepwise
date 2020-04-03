@@ -14,6 +14,9 @@ from .config import *
 from .errors import *
 
 from pathlib import Path
+from inform import Inform
+
+Inform(stream_policy='header')
 
 class Builtins:
     protocol_dir = Path(__file__).parent / 'builtins'
