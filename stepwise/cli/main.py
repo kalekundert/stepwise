@@ -4,13 +4,14 @@
 Generate and display scientific protocols.
 
 Usage:
-    stepwise [-qx] <command> [<args>...]
+    stepwise [-qx] [<command>] [<args>...]
     stepwise -h|--help
     stepwise -v|--version
 
 Commands:
     If <command> doesn't match one of the options listed below, stepwise will 
-    interpret the command as a protocol to find and display.  Any given <args> 
+    interpret the command as a protocol to find and display.  If <command> is 
+    not specified, a protocol will be read from stdin.  Any given <args> 
     will be passed to the protocol.
 
     {commands}
@@ -73,12 +74,16 @@ def main():
 
         else:
             io_stdin = ProtocolIO.from_stdin()
-            io_cli = ProtocolIO.from_library(
-                    io_stdin.library,
-                    args['<command>'],
-                    args['<args>'],
-            )
-            if args['--quiet']:
+
+            io_cli = ProtocolIO()
+            if args['<command>']:
+                io_cli = ProtocolIO.from_library(
+                        io_stdin.library,
+                        args['<command>'],
+                        args['<args>'],
+                )
+
+            if args['--quiet'] and not io_cli.errors:
                 io_cli.protocol.clear_footnotes()
                 
             io_stdout = ProtocolIO.merge(io_stdin, io_cli)

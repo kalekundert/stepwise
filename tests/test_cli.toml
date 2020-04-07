@@ -168,6 +168,25 @@ stdout = '''
 stderr = '^$'
 return_code = 0
 
+[[test_main]]
+id = 'heredoc'
+cmd = '''
+stepwise <<EOF
+- A
+- B
+EOF
+'''
+env = {}
+stdout = '''
+^{DATE}
+
+1\. A
+
+2\. B
+'''
+stderr = '^$'
+return_code = 0
+
 
 ###############################################################################
 ### Errors
@@ -210,26 +229,7 @@ stdout = '''
 stderr = '''
 .*stepwise warning.*the protocol could not be properly rendered due to error\(s\):
 .*stepwise warning.*echo, 1.*
-    expected a step \(e.g. '- ...' or '1. ...'\), not 'Formatting error'
-'''
-return_code = 1
-
-[[test_main]]
-id = 'err-bad-stdin'
-cmd = "echo foo | stepwise custom A"
-env = {}
-stdout = '''
-^{DATE}
-
-\$ stepwise custom A
-
-1\. A
-'''
-stderr = '''
-.*stepwise error.*error parsing stdin: invalid load key, 'f'.
-    This error commonly occurs when the output from a non-stepwise command
-    is piped into a stepwise command.  When usings pipes to combine
-    protocols, make sure that every command is a stepwise command.
+    expected a step \(e.g. '- …' or '1. …'\), not 'Formatting error'
 '''
 return_code = 1
 

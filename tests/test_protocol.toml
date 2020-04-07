@@ -648,6 +648,13 @@ err = "expected a footnote"
 [[test_parse_footnotes_err]]
 text = """
 Notes:
+[1,2] Footnote 1
+"""
+err = "expected a footnote"
+
+[[test_parse_footnotes_err]]
+text = """
+Notes:
    Fake line wrap
 """
 err = "expected a footnote"

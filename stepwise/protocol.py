@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-import sys, pickle, shlex, re, textwrap, io, shutil
+import sys, pickle, shlex, re, textwrap, shutil
 import subprocess as subp
 import arrow, inform
 from copy import copy
 from pathlib import Path
-from traceback import print_exc
+from io import IOBase, BytesIO
+from pickle import UnpicklingError
 from collections.abc import Iterable
 from inform import warn, error, plural
 from nonstdlib import indices_from_str, pretty_range as str_from_indices
@@ -21,7 +22,7 @@ class Protocol:
     STEP_REGEX = r'^(- |\s*\d+\. )(.+)'
     FOOTNOTE_HEADER_REGEX = r'Notes?:|Footnotes?:'
     FOOTNOTE_REGEX = r'\[(\d+(?:[-,]\d+)*)\]'
-    FOOTNOTE_DEF_REGEX = fr'^\s*({FOOTNOTE_REGEX} )(.+)'
+    FOOTNOTE_DEF_REGEX = fr'^\s*(\[(\d+)\] )(.+)'
     INDENT_OR_BLANK_REGEX = lambda n: fr'^({" "*n}|\s*$)(.*)$'
 
     def __init__(self, *, date=None, commands=None, steps=None, footnotes=None):
@@ -51,7 +52,7 @@ class Protocol:
     def parse(cls, x):
         from collections.abc import Sequence
 
-        if isinstance(x, io.IOBase):
+        if isinstance(x, IOBase):
             return cls.parse_stream(x)
         if isinstance(x, str):
             return cls.parse_str(x)
@@ -518,23 +519,59 @@ class ProtocolIO:
         if sys.stdin.isatty():
             return cls()
 
-        try:
-            # If there's input in stdin, assume it's a pickled `ProtocolIO` 
-            # from another stepwise process.  It's also possible for stdin to 
-            # be empty, e.g. if there are nested stepwise processes (e.g. if a 
-            # protocol calls stepwise itself).  In this case, the outer process 
-            # will read stdin, and the inner process will have nothing to read.
-            stdin = sys.stdin.buffer.read()
-            return cls.from_pickle(stdin) if stdin else cls()
+        ios = []
+        stdin_unread = sys.stdin.buffer.read()
 
-        except Exception as err:
-            print_exc(file=sys.stderr)
-            error(
-                    f"error parsing stdin: {err}",
-                    codicil="This error commonly occurs when the output from a non-stepwise command is piped into a stepwise command.  When usings pipes to combine protocols, make sure that every command is a stepwise command.",
-                    wrap=True,
-            )
-            return cls("", 1)
+        # Stdin can consist of any number of pickled `ProtocolIO` instances 
+        # followed optionally by a text protocol.  The most common case is for 
+        # stdin to consist of a single pickle, corresponding to the output from 
+        # the previous command in a pipeline.  More interesting behavior is 
+        # possible if you're using `zsh` with the MULTIOS option enabled (the 
+        # default), which allows processes to get stdin from multiple sources 
+        # (e.g. pipes, redirects, heredocs).
+        # 
+        # The text protocol must come last because there's no way to tell how 
+        # big it's supposed to be.  So when we encounter bytes that can't be 
+        # interpreted as a pickle, we read to the end of the stream and try to 
+        # parse it as a text protocol.
+        # 
+        # It's possible for stdin to be empty, e.g. if there are nested 
+        # stepwise processes (e.g. if a protocol calls stepwise itself).  In 
+        # this case, the outer process will read stdin, and the inner process 
+        # will have nothing to read.
+
+        def from_pickle(buffer):
+            """
+            Unpickle the given buffer, guaranteeing that `UnpicklingError` will 
+            be raised if the given buffer can't be unpickled for any reason.
+            """
+            try:
+                io = pickle.load(buffer)
+            except UnpicklingError as err:
+                raise err
+            except Exception as err:
+                raise UnpicklingError(str(err))
+
+            # Also make sure the right kind of object was unpickled.
+            if not isinstance(io, cls):
+                raise LoadError(f"unpickled {io.__class__.__name__!r}, expected {cls.__name__!r}")
+
+            return io
+
+        while stdin_unread:
+            stdin_buffer = BytesIO(stdin_unread)
+
+            try:
+                io = from_pickle(stdin_buffer)
+                ios.append(io)
+            except UnpicklingError:
+                io = cls.from_text(stdin_unread.decode())
+                ios.append(io)
+                break
+
+            stdin_unread = stdin_buffer.read()
+
+        return cls.merge(*ios)
 
     @no_errors
     def from_library(cls, library, tag, args=None):
@@ -627,23 +664,18 @@ class ProtocolIO:
             io.errors = 1
 
         else:
+            io.protocol.set_current_date()
+
             if not io.protocol.steps:
                 warn("protocol is empty.", culprit=inform.get_culprit())
 
         return io
 
     @no_errors
-    def from_pickle(cls, str):
-        """
-        Read a protocol from a pickle.
-        """
-        io = pickle.loads(str)
-        if not isinstance(io, cls):
-            raise LoadError(f"unpickled {io.__class__.__name__!r}, expected {cls.__name__!r}")
-        return io
-
-    @no_errors
     def merge(cls, *others):
+        if not others:
+            return cls()
+
         io = cls()
         io.errors = sum(x.errors for x in others)
         io.library = first_true(x.library for x in others)
@@ -657,6 +689,7 @@ class ProtocolIO:
             io.protocol = '\n'.join((str(x.protocol) for x in others)).strip()
 
         return io
+
     def to_stdout(self, force_text=False):
         """
         Write the protocol to stdout.
