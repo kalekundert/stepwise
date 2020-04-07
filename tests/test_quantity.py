@@ -79,6 +79,7 @@ def test_from_string(given, expected):
 @pytest.mark.parametrize(
         'given', [
             '1',
+            '10',
             'ng',
             '1 ng µL',
 ])

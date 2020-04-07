@@ -811,7 +811,7 @@ class Quantity:
     - Immutable
     """
     FLOAT_REGEX = r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)'
-    QUANTITY_REGEX = fr'^\s*({FLOAT_REGEX})\s*(\S+)$'
+    QUANTITY_REGEX = fr'^\s*({FLOAT_REGEX})\s*([^\s\d]+)$'
     NO_PADDING = '%', 'x'
 
     @classmethod
@@ -863,6 +863,9 @@ class Quantity:
 
     def get_unit(self):
         return self._unit
+
+    def get_tuple(self):
+        return self._value, self._unit
 
     def show(self, format=''):
         padding = '' if self.unit in self.NO_PADDING else ' '
