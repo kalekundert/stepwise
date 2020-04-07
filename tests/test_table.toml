@@ -1,0 +1,252 @@
+[[test_tabulate]]
+id = 'empty'
+header = []
+rows = []
+footer = []
+alignments = []
+expected = ''
+
+[[test_tabulate]]
+id = '1x1'
+header = []
+rows = [['A']]
+footer = []
+alignments = []
+expected = 'A'
+
+[[test_tabulate]]
+id = '2x1'
+header = []
+rows = [['A', 'B']]
+footer = []
+alignments = []
+expected = 'A  B'
+
+[[test_tabulate]]
+id = '1x2'
+header = []
+rows = [['A'], ['B']]
+footer = []
+alignments = []
+expected = '''
+A
+B
+'''
+
+[[test_tabulate]]
+id = '2x2'
+header = []
+rows = [['AB', 'C'], ['D', 'EF']]
+footer = []
+alignments = []
+expected = '''
+AB  C
+D   EF
+'''
+
+[[test_tabulate]]
+id = 'header'
+header = ['1', '2']
+rows = [['AB', 'C'], ['D', 'EF']]
+footer = []
+alignments = []
+expected = '''
+1   2
+──────
+AB  C
+D   EF
+'''
+
+[[test_tabulate]]
+id = 'footer'
+header = []
+rows = [['AB', 'C'], ['D', 'EF']]
+footer = ['X', 'Y']
+alignments = []
+expected = '''
+AB  C
+D   EF
+──────
+X   Y
+'''
+
+[[test_tabulate]]
+id = 'header-footer'
+header = ['1', '2']
+rows = [['AB', 'C'], ['D', 'EF']]
+footer = ['X', 'Y']
+alignments = []
+expected = '''
+1   2
+──────
+AB  C
+D   EF
+──────
+X   Y
+'''
+
+[[test_tabulate]]
+id = 'align-1'
+header = ['1', '2']
+rows = [['AB', 'C'], ['D', 'EF']]
+footer = ['X', 'Y']
+alignments = ['<', '>']
+expected = '''
+1    2
+──────
+AB   C
+D   EF
+──────
+X    Y
+'''
+
+[[test_tabulate]]
+id = 'align-2'
+header = ['1', '2']
+rows = [['AB', 'C'], ['D', 'EF']]
+footer = ['X', 'Y']
+alignments = ['>', '<']
+expected = '''
+ 1  2
+──────
+AB  C
+ D  EF
+──────
+ X  Y
+'''
+
+[[test_tabulate]]
+id = 'auto-align-1'
+header = []
+rows = [['AB', '1'], ['D', '10']]
+footer = []
+alignments = []
+expected = '''
+AB   1
+D   10
+'''
+
+[[test_tabulate]]
+id = 'auto-align-2'
+header = []
+rows = [['1', 'C'], ['10', 'EF']]
+footer = []
+alignments = []
+expected = '''
+ 1  C
+10  EF
+'''
+
+
+[[test_concat_rows]]
+header = []
+rows = []
+footer = []
+expected = []
+
+[[test_concat_rows]]
+header = ['A', 'B']
+rows = []
+footer = []
+expected = [['A', 'B']]
+
+[[test_concat_rows]]
+header = []
+rows = [['C', 'D']]
+footer = []
+expected = [['C', 'D']]
+
+[[test_concat_rows]]
+header = []
+rows = [['C', 'D'], ['E', 'F']]
+footer = []
+expected = [['C', 'D'], ['E', 'F']]
+
+[[test_concat_rows]]
+header = []
+rows = []
+footer = ['G', 'H']
+expected = [['G', 'H']]
+
+[[test_concat_rows]]
+header = ['A', 'B']
+rows = [['C', 'D'], ['E', 'F']]
+footer = ['G', 'H']
+expected = [['A', 'B'], ['C', 'D'], ['E', 'F'], ['G', 'H']]
+
+
+[[test_auto_align]]
+rows = []
+expected = []
+
+[[test_auto_align]]
+rows = [['A']]
+expected = ['<']
+
+[[test_auto_align]]
+rows = [['1e5']]
+expected = ['>']
+
+[[test_auto_align]]
+rows = [['A'], ['1e5']]
+expected = ['<']
+
+[[test_auto_align]]
+rows = [['A', '1e5']]
+expected = ['<', '>']
+
+
+[[test_count_cols]]
+table = []
+expected = 0
+
+[[test_count_cols]]
+table = [[1]]
+expected = 1
+
+[[test_count_cols]]
+table = [[1], [1]]
+expected = 1
+
+[[test_count_cols]]
+table = [[1, 2]]
+expected = 2
+
+[[test_count_cols]]
+table = [[1, 2], [1, 2]]
+expected = 2
+
+[[test_count_cols_err]]
+id = '2,1'
+table = [[1, 2], [1]]
+err = "different numbers of columns: 1,2"
+
+[[test_count_cols_err]]
+id = '1,2'
+table = [[1], [1, 2]]
+err = "different numbers of columns: 1,2"
+
+
+[[test_measure_cols]]
+table = []
+expected = []
+
+[[test_measure_cols]]
+table = [['A']]
+expected = [1]
+
+[[test_measure_cols]]
+table = [['A'], ['AB']]
+expected = [2]
+
+[[test_measure_cols]]
+table = [['AB'], ['A']]
+expected = [2]
+
+[[test_measure_cols]]
+table = [['A', 'AB']]
+expected = [1, 2]
+
+
+
+

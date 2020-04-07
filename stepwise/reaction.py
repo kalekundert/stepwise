@@ -10,6 +10,7 @@ from pathlib import Path
 from collections.abc import Iterable
 from nonstdlib import plural
 from more_itertools import one
+from .table import tabulate
 from .errors import *
 
 # Solvent handling
@@ -162,58 +163,36 @@ class MasterMix:
 
         # Figure out how big the table should be.
 
-        column_titles = cols(
+        header = cols(
                 "Reagent",
                 "Stock",
                 "Volume",
                 scale_header(),
         )
-        column_footers = cols(
+        rows = [
+                cols(
+                    x.name,
+                    x.stock_conc or '',
+                    f'{x.volume:.2f}',
+                    f'{x.volume * self.scale:.2f}' if x.master_mix else '',
+                )
+                for x in self if x.volume
+        ]
+        footer = None if not self.show_totals else cols(
                 '',
                 '',
                 f'{self.volume:.2f}',
                 f'{sum(x.volume for x in self.master_mix_reagents):.2f}',
         )
-        column_getters = cols(
-                lambda x: x.name,
-                lambda x: x.stock_conc or '',
-                lambda x: f'{x.volume:.2f}',
-                lambda x: f'{x.volume * self.scale:.2f}' if x.master_mix else '',
-        )
-        column_widths = [
-                max(map(
-                    lambda x: len(str(x)),
-                    [title, footer] + [getter(x) for x in self]
-                ))
-                for title, footer, getter in 
-                    zip(column_titles, column_footers, column_getters)
-        ]
-        column_alignments = '<>>>'
-        row_template = '  '.join(
-                '{{!s:{}{}}}'.format(column_alignments[i], column_widths[i])
-                for i in range(len(column_titles))
-        )
+        alignments = cols(*'<>>>')
 
-        # Assemble the table
-        rule = '─' * (sum(column_widths) + 2 * len(column_widths) - 2)
-        rows = [
-            row_template.format(*column_titles),
-            rule,
-        ] + [
-            row_template.format(
-                *[getter(reagent) for getter in column_getters])
-            for reagent in self.reaction if reagent.volume
-        ]
-        if self.show_totals and (self.show_1x or show_master_mix):
-            rows += [
-                rule,
-                row_template.format(*column_footers),
-            ]
-        table = '\n'.join(rows)
+        table = tabulate(rows, header, footer, alignments)
+
         if show_master_mix and self.show_totals:
             table += '/rxn'
 
         return table
+
 
 @autoprop
 class Reaction:

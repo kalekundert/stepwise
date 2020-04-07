@@ -931,7 +931,7 @@ Reagent  Stock    Volume        2x
 ──────────────────────────────────
 water            7.00 µL  14.00 µL
 buffer     10x   1.00 µL   2.00 µL
-enzyme      5x   2.00 µL          
+enzyme      5x   2.00 µL
 ──────────────────────────────────
                 10.00 µL   8.00 µL/rxn"""
 
@@ -955,7 +955,7 @@ Reagent  Stock        2x
 ────────────────────────
 water           14.00 µL
 buffer     10x   2.00 µL
-enzyme      5x          
+enzyme      5x
 ────────────────────────
                  8.00 µL/rxn"""
 
@@ -963,11 +963,11 @@ enzyme      5x
     mm.show_1x = True
     mm.show_totals = False
     assert str(mm) == """\
-Reagent  Stock    Volume        2x
-──────────────────────────────────
-water            7.00 µL  14.00 µL
-buffer     10x   1.00 µL   2.00 µL
-enzyme      5x   2.00 µL          """
+Reagent  Stock   Volume        2x
+─────────────────────────────────
+water           7.00 µL  14.00 µL
+buffer     10x  1.00 µL   2.00 µL
+enzyme      5x  2.00 µL"""
 
 def test_master_mix_show_scale_header():
     mm = MasterMix.from_text("""\
@@ -986,7 +986,7 @@ Reagent  Stock    Volume       10x
 ──────────────────────────────────
 water            7.00 µL  70.00 µL
 buffer     10x   1.00 µL  10.00 µL
-enzyme      5x   2.00 µL          
+enzyme      5x   2.00 µL
 ──────────────────────────────────
                 10.00 µL   8.00 µL/rxn"""
 
@@ -997,7 +997,7 @@ Reagent  Stock    Volume       11x
 ──────────────────────────────────
 water            7.00 µL  77.00 µL
 buffer     10x   1.00 µL  11.00 µL
-enzyme      5x   2.00 µL          
+enzyme      5x   2.00 µL
 ──────────────────────────────────
                 10.00 µL   8.00 µL/rxn"""
 
@@ -1008,7 +1008,7 @@ Reagent  Stock    Volume     11.1x
 ──────────────────────────────────
 water            7.00 µL  77.70 µL
 buffer     10x   1.00 µL  11.10 µL
-enzyme      5x   2.00 µL          
+enzyme      5x   2.00 µL
 ──────────────────────────────────
                 10.00 µL   8.00 µL/rxn"""
 
@@ -1019,7 +1019,7 @@ Reagent  Stock    Volume    ≈11.1x
 ──────────────────────────────────
 water            7.00 µL  77.77 µL
 buffer     10x   1.00 µL  11.11 µL
-enzyme      5x   2.00 µL          
+enzyme      5x   2.00 µL
 ──────────────────────────────────
                 10.00 µL   8.00 µL/rxn"""
 

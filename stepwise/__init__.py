@@ -9,6 +9,7 @@ __version__ = '0.1.0'
 from .protocol import *
 from .library import *
 from .reaction import *
+from .table import *
 from .printer import *
 from .config import *
 from .errors import *
