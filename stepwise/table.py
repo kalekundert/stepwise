@@ -1,27 +1,98 @@
 #!/usr/bin/env python3
 
-from itertools import zip_longest
+from math import ceil
+from textwrap import shorten
+from shutil import get_terminal_size
+from itertools import repeat, zip_longest
 from more_itertools import only
+from inform import plural
+from .quantity import Quantity
 
-def tabulate(rows, header=None, footer=None, alignments=None):
-    table_unfmt, i_header, i_footer = _concat_rows(rows, header, footer)
-    num_cols = _count_cols(table_unfmt)
-    col_widths = _measure_cols(table_unfmt)
-    col_alignments = alignments or _auto_align(rows)
+_style = {
+        'pad': 2,
+        'rule': '─',
+        'placeholder': '…',
+}
 
-    pad = 2
-    rule = '─' * (sum(col_widths) + pad * (num_cols - 1))
-    row_template = (pad * ' ').join(
-            '{{!s:{}{}}}'.format(col_alignments[i], col_widths[i])
-            for i in range(num_cols)
+def tabulate(
+        rows,
+        header=None,
+        footer=None,
+        *,
+        format=None,
+        align=None, 
+        truncate=None,
+        max_width=None,
+        style=_style,
+):
+    """
+    Format tabular information.
+
+    Arguments:
+        rows (list of lists): The content of the table.
+        header (list of str): Text to display above each column.
+        footer (list of str): Text to display below each column.
+        format (list of callables): Functions that can be used to convert the 
+            cells in each column to strings.  Each function should take one 
+            argument (the value to convert) and return a string.
+        align (str): Whether each column should be left ('<') or right ('>') 
+            aligned.  By default, columns will be right-aligned if they appear 
+            to contain numeric values, and left-aligned otherwise.
+        truncate (str): Whether each column can be truncated ('x') or not ('-') 
+            to help fit the table within the given `max_width`.
+        max_width (int): The maximum width of the table to strive for by 
+            truncating columns.  This maximum can be exceeded in `truncate` is 
+            not specified, or if the columns specified by `truncate` cannot are 
+            too narrow to make up the difference.
+        style (dict): Miscellaneous parameters used to render the table.
+
+    Return:
+        table (str): The formatted table.
+
+    Example:
+        >>> import stepwise
+        >>> header = ['Reagent', 'Volume']
+        >>> rows = [['enzyme', '1 µL'], ['buffer', '2 µL']]
+        >>> stepwise.tabular(rows, header)
+        Reagent  Volume
+        ───────────────
+        enzyme   1 µL
+        buffer   2 µL
+
+    """
+    table_unfmt, i_header, i_footer = _concat_rows(
+            rows,
+            header,
+            footer,
+            format,
     )
+    col_widths, table_width = _measure_cols(
+            table_unfmt,
+            truncate,
+            max_width,
+            style['pad'],
+    )
+    col_alignments = align or _auto_align(rows)
+
+    def format_row(row):
+        cells = [
+                format_cell(*args)
+                for args in zip(row, col_widths, col_alignments)
+        ]
+        pad = style['pad'] * ' '
+        return pad.join(cells).rstrip()
+
+    def format_cell(cell, width, align):
+        cell = shorten(cell, width=width, placeholder=style['placeholder'])
+        return f'{cell:{align}{width}}'
 
     table_fmt = [
-        row_template.format(*x).rstrip()
+        format_row(x)
         for x in table_unfmt
     ]
 
     # Add the footer first, because it won't affect the header index.
+    rule = style['rule'] * table_width
     if footer:
         table_fmt.insert(i_footer, rule)
     if header:
@@ -30,65 +101,137 @@ def tabulate(rows, header=None, footer=None, alignments=None):
     return '\n'.join(table_fmt)
 
 
-def _concat_rows(rows, header, footer):
+def _concat_rows(rows, header, footer, format):
+    """
+    Attach the given `header` and `footer` to the given `rows` to create a 
+    complete table.
+
+    Some additional processing is done as well.  The given `format` are 
+    used to convert all the values in the table to strings.  Rows containing 
+    newlines are split into multiple rows.
+    """
     table = []
 
-    def append(row, valign='top'):
-        extra_rows = _split_row([str(x) for x in row], valign)
-        table.extend(extra_rows)
+    def process(row, format=None, *, valign='top'):
+        if not format:
+            format = [str] * len(row)
+        if len(format) != len(row):
+            raise ValueError(f"given {plural(format):# formatter/s}, expected {len(row)}")
+
+        row = [fmt(x) for x, fmt in zip(row, format)]
+        row = _split_row(row, valign)
+        table.extend(row)
 
     if header:
-        append(header, 'bottom')
+        process(header, valign='bottom')
 
     i_header = len(table)
 
     for row in rows:
-        append(row)
+        process(row, format)
 
     i_footer = len(table)
 
     if footer:
-        append(footer)
+        process(footer)
 
     return table, i_header, i_footer
 
 def _split_row(row, align='top'):
-    alignments = {
+    """
+    Resolve any newlines in the given row.
+    """
+    align_funcs = {
             'top': lambda x: x,
             'bottom': reversed,
     }
-    f = alignments[align]
+    f = align_funcs[align]
 
     cells_rev = [f(x.split('\n')) for x in row]
     rows_rev = zip_longest(*cells_rev, fillvalue='')
     return list(f([list(x) for x in rows_rev]))
 
 def _auto_align(rows):
+    """
+    Provide a reasonable default alignment for each column.
+
+    Columns that appear to contain numeric values are right-aligned, while all 
+    other columns are left-aligned.
+    """
+
     def is_col_numeric(xs):
         return all(map(is_numeric, xs))
 
     def is_numeric(x):
-        try:
-            float(x)
-        except ValueError:
-            return False
-        else:
-            return True
+        try: float(x)
+        except ValueError: pass
+        else: return True
+
+        try: Quantity.from_anything(x)
+        except ValueError: pass
+        else: return True
+
+        return False
 
     return [
             '>' if is_col_numeric(col) else '<'
             for col in zip(*rows)
     ]
 
+def _measure_cols(table, truncate, max_width, pad):
+    """
+    Determine the width of each column.
+
+    In general, the width of a column is the width of the widest cell in that 
+    column.  However, the columns indicated by `truncated` may be shortened to 
+    keep the table within the given `max_width`.
+    """
+    num_cols = _count_cols(table)
+    col_widths = [
+            max(len(x) for x in xs)
+            for xs in zip(*table)
+    ]
+
+    if truncate and num_cols != len(truncate):
+        raise ValueError(f"table has {plural(num_cols):# column/s}, but truncation specified for {len(truncate)}: {truncate!r}")
+    if not max_width:
+        max_width = get_terminal_size().columns - 1
+
+    sum_col_widths = lambda: sum(col_widths) + pad * max(num_cols - 1, 0)
+    table_width = sum_col_widths()
+    overfull_width = table_width - max_width
+
+    if max_width > 0 and (overfull_width <= 0 or not truncate):
+        return col_widths, table_width
+
+    trunc_cols = [
+            (i, w)
+            for i, (w, x) in enumerate(zip(col_widths, truncate))
+            if x == 'x'
+    ]
+    remaining_trunc_cols = len(trunc_cols)
+
+    for i, col_width in trunc_cols:
+            delta_width = min(
+                ceil(overfull_width / remaining_trunc_cols),
+                col_width,
+            )
+            col_widths[i] -= delta_width
+            overfull_width -= delta_width
+            remaining_trunc_cols -= 1
+
+    return col_widths, sum_col_widths()
+
 def _count_cols(table):
+    """
+    Return the number of columns in the table.
+
+    A `ValueError` is raised if different rows in the table have different 
+    numbers of columns.
+    """
     return only(
             x := {len(x) for x in table},
             default=0,
             too_long=ValueError(f"rows have different numbers of columns: {','.join(str(x) for x in sorted(x))}"),
     )
 
-def _measure_cols(table):
-    return [
-            max(len(x) for x in xs)
-            for xs in zip(*table)
-    ]
