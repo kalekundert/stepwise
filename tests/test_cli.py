@@ -66,25 +66,47 @@ def test_stash():
     check_command('stepwise stash ls', '''\
 #  Name    Category  Message
 ───────────────────────────────────────────────────────────────────────────────
-1  custom  b
-2  custom  b,c
-3  custom            Lorem ipsum dolor sit amet, consectetur adipiscing elit.… 
+2  custom  b
+3  custom  b,c
+4  custom            Lorem ipsum dolor sit amet, consectetur adipiscing elit.… 
 ''')
 
     # Test `drop`:
-    check_command('stepwise stash drop 1')
+    check_command('stepwise stash drop 2')
     check_command('stepwise stash ls', '''\
 #  Name    Category  Message
 ───────────────────────────────────────────────────────────────────────────────
-1  custom  b,c
-2  custom            Lorem ipsum dolor sit amet, consectetur adipiscing elit.… 
+3  custom  b,c
+4  custom            Lorem ipsum dolor sit amet, consectetur adipiscing elit.… 
 ''')
 
-    check_command('stepwise stash drop 1')
+    check_command('stepwise stash drop 3')
     check_command('stepwise stash ls', '''\
 #  Name    Message
 ───────────────────────────────────────────────────────────────────────────────
-1  custom  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam justo…
+4  custom  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam justo…
+''')
+
+    # Test `label`:
+    check_command('stepwise stash label 4')
+    check_command('stepwise stash ls', '''\
+#  Name    Message
+──────────────────
+4  custom
+''')
+
+    check_command('stepwise stash label 4 -c d')
+    check_command('stepwise stash ls', '''\
+#  Name    Category  Message
+────────────────────────────
+4  custom  d
+''')
+
+    check_command('stepwise stash label 4 -m "Lorem ipsum"')
+    check_command('stepwise stash ls', '''\
+#  Name    Message
+──────────────────────
+4  custom  Lorem ipsum
 ''')
 
     # Test implicit id:

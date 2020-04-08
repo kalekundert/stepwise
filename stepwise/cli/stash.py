@@ -6,6 +6,7 @@ Save protocols for later use.
 Usage:
     stepwise stash [add] [-c <categories>] [-m <message>]
     stepwise stash [ls] [-c <categories>]
+    stepwise stash label [<id>] [-c <categories>] [-m <message>]
     stepwise stash peek [<id>]
     stepwise stash pop [<id>]
     stepwise stash drop [<id>]
@@ -14,43 +15,49 @@ Usage:
 Commands:
     [add]
         Read a protocol from stdin and save it for later use.  This command is 
-        meant to be used at the end of pipelines, like `stepwise go`.  This is 
+        meant to be used at the end of pipelines, like `stepwise go`, and is 
         the default command if stdin is connected to a pipe.
 
     [ls]
         Display any protocols that have saved for later use.  This is the 
         default command if stdin is not connected to a pipe.
 
+    label [<id>]
+        Provide new annotations (e.g. message, categories) for the indicated 
+        protocol.  Any existing annotations will be overwritten.
+
     peek [<id>]
-        Write the indicated protocol to stdout, but do not remove it from the 
-        stash.  The <id> for each stashed protocol is displayed by the `ls` 
-        command.  If only one protocol is stashed, the <id> does not need to be 
-        specified.
+        Display the indicated protocol, but do not remove it from the stash.  
 
     pop [<id>]
-        Write the indicated protocol to stdout and remove it from the stash.  
-        See the `peek` command for a description of the <id> argument.
+        Display the indicated protocol, then remove it from the stash.  
 
     drop [<id>]
-        Remove the indicated protocol from the stash.  See the `peek` command 
-        for a description of the <id> argument.
+        Remove the indicated protocol from the stash.
 
     clear
         Remove all stashed protocols.
 
+Arguments:
+    <id>
+        A number that identifies which stashed protocol to use.  The <id> for 
+        each stashed protocol is displayed by the `ls` command.  If only one 
+        protocol is stashed, the <id> does not need to be specified.
+
 Options:
+    -m --message <text>
+        A brief description of the protocol to help you remember what it's for. 
+        The message will be displayed by the `list` command.
+
     -c --categories <str>
         A comma-separated list of categories that apply to a protocol.  The 
         categories can be whatever you want, e.g. names of projects, 
         collaborations, techniques, etc.
 
-        Use this option when adding a protocol to specify which categories it 
-        belongs to.  Use this option when listing stashed protocols to display 
-        only protocols belonging to the specified categories.
-
-    -m --message <text>
-        A brief description of the protocol to help you remember what it's for. 
-        The message will be displayed by the `list` command.
+        Use this option when adding/labeling a protocol to specify which 
+        categories it belongs to.  Use this option when listing stashed 
+        protocols to display only protocols belonging to the specified 
+        categories.
 
 Note that stashed protocols are not meant to be stored indefinitely.  It is 
 possible (although hopefully unlikely) that upgrading either stepwise or 
@@ -66,6 +73,7 @@ from datetime import datetime
 from contextlib import contextmanager
 from inform import Error, fatal
 from ..protocol import ProtocolIO
+from ..table import tabulate
 from ..config import config_dirs
 from ..errors import UsageError
 
@@ -97,19 +105,25 @@ class Stash(Base):
 
 def main():
     args = docopt.docopt(__doc__)
+    id = parse_id(args['<id>'])
+    categories = parse_categories(args['--categories'])
+    message = args['--message']
 
     with open_db() as db:
         if args['ls']:
-            list_protocols(db, parse_categories(args['--categories']))
+            list_protocols(db, categories)
+
+        elif args['label']:
+            label_protocol(db, id, categories, message)
 
         elif args['peek']:
-            peek_protocol(db, parse_id(args['<id>']))
+            peek_protocol(db, id)
 
         elif args['pop']:
-            pop_protocol(db, parse_id(args['<id>']))
+            pop_protocol(db, id)
 
         elif args['drop']:
-            drop_protocol(db, parse_id(args['<id>']))
+            drop_protocol(db, id)
 
         elif args['clear']:
             clear_protocols(db)
@@ -121,14 +135,9 @@ def main():
 
             if not io.protocol:
                 if args['add']: fatal("no protocol specified.")
-                list_protocols(db, parse_categories(args['--categories']))
+                list_protocols(db, categories)
             else:
-                add_protocol(
-                        db,
-                        io.protocol,
-                        parse_categories(args['--categories']),
-                        args['--message'],
-                )
+                add_protocol(db, io.protocol, categories, message)
 
 @contextmanager
 def open_db():
@@ -159,73 +168,27 @@ def list_protocols(db, categories=[]):
         print("No stashed protocols.")
         sys.exit()
 
-    table = []
-    headers = dict(
-            id="#",
-            slug="Name",
-            categories="Category",
-            message="Message",
-    )
-    alignments = dict(
-            id='>',
-            slug='<',
-            categories='<',
-            message='<',
-    )
+    rows = []
+    header = ["#", "Name", "Category", "Message"]
+    truncate = list('---x')
 
-    for i, row in enumerate(stash, 1):
+    for row in stash.values():
         if not categories or categories.intersection(row.categories):
-            table.append(dict(
-                id=str(i),
-                slug=row.protocol.pick_slug(),
-                categories=','.join(row.categories),
-                message=row.message or '',
-            ))
-
-
-    table_with_header = [headers] + table
+            rows.append([
+                row.id,
+                row.protocol.pick_slug(),
+                ','.join(row.categories),
+                row.message or '',
+            ])
 
     # Remove the "Category" column if it would be empty.
-    if not any(x['categories'] for x in table):
-        del headers['categories']
-        for row in table:
-            del row['categories']
+    if not any(x[2] for x in rows):
+        del header[2]
+        del truncate[2]
+        for row in rows:
+            del row[2]
 
-    total_pad = 2 * (len(headers) - 1)
-    max_width = get_terminal_size().columns - 1
-    max_widths = {
-            col: max(len(row[col]) for row in table_with_header)
-            for col in headers
-    }
-    max_widths['message'] = min(
-            max_widths['message'], (
-                max_width
-                - sum(max_widths.values(), start=-max_widths['message'])
-                - total_pad
-            )
-    )
-    table_width = sum(max_widths.values()) + total_pad
-
-    for row in table:
-        row['message'] = shorten(
-                row['message'],
-                width=max_widths['message'],
-                placeholder='…',
-        )
-
-    format_col = lambda x: \
-            f'{{row[{x}]:{{alignments[{x}]}}{{max_widths[{x}]}}}}'
-    format_row = lambda x: \
-            '  '.join(format_col(x) for x in headers).format(
-                    row=x,
-                    alignments=alignments,
-                    max_widths=max_widths,
-            ).rstrip()
-
-    print(format_row(headers))
-    print('─' * table_width)
-    for row in table:
-        print(format_row(row))
+    print(tabulate(rows, header, truncate=truncate))
 
 def add_protocol(db, protocol, categories=None, message=None):
     protocol.date = None
@@ -236,6 +199,11 @@ def add_protocol(db, protocol, categories=None, message=None):
             protocol=protocol,
     )
     db.add(entry)
+
+def label_protocol(db, id=None, categories=None, message=None):
+    row = load_protocol(db, id)
+    row.categories = categories
+    row.message = message
 
 def peek_protocol(db, id=None):
     row = load_protocol(db, id)
@@ -256,18 +224,21 @@ def clear_protocols(db):
     return db.query(Stash).delete()
 
 def load_stash(db):
-    return db.query(Stash).order_by(Stash.timestamp).all()
+    return {
+            x.id: x
+            for x in db.query(Stash).order_by(Stash.timestamp).all()
+    }
 
 def load_protocol(db, id):
     stash = load_stash(db)
     
     if len(stash) == 1 and id is None:
-        return stash[0]
+        return stash.popitem()[1]
 
     try:
-        return stash[id - 1]  # `id` is 1-indexed.
-    except IndexError:
-        raise UsageError(f"No stashed protocol with id '{id}.'")
+        return stash[id]
+    except KeyError:
+        raise UsageError(f"No stashed protocol with id '{id}'.")
 
 def parse_id(id):
     if id is None:
