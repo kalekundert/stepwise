@@ -8,8 +8,13 @@ def test_tabulate(rows, header, footer, alignments, expected):
     assert stepwise.tabulate(rows, header, footer, alignments) == expected.strip('\n')
 
 @parametrize_via_toml('test_table.toml')
-def test_concat_rows(rows, header, footer, expected):
-    assert mod._concat_rows(rows, header, footer) == expected
+def test_concat_rows(rows, header, footer, expected, i_header, i_footer):
+    assert mod._concat_rows(rows, header, footer) == (
+            expected, i_header, i_footer)
+
+@parametrize_via_toml('test_table.toml')
+def test_split_row(row, align, expected):
+    assert mod._split_row(row, align) == expected
 
 @parametrize_via_toml('test_table.toml')
 def test_auto_align(rows, expected):
