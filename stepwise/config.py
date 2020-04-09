@@ -3,11 +3,6 @@
 import sys
 from pathlib import Path
 from appdirs import AppDirs
-from configurator import Config, default_mergers
-from voluptuous import Schema, Invalid
-from pkg_resources import iter_entry_points
-from collections.abc import Mapping
-from inform import warn
 
 config = None
 config_dirs = AppDirs("stepwise")
@@ -17,6 +12,13 @@ site_config_path = Path(config_dirs.site_config_dir) / 'conf.toml'
 def load_config():
     global config
     if config: return config
+
+    # `configurator` is slow to load, because it imports `pkg_resources`.
+    from configurator import Config, default_mergers
+    from voluptuous import Schema, Invalid
+    from pkg_resources import iter_entry_points
+    from collections.abc import Mapping
+    from inform import warn
 
     # Specify that list should be overridden, rather than appended to.
 

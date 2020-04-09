@@ -2,7 +2,6 @@
 
 import sys
 import shlex
-import subprocess as subp
 from inform import warn
 from nonstdlib import pretty_range
 from .config import load_config
@@ -153,13 +152,17 @@ def print_pages(pages, options):
     lpr.communicate(input=document)
 
 def print_files(files, options):
+    from subprocess import run
+
     if files:
         lpr = ['lpr', *shlex.split(options.lpr_flags), *files]
-        subp.run(lpr)
+        run(lpr)
 
 def get_default_printer():
+    from subprocess import run
+
     lpstat = shlex.split('lpstat -d')
-    p = subp.run(lpstat, capture_output=True, text=True)
+    p = run(lpstat, capture_output=True, text=True)
 
     if p.returncode == 0:
         return p.stdout.split(':')[1].strip()

@@ -4,7 +4,6 @@ import re
 import math
 import autoprop
 import functools
-import pandas as pd
 from pathlib import Path
 from inform import plural
 from more_itertools import one
@@ -46,6 +45,7 @@ class MasterMix:
 
 
     def __init__(self, reaction=None):
+        import pandas as pd
         if isinstance(reaction, (str, Path, pd.DataFrame)):
             raise TypeError(
                     f"expected a Reaction, got a {type(reaction)}.\n\nDid you mean to call {self.__class__.__qualname__}.from_text()")
@@ -227,6 +227,8 @@ class Reaction:
         "Master Mix" column must be either "yes", "no", or "" (which means 
         "no").
         """
+        import pandas as pd
+
         lines = text.rstrip().splitlines()
 
         if len(lines) < 3:
@@ -249,16 +251,19 @@ class Reaction:
 
     @classmethod
     def from_csv(cls, path_or_buffer, *args, **kwargs):
+        import pandas as pd
         df = pd.read_csv(path_or_buffer, *args, **kwargs)
         return cls.from_pandas(df)
 
     @classmethod
     def from_tsv(cls, path_or_buffer, *args, **kwargs):
+        import pandas as pd
         df = pd.read_csv(path_or_buffer, sep='\t', *args, **kwargs)
         return cls.from_pandas(df)
 
     @classmethod
     def from_excel(cls, path_or_buffer, *args, **kwargs):
+        import pandas as pd
         df = pd.read_excel(path_or_buffer, *args, **kwargs)
         return cls.from_pandas(df)
 

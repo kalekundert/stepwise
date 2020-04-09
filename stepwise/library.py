@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
-import os, pickle, shlex, subprocess as subp
+import os, pickle, shlex
 import inform
 from more_itertools import one
 from pathlib import Path
-from pkg_resources import iter_entry_points
-from inform import warn
+from inform import warn, set_culprit, get_culprit
 from .protocol import ProtocolIO
 from .config import load_config
 from .errors import *
@@ -38,6 +37,9 @@ class Library:
     """
 
     def __init__(self):
+        # `pkg_resources` is slow to import, so defer until we need it.
+        from pkg_resources import iter_entry_points
+
         self.collections = []
         config = load_config()
 
@@ -288,7 +290,7 @@ class PathEntry(Entry):
 
     def load_protocol(self, args):
         try:
-            with inform.set_culprit(self.name):
+            with set_culprit(self.name):
                 self.check_version_control()
         except VersionControlWarning as err:
             err.report(informant=warn)
@@ -413,32 +415,34 @@ def check_version_control(path):
     """
     Raise a warning if the given path has changes that haven't been committed.
     """
+    from subprocess import run
+
     # Check that the file is in a repository.
-    p1 = subp.run(
+    p1 = run(
             shlex.split('git rev-parse --show-toplevel'),
             cwd=path.parent,
             capture_output=True, text=True
     )
     if p1.returncode != 0:
-        raise VersionControlWarning(f"not in a git repository!", culprit=inform.get_culprit() or path)
+        raise VersionControlWarning(f"not in a git repository!", culprit=get_culprit() or path)
 
     git_dir = Path(p1.stdout.strip()).resolve()
     git_relpath = path.relative_to(git_dir)
 
     # Check that the file is being tracked.
-    p2 = subp.run(
+    p2 = run(
             ['git', 'log', '-n1', '--pretty=format:%H', '--', git_relpath],
             cwd=git_dir,
             capture_output=True,
     )
     if p2.returncode != 0:
-        raise VersionControlWarning(f"not committed", culprit=inform.get_culprit() or path)
+        raise VersionControlWarning(f"not committed", culprit=get_culprit() or path)
 
     # Check that the file doesn't have any uncommitted changes.
-    p3 = subp.run(
+    p3 = run(
             shlex.split('git ls-files --modified --deleted --others --exclude-standard'),
             cwd=git_dir,
             capture_output=True, text=True,
     )
     if str(git_relpath) in p3.stdout:
-        raise VersionControlWarning(f"uncommitted changes", culprit=inform.get_culprit() or path)
+        raise VersionControlWarning(f"uncommitted changes", culprit=get_culprit() or path)

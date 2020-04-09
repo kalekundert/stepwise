@@ -48,16 +48,14 @@ Examples:
 
 import sys
 import docopt
-from inform import Inform
-from pkg_resources import iter_entry_points
 from ..protocol import ProtocolIO
 from ..errors import StepwiseError
 from .. import __version__
 
 def main():
     try:
-        Inform(stream_policy='header')
-
+        # `pkg_resources` is slow to import, so defer until we need it.
+        from pkg_resources import iter_entry_points
         plugins = {
                 x.name: x.load()
                 for x in iter_entry_points('stepwise.commands')
@@ -90,6 +88,8 @@ def main():
             io_stdout.to_stdout(args['--force-text'])
             sys.exit(io_stdout.errors)
 
+    except KeyboardInterrupt:
+        print()
     except StepwiseError as err:
         err.terminate()
 

@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
 
-import sys, pickle, shlex, re, textwrap, shutil
-import subprocess as subp
+import sys, pickle, shlex, re, textwrap
 import arrow, inform
-from copy import copy
 from pathlib import Path
-from io import IOBase, BytesIO
-from pickle import UnpicklingError
-from collections.abc import Iterable
 from inform import warn, error, plural
 from nonstdlib import indices_from_str, pretty_range as str_from_indices
 from more_itertools import first_true
@@ -50,6 +45,7 @@ class Protocol:
 
     @classmethod
     def parse(cls, x):
+        from io import IOBase
         from collections.abc import Sequence
 
         if isinstance(x, IOBase):
@@ -158,7 +154,8 @@ class Protocol:
 
 
         def truncate_error(message, problem):
-            max_width = shutil.get_terminal_size().columns
+            from shutil import get_terminal_size
+            max_width = get_terminal_size().columns
             max_problem_width = max_width - len(message.format('')) - 1
             truncated_problem = textwrap.shorten(
                     problem, max_problem_width, placeholder='…')
@@ -258,7 +255,11 @@ class Protocol:
 
     @classmethod
     def merge(cls, *protocol_like, target=None):
-        if target is None: target = cls()
+        from copy import copy
+        from collections.abc import Iterable
+
+        if target is None:
+            target = cls()
 
         # Support different ways of specifying protocol steps.
         protocols = []
@@ -513,6 +514,8 @@ class ProtocolIO:
         objects to be passed between processes, and prevents the need to parse 
         any protocol steps more than once.
         """
+        from io import BytesIO
+        from pickle import UnpicklingError
 
         # Don't try to read from a TTY, because it will hang until the user 
         # enters an EOF.
@@ -606,12 +609,13 @@ class ProtocolIO:
         """
 
         def from_file(path, args, name):
+            from subprocess import run, PIPE
             path = Path(path)
 
             # If the path is a script, run it:
             if is_executable(path):
                 cmd = str(path), *args
-                p = subp.run(cmd, stdout=subp.PIPE)
+                p = run(cmd, stdout=PIPE)
                 if p.returncode != 0:
                     raise LoadError(f"command failed with status {p.returncode}")
 
