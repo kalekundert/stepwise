@@ -732,7 +732,8 @@ class ProtocolIO:
 
     del no_errors
 
-def load(tag, args=None, library=None):
+def load(command, library=None):
+    tag, *args = shlex.split(command) if isinstance(command, str) else command
     return ProtocolIO.from_library(library, tag, args)
 
 def load_file(path, args=None):
