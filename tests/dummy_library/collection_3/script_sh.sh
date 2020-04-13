@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
-echo "- X $*"
+echo "- sh $*"
 

@@ -7,15 +7,22 @@ from utils import *
 LIBRARY_DIR = TEST_DIR / 'dummy_library'
 COLLECT1_DIR = LIBRARY_DIR / 'collection_1'
 COLLECT2_DIR = LIBRARY_DIR / 'collection_2'
+COLLECT3_DIR = LIBRARY_DIR / 'collection_3'
+
+class DummyLibrary(stepwise.Library):
+
+    def __init__(self, collections=None):
+        # Don't load any collections by default.
+        self.collections = collections or []
+
+
+def test_library_singleton():
+    lib1 = stepwise.Library.from_singleton()
+    lib2 = stepwise.Library.from_singleton()
+    assert lib1 is lib2
 
 @parametrize_via_toml('test_library.toml')
 def test_library_find_entries(collections, tag, expected):
-    class DummyLibrary(stepwise.Library):
-
-        def __init__(self, collections=None):
-            # Don't load any collections by default.
-            self.collections = collections or []
-
     collection_map = {
             '1': stepwise.PathCollection(COLLECT1_DIR),
             '2': stepwise.PathCollection(COLLECT2_DIR),
@@ -83,12 +90,22 @@ def test_entry_full_name(collection_name, entry_name, full_name):
     assert entry.full_name == full_name.replace('/', os.sep)
 
 @parametrize_via_toml('test_library.toml')
-def test_path_entry_load_protocol(relpath, args, steps):
-    collection = stepwise.PathCollection(COLLECT1_DIR)
+def test_path_entry_load_protocol(relpath, args, steps, attachments):
+    collection = stepwise.PathCollection(COLLECT3_DIR)
     entry = stepwise.PathEntry(collection, relpath)
-    io = entry.load_protocol(args)
 
-    assert io.protocol.steps == steps
+    library = DummyLibrary.from_singleton()
+    library.collections = [collection]
+
+    try:
+        io = entry.load_protocol(args)
+        assert io.protocol.steps == steps
+        assert io.protocol.attachments == [
+                COLLECT3_DIR / x
+                for x in attachments
+        ]
+    finally:
+        DummyLibrary._singleton = None
 
 
 @parametrize_via_toml('test_library.toml')

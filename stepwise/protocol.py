@@ -585,7 +585,7 @@ class ProtocolIO:
         load protocols.
         """
         from .library import Library
-        library = library or Library()
+        library = library or Library.from_singleton()
         io = library.find_entry(tag).load_protocol(args or [])
         io.library = library
         return io
@@ -609,8 +609,47 @@ class ProtocolIO:
         """
 
         def from_file(path, args, name):
+            import sys, os
+            from io import StringIO
+            from runpy import run_path
+            from contextlib import contextmanager, redirect_stdout
             from subprocess import run, PIPE
+
             path = Path(path)
+
+            # If the path is a python file, run it without starting a new 
+            # process.  This is a very significant optimization for protocols 
+            # built from lots of modular python scripts.
+            if path.suffix == '.py':
+                dir = str(path.parent.resolve())
+                path = str(path)
+                stdout = StringIO()
+
+                @contextmanager
+                def sys_path(dir):
+                    sys.path.append(dir)
+                    try:
+                        yield
+                    finally:
+                        sys.path.pop()
+
+                @contextmanager
+                def sys_argv(argv):
+                    saved_argv = sys.argv
+                    sys.argv = argv
+                    try:
+                        yield
+                    finally:
+                        sys.argv = saved_argv
+
+                with sys_path(dir), sys_argv([path, *args]), redirect_stdout(stdout):
+                    run_path(path, run_name='__main__')
+
+                return from_text(stdout.getvalue())
+
+            # If the path is a text file, read it:
+            elif path.suffix == '.txt':
+                return from_text(path.read_text())
 
             # If the path is a script, run it:
             if is_executable(path):
@@ -623,10 +662,6 @@ class ProtocolIO:
                     return pickle.loads(p.stdout)
                 except Exception:
                     return from_text(p.stdout.decode())
-
-            # If the path is a text file, read it:
-            elif path.suffix in '.txt':
-                return from_text(path.read_text())
 
             # Otherwise, attach the file to a new protocol:
             else:

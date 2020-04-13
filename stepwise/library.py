@@ -35,6 +35,7 @@ class Library:
     different means of accessing protocols (e.g. files, plugins, network 
     drives, websites, etc.) can be supported.
     """
+    _singleton = None
 
     def __init__(self):
         # `pkg_resources` is slow to import, so defer until we need it.
@@ -88,6 +89,12 @@ class Library:
         # local paths before anything else.
 
         add(CwdCollection(), 0)
+
+    @classmethod
+    def from_singleton(cls):
+        if cls._singleton is None:
+            cls._singleton = cls()
+        return cls._singleton
 
     def find_entries(self, tag):
         """
@@ -250,6 +257,7 @@ class PluginCollection(PathCollection):
                 root=plugin.load().protocol_dir,
                 name=f'{plugin.module_name}.{plugin.name}',
         )
+
     def _load_entry(self, rel_path):
         return PluginEntry(self, rel_path)
 

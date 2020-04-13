@@ -120,24 +120,52 @@ entry_name = 'b/'
 full_name = 'a/b'
 
 [[test_path_entry_load_protocol]]
-relpath = 'protocol_a.txt'
+relpath = 'protocol_txt.txt'
 args = []
-steps = ["A"]
+steps = ["txt"]
+attachments = []
 
 [[test_path_entry_load_protocol]]
-relpath = 'subdir/protocol_b.txt'
+relpath = 'protocol_pdf.pdf'
 args = []
-steps = ["B"]
+steps = ["<protocol_pdf>"]
+attachments = ["protocol_pdf.pdf"]
 
 [[test_path_entry_load_protocol]]
-relpath = 'script_x.sh'
-args = []
-steps = ["X"]
+relpath = 'script_sh.sh'
+args = ["1", "2"]
+steps = ["sh 1 2"]
+attachments = []
 
 [[test_path_entry_load_protocol]]
-relpath = 'script_x.sh'
-args = ["Y", "Z"]
-steps = ["X Y Z"]
+relpath = 'script_py.py'
+args = []
+steps = ["py"]
+attachments = []
+
+[[test_path_entry_load_protocol]]
+relpath = 'script_main.py'
+args = []
+steps = ["main"]
+attachments = []
+
+[[test_path_entry_load_protocol]]
+relpath = 'script_argv.py'
+args = ["1", "2"]
+steps = ["argv script_argv.py,1,2"]
+attachments = []
+
+[[test_path_entry_load_protocol]]
+relpath = 'script_import.py'
+args = []
+steps = ["lib"]
+attachments = []
+
+[[test_path_entry_load_protocol]]
+relpath = 'script_load.py'
+args = []
+steps = ["load", "main", "argv script_argv.py,1,2", "lib"]
+attachments = []
 
 
 # Tag-matching tests:
