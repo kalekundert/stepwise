@@ -499,7 +499,6 @@ class ProtocolIO:
 
 
     def __init__(self, protocol=None, errors=0):
-        self.library = None
         self.protocol = protocol or Protocol()
         self.errors = errors
 
@@ -577,7 +576,7 @@ class ProtocolIO:
         return cls.merge(*ios)
 
     @no_errors
-    def from_library(cls, library, tag, args=None):
+    def from_library(cls, tag, args=None, library=None):
         """
         Read a protocol matching the given tag.
 
@@ -586,9 +585,7 @@ class ProtocolIO:
         """
         from .library import Library
         library = library or Library.from_singleton()
-        io = library.find_entry(tag).load_protocol(args or [])
-        io.library = library
-        return io
+        return library.find_entry(tag).load_protocol(args or [])
 
     @no_errors
     def from_file(cls, path, args, name=None):
@@ -717,7 +714,6 @@ class ProtocolIO:
 
         io = cls()
         io.errors = sum(x.errors for x in others)
-        io.library = first_true(x.library for x in others)
 
         if not io.errors:
             io.protocol = Protocol.merge(*(x.protocol for x in others))
@@ -765,11 +761,12 @@ class ProtocolIO:
             io = ProtocolIO('', 1)
             return pickle.dumps(io)
 
+
     del no_errors
 
 def load(command, library=None):
     tag, *args = shlex.split(command) if isinstance(command, str) else command
-    return ProtocolIO.from_library(library, tag, args)
+    return ProtocolIO.from_library(tag, args, library=library)
 
 def load_file(path, args=None):
     return ProtocolIO.from_file(path, args)

@@ -71,19 +71,36 @@ def main():
             plugins[command]()
 
         else:
-            io_stdin = ProtocolIO.from_stdin()
-
             io_cli = ProtocolIO()
             if args['<command>']:
                 io_cli = ProtocolIO.from_library(
-                        io_stdin.library,
                         args['<command>'],
                         args['<args>'],
                 )
-
             if args['--quiet'] and not io_cli.errors:
                 io_cli.protocol.clear_footnotes()
-                
+
+            # It's more performant to load the protocol specified on the CLI 
+            # before trying to read a protocol from stdin.  The reason is 
+            # subtle, and has to do with the way pipes work.  For example, 
+            # consider the following pipeline:
+            #
+            #   sw pcr ... | sw kld ...
+            #
+            # Although the output from `sw pcr` is input for `sw kld`, the two 
+            # commands are started by the shell at the same time and run 
+            # concurrently.  However, `sw kld` will be forced to wait if it 
+            # tries to read from stdin before `sw pcr` has written to stdout.  
+            # With this in mind, it make sense for `sw kld` to do as much work 
+            # as possible before reading from stdin.
+            #
+            # Loading a protocol from the CLI can be expensive, too.  Right 
+            # now, the most expensive step is probably importing `pandas` to 
+            # read reagent tables, which takes about 300 ms.  By reading the 
+            # CLI protocols first, this work can happen simultaneously for each 
+            # protocol, saving a significant amount of time for long pipelines.
+
+            io_stdin = ProtocolIO.from_stdin()
             io_stdout = ProtocolIO.merge(io_stdin, io_cli)
             io_stdout.to_stdout(args['--force-text'])
             sys.exit(io_stdout.errors)
