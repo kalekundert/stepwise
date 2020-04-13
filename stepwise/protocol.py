@@ -135,7 +135,6 @@ class Protocol:
             if re.match(cls.BLANK_REGEX, line):
                 return Transition(parse_new_footnote)
 
-            print(repr(line))
             raise ParseError(
                     template=truncate_error("expected a footnote (e.g. '[1] …'), not '{}'", line),
                     culprit=inform.get_culprit(),
@@ -610,7 +609,7 @@ class ProtocolIO:
             from io import StringIO
             from runpy import run_path
             from contextlib import contextmanager, redirect_stdout
-            from subprocess import run, PIPE
+            from subprocess import run, PIPE, DEVNULL
 
             path = Path(path)
 
@@ -651,7 +650,7 @@ class ProtocolIO:
             # If the path is a script, run it:
             if is_executable(path):
                 cmd = str(path), *args
-                p = run(cmd, stdout=PIPE)
+                p = run(cmd, stdout=PIPE, stdin=DEVNULL)
                 if p.returncode != 0:
                     raise LoadError(f"command failed with status {p.returncode}")
 
