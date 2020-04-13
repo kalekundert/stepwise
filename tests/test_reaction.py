@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import pytest, re
-import pandas as pd
 from io import StringIO
 from stepwise import MasterMix, Reaction, Reagent, Solvent, Quantity, Q
 from stepwise import UsageError
