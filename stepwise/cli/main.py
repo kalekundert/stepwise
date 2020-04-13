@@ -93,12 +93,6 @@ def main():
             # tries to read from stdin before `sw pcr` has written to stdout.  
             # With this in mind, it make sense for `sw kld` to do as much work 
             # as possible before reading from stdin.
-            #
-            # Loading a protocol from the CLI can be expensive, too.  Right 
-            # now, the most expensive step is probably importing `pandas` to 
-            # read reagent tables, which takes about 300 ms.  By reading the 
-            # CLI protocols first, this work can happen simultaneously for each 
-            # protocol, saving a significant amount of time for long pipelines.
 
             io_stdin = ProtocolIO.from_stdin()
             io_stdout = ProtocolIO.merge(io_stdin, io_cli)

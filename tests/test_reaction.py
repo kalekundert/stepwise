@@ -59,6 +59,16 @@ def test_reagent_volume(given, expected):
     x.volume = given
     assert x.volume == expected
 
+def test_reagent_volume_implicit_solvent():
+    # When iterating through the reagents of a reaction, new solvent objects 
+    # can get created on the fly.  This can break code that assumes the 
+    # reaction will always return the exact same solvent instance.
+    rxn = Reaction()
+    rxn.volume = '10 µL'
+
+    for reagent in rxn:
+        assert reagent.volume == '10 µL'
+
 @pytest.mark.parametrize(
         'given,expected', [
             (Q('1 ng/µL'), Q('1 ng/µL')),
@@ -515,13 +525,19 @@ def test_reaction_volume(given, expected):
     rxn.volume = given
     assert rxn.volume == expected
 
-def test_reaction_volume_raises():
+def test_reaction_volume_no_solvent():
     rxn = Reaction()
-    rxn.volume  # doesn't raise
+    del rxn.solvent
+    assert rxn.volume == 0
 
-    rxn.solvent = None
+    rxn['x'].volume = '2 µL'
+    assert rxn.volume == '2 µL'
+
+    rxn['y'].volume = '1 µL'
+    assert rxn.volume == '3 µL'
+
     with pytest.raises(ValueError, match="no solvent specified"):
-        rxn.volume  # raises
+        rxn.volume = '4 µL'
 
 def test_reaction_solvent():
     rxn = Reaction()
@@ -582,88 +598,101 @@ def test_reaction_hold_ratios_in_place():
     assert rxn.volume == '10 µL'
     assert rxn['x'].volume == '2 µL'
 @pytest.mark.parametrize(
-        'csv,volume,reagents', [(
+        'cols,volume,reagents', [(
 
-        # Solvent only
-            "Reagent,Stock,Volume,MM?\n"
-            "w,,to 5 µL,yes\n"
-            ,
-                '5 µL', {
-                    'w': ('5 µL', ..., True),
-                },
+        # Solvent only:
+            {
+                'reagent': ['w'],
+                'stock_conc': [''],
+                'volume': ['to 5 µL'],
+                'master_mix': ['y'],
+            },
+            '5 µL', {
+                'w': ('5 µL', ..., True),
+            },
+        ), (
+
+        # Reagent only:
+            {
+                'reagent': ['x'],
+                'stock_conc': ['2x'],
+                'volume': ['3 µL'],
+                'master_mix': ['y'],
+            },
+            '3 µL', {
+                'x': ('3 µL', '2x', True),
+            },
         ), (
 
         # Solvent and reagent:
-            "Reagent,Stock,Volume,MM?\n"
-            "w,,to 8 µL,yes\n"
-            "x,2x,3 µL,no\n"
-            ,
+            {
+                'reagent': ['w', 'x'],
+                'stock_conc': ['', '2x'],
+                'volume': ['to 8 µL', '3 µL'],
+                'master_mix': ['y', 'n'],
+            },
             *wx,
         ), (
 
         # Column aliases:
-            "Reagent,Stock Conc,Volume,MM?\n"
-            "w,,to 8 µL,yes\n"
-            "x,2x,3 µL,no\n"
-            ,
+            {
+                'Reagent': ['w', 'x'],
+                'Stock': ['', '2x'],
+                'Volume': ['to 8 µL', '3 µL'],
+                'MM?': ['y', 'n'],
+            },
             *wx,
-        ), (
-            "Reagent,Stock,Volume,Master Mix\n"
-            "w,,to 8 µL,yes\n"
-            "x,2x,3 µL,no\n"
-            ,
-            *wx,
-        ), (
-
-        # Out-of-order columns:
-            "Reagent,Volume,Stock,MM?\n"
-            "w,to 8 µL,,yes\n"
-            "x,3 µL,2x,no\n"
-            ,
-            *wx
         ), (
 
         # Extra columns:
-            "Reagent,Stock,Volume,MM?,Note\n"
-            "w,,to 8 µL,yes,lorem ipsum\n"
-            "x,2x,3 µL,no\n"
-            ,
+            {
+                'reagent': ['w', 'x'],
+                'stock_conc': ['', '2x'],
+                'volume': ['to 8 µL', '3 µL'],
+                'master_mix': ['y', 'n'],
+                'note': ['lorem', 'ipsum'],
+            },
             *wx,
         ), (
 
         # Optional columns:
-            "Reagent,Stock,Volume\n"
-            "w,,to 8 µL\n"
-            "x,2x,3 µL\n"
-            ,
-                '8 µL', {
-                    'w': ('5 µL',  ..., False),
-                    'x': ('3 µL', '2x', False),
-                }
+            {
+                'reagent': ['w', 'x'],
+                'stock_conc': ['', '2x'],
+                'volume': ['to 8 µL', '3 µL'],
+            },
+            '8 µL', {
+                'w': ('5 µL',  ..., False),
+                'x': ('3 µL', '2x', False),
+            }
         ), (
 
-        # Undefined values:
-            "Reagent,Stock,Volume,MM?\n"
-            "w,,to 8 µL,yes\n"
-            "x,,3 µL,no\n"
-            ,
-                '8 µL', {
-                    'w': ('5 µL',  ..., True),
-                    'x': ('3 µL', None, False),
-                }
+        # Default values:
+            {
+                'reagent': ['w', 'x'],
+                'stock_conc': ['', ''],
+                'volume': ['to 8 µL', '3 µL'],
+                'master_mix': ['y', 'n'],
+            },
+            '8 µL', {
+                'w': ('5 µL',  ..., True),
+                'x': ('3 µL', None, False),
+            }
         ), (
-            "Reagent,Stock,Volume,MM?\n"
-            "w,,to 8 µL,\n"
-            "x,2x,3 µL,no\n"
-            ,
-                '8 µL', {
-                    'w': ('5 µL',  ..., False),
-                    'x': ('3 µL', '2x', False),
-                }
+            {
+                'reagent': ['w', 'x'],
+                'stock_conc': ['', '2x'],
+                'volume': ['to 8 µL', '3 µL'],
+                'master_mix': ['n', 'n'],
+            },
+            '8 µL', {
+                'w': ('5 µL',  ..., False),
+                'x': ('3 µL', '2x', False),
+            }
         )]
 )
-def test_reaction_from_csv(csv, volume, reagents):
-    rxn = Reaction.from_csv(StringIO(csv))
+def test_reaction_from_cols(cols, volume, reagents):
+    rxn = Reaction.from_cols(cols)
 
     assert len(rxn) == len(reagents)
     assert rxn.volume == volume
@@ -675,47 +704,116 @@ def test_reaction_from_csv(csv, volume, reagents):
         if master_mix != ...: assert rxn[name].master_mix == master_mix
 
 @pytest.mark.parametrize(
-        'csv,err', [(
-            "Reagent,Stock,Volume,MM?",
+        'cols,err', [(
+            {
+                'reagent': [],
+                'stock_conc': [],
+                'volume': [],
+                'master_mix': [],
+            },
             "at least one reagent",
         ), (
-            "Stock,Volume,MM?\n,to 5 µL,yes",
-            "no 'Reagent' column",
+            {
+                'reagent': ['w', 'x'],
+                'Reagent': ['w', 'x'],
+                'stock_conc': ['', '2x'],
+                'volume': ['to 8 µL', '3 µL'],
+                'master_mix': ['y', 'n'],
+            },
+            "multiple 'reagent' columns found: 'Reagent', 'reagent'",
         ), (
-            "Reagent,Volume,MM?\nx,to 5 µL,yes",
-            "no 'Stock Conc' column",
+            {
+                'stock_conc': ['', '2x'],
+                'volume': ['to 5 µL', '3 µL'],
+                'master_mix': ['y', 'n'],
+            },
+            "no 'reagent' column",
         ), (
-            "Reagent,Stock,MM?\nx,,yes",
-            "no 'Volume' column",
+            {
+                'reagent': ['w', 'x'],
+                'volume': ['to 5 µL', '3 µL'],
+                'master_mix': ['y', 'n'],
+            },
+            "no 'stock_conc' column",
         ), (
-            "Reagent,Stock,Volume,MM?\n,,to 5 µL,yes",
+            {
+                'reagent': ['w', 'x'],
+                'stock_conc': ['', '2x'],
+                'master_mix': ['y', 'n'],
+            },
+            "no 'volume' column",
+        ), (
+            {
+                'reagent': ['w'],
+                'stock_conc': ['', '2x'],
+                'volume': ['to 5 µL', '3 µL'],
+                'master_mix': ['y', 'n'],
+            },
+            "different numbers of rows: 1, 2"
+        ), (
+            {
+                'reagent': ['', 'x'],
+                'stock_conc': ['', '2x'],
+                'volume': ['to 5 µL', '3 µL'],
+                'master_mix': ['y', 'n'],
+            },
             "missing names",
         ), (
-            "Reagent,Stock,Volume,MM?\nx,,,yes",
+            {
+                'reagent': ['w', 'x'],
+                'stock_conc': ['', '2x'],
+                'volume': ['', '3 µL'],
+                'master_mix': ['y', 'n'],
+            },
             "missing volumes",
         ), (
-            "Reagent,Stock,Volume,MM?\nx,,5 µL,yes",
-            "no solvent found",
-        ), (
-            "Reagent,Stock,Volume,MM?\nx,,to 5 µL,yes\ny,,to 6 µL,yes",
+            {
+                'reagent': ['w', 'x'],
+                'stock_conc': ['', '2x'],
+                'volume': ['to 8 µL', 'to 8 µL'],
+                'master_mix': ['y', 'n'],
+            },
             "multiple solvents specified",
         ), (
-            "Reagent,Stock,Volume,MM?\nx,,to 5 µL,maybe",
+            {
+                'reagent': ['w', 'x'],
+                'stock_conc': ['', '2x'],
+                'volume': ['to 8 µL', '3 µL'],
+                'master_mix': ['maybe', 'n'],
+            },
             "expected 'yes' or 'no', got 'maybe'",
         )]
 )
-def test_reaction_from_csv_raises(csv, err):
+def test_reaction_from_cols_raises(cols, err):
     with pytest.raises(UsageError, match=err):
-        Reaction.from_csv(StringIO(csv))
+        Reaction.from_cols(cols)
 
 @pytest.mark.parametrize(
         'text,volume,reagents', [(
 
-        # Solvent only
+        # Basic table:
             "Reagent  Stock   Volume  MM?\n"
             "=======  =====  =======  ===\n"
             "w               to 8 µL  yes\n"
             "x           2x     3 µL   no\n"
+            ,
+            *wx
+        ), (
+
+        # Column order:
+            "MM?   Volume  Stock  Reagent\n"
+            "===  =======  =====  =======\n"
+            "yes  to 8 µL         w      \n"
+            " no     3 µL     2x  x      \n"
+            ,
+            *wx
+        ), (
+
+        # Empty cell:
+            "Reagent  Stock   Volume  MM?\n"
+            "=======  =====  =======  ===\n"
+            "w               to 8 µL  yes\n"
+            "x           2x     3 µL\n"
             ,
             *wx
         )]
@@ -968,6 +1066,34 @@ Reagent  Stock   Volume        2x
 water           7.00 µL  14.00 µL
 buffer     10x  1.00 µL   2.00 µL
 enzyme      5x  2.00 µL"""
+
+def test_master_mix_show_no_solvent():
+    mm = MasterMix.from_text("""\
+Reagent  Stock    Volume  MM?
+=======  =====  ========  ===
+buffer     10x      1 µL  yes
+enzyme      5x      2 µL   no
+""")
+
+    mm.num_reactions = 1
+    assert str(mm) == """\
+Reagent  Stock   Volume
+───────────────────────
+buffer     10x  1.00 µL
+enzyme      5x  2.00 µL
+───────────────────────
+                3.00 µL"""
+
+    mm.num_reactions = 2
+    mm.extra_fraction = 0
+    mm.extra_reactions = 0
+    assert str(mm) == """\
+Reagent  Stock   Volume       2x
+────────────────────────────────
+buffer     10x  1.00 µL  2.00 µL
+enzyme      5x  2.00 µL
+────────────────────────────────
+                3.00 µL  1.00 µL/rxn"""
 
 def test_master_mix_show_scale_header():
     mm = MasterMix.from_text("""\
