@@ -400,13 +400,12 @@ class Reaction:
                 rxn.volume = cols['volume'][i][2:]
 
             reagent = rxn.add_reagent(cols['reagent'][i])
+            reagent.master_mix = parse_bool(cols['master_mix'][i])
 
             if (x := cols['stock_conc'][i]):
                 reagent.stock_conc = x
-            if (x := cols['volume'][i]) and not is_solvent:
-                reagent.volume = x
-            if (x := cols['master_mix'][i]):
-                reagent.master_mix = parse_bool(x)
+            if not is_solvent:
+                reagent.volume = cols['volume'][i]
 
         return rxn
 
@@ -751,7 +750,7 @@ class Solvent:
         self._reaction = reaction
         self._name = None
         self._stock_conc = None
-        self.master_mix = False
+        self.master_mix = True
         self.order = None
 
     def __repr__(self):

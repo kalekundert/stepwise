@@ -541,12 +541,12 @@ def test_reaction_volume_no_solvent():
 def test_reaction_solvent():
     rxn = Reaction()
     rxn.solvent = 'w'
-    assert rxn['w'].master_mix == False
+    assert rxn['w'].master_mix == True
     assert rxn['w'].order == None
 
-    rxn['w'].master_mix = True
+    rxn['w'].master_mix = False
     rxn['w'].order = 1
-    assert rxn['w'].master_mix == True
+    assert rxn['w'].master_mix == False
     assert rxn['w'].order == 1
 
 @pytest.mark.parametrize(
