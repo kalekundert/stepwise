@@ -415,7 +415,7 @@ class Protocol:
     def set_current_date(self):
         self.date = arrow.now()
 
-    def set_current_command(self):
+    def set_current_command(self, cmd=None, args=None):
         nonprintable = {
             ord('\n'): '\\n',
             ord('\a'): '\\a',
@@ -426,8 +426,12 @@ class Protocol:
             ord('\t'): '\\t',
             ord('\v'): '\\v',
         }
+        if cmd is None:
+            cmd = sys.argv[1]
+        if args is None:
+            args = sys.argv[2:]
 
-        argv = Path(sys.argv[0]).name, *sys.argv[1:]
+        argv = 'stepwise', cmd, *args
         command = shlex.join(argv).translate(nonprintable)
         self.commands = [command]
 
