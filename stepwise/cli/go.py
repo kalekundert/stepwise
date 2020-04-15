@@ -38,7 +38,7 @@ import sys
 import docopt
 from pathlib import Path
 from inform import fatal
-from ..protocol import ProtocolIO
+from ..library import ProtocolIO
 from ..printer import print_protocol, get_default_printer
 from ..config import user_config_path, site_config_path
 

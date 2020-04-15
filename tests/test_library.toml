@@ -132,9 +132,21 @@ steps = ["<protocol_pdf>"]
 attachments = ["protocol_pdf.pdf"]
 
 [[test_path_entry_load_protocol]]
-relpath = 'script_sh.sh'
+relpath = 'script_echo.sh'
 args = ["1", "2"]
-steps = ["sh 1 2"]
+steps = ["echo 1 2"]
+attachments = []
+
+[[test_path_entry_load_protocol]]
+relpath = 'script_nested.sh'
+args = []
+steps = ["nested"]
+attachments = []
+
+[[test_path_entry_load_protocol]]
+relpath = 'script_stdin.sh'
+args = []
+steps = ["cat"]
 attachments = []
 
 [[test_path_entry_load_protocol]]
@@ -162,9 +174,34 @@ steps = ["lib"]
 attachments = []
 
 [[test_path_entry_load_protocol]]
+id = 'focus'
 relpath = 'script_load.py'
 args = []
 steps = ["load", "main", "argv script_argv.py,1,2", "lib"]
+attachments = []
+
+[[test_path_entry_load_protocol]]
+relpath = 'script_subproc.py'
+args = []
+steps = ["os.system", "subprocess.run"]
+attachments = []
+
+[[test_path_entry_load_protocol]]
+relpath = 'script_subproc_nested.py'
+args = []
+steps = ["nested"]
+attachments = []
+
+[[test_path_entry_load_protocol]]
+relpath = 'script_subproc_stdin.py'
+args = []
+steps = ["cat"]
+attachments = []
+
+[[test_path_entry_load_protocol]]
+relpath = 'script_libc.py'
+args = []
+steps = ["libc"]
 attachments = []
 
 

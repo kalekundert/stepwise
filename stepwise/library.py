@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-import os, pickle, shlex
+import sys, os, pickle, shlex, functools
 import inform
-from more_itertools import one
 from pathlib import Path
+from contextlib import contextmanager
+from more_itertools import one
 from inform import warn, set_culprit, get_culprit
-from .protocol import ProtocolIO
+from .protocol import Protocol
 from .config import load_config
 from .errors import *
 
@@ -22,7 +23,7 @@ class Library:
     The primary role of the library is to search through every available 
     collection for protocols matching a given "tag".  Tags are fuzzy patterns 
     meant to be succinct (i.e. easily typed on the command line) yet capable of 
-    specifically identifying any protocol.  See `match_tag()` for a complete 
+    specifically identifying any protocol.  See `_match_tag()` for a complete 
     description of the tag syntax.
 
     Strictly speaking, collections are groups of "entries" rather than 
@@ -92,9 +93,11 @@ class Library:
 
     @classmethod
     def from_singleton(cls):
-        if cls._singleton is None:
-            cls._singleton = cls()
-        return cls._singleton
+        # Use `Library._singleton` instead of `cls._singleton` so we don't end 
+        # up with multiple singletons.
+        if Library._singleton is None:
+            Library._singleton = cls()
+        return Library._singleton
 
     def find_entries(self, tag):
         """
@@ -162,13 +165,13 @@ class Collection:
 
         This method can be overridden in subclasses.  By default, it caches a 
         list of all the entries in the collection, then searches that list 
-        using `match_tag()`.
+        using `_match_tag()`.
         """
         if self.entries is None:
             self.entries = list(self._load_entries())
 
         for entry in self.entries:
-            if score := match_tag(tag, entry.full_name):
+            if score := _match_tag(tag, entry.full_name):
                 yield score, entry
 
     def _load_entries(self):  # (abstract)
@@ -245,7 +248,7 @@ class CwdCollection(PathCollection):
         abs_path = self.root / rel_path
 
         if abs_path.exists():
-            yield match_tag(tag, rel_path), self._load_entry(rel_path)
+            yield _match_tag(tag, rel_path), self._load_entry(rel_path)
 
 class PluginCollection(PathCollection):
     """
@@ -306,14 +309,327 @@ class PathEntry(Entry):
         return ProtocolIO.from_file(self.path, args, name=self.name)
 
     def check_version_control(self):
-        return check_version_control(self.path)
+        return _check_version_control(self.path)
 
 class PluginEntry(PathEntry):
 
     def check_version_control(self):
         pass
 
-def match_tag(tag, name):
+class ProtocolIO:
+    """
+    Represent a user-provided protocol that may or may not have been 
+    successfully parsed.
+
+    `ProtocolIO` objects have two primary attributes:
+
+    - `errors`
+    - `protocol`
+
+    The `errors` attribute is a count of the number of errors that have been 
+    generated so far in the pipeline.  If there have been any errors, 
+    `protocol` will be a string containing the raw text for the protocol.  This 
+    text won't be properly formatted, but it should help the user figure out 
+    what the problems were.  If there haven't been any errors, `io.protocol` 
+    will be a fully initialized `stepwise.Protocol` instance representing the 
+    protocol.
+
+    The methods of this class should never raise.  Any errors that occur should 
+    be caught and reported to stderr.
+    """
+    ok_to_raise = False
+    all_errors = 0
+
+    def no_errors(f):
+        """
+        Guarantee that the decorated function will not raise any exceptions.
+
+        This decorator is meant to be used on ``from_*()`` functions, which 
+        attempt to load a protocol and return a `ProtocolIO` instance 
+        indicating success or failure.  If an exception is raised in one of 
+        these function, the decorator will handle it and return a `ProtocolIO` 
+        instance indicating failure.
+
+        Note that if one `@no_errors`-decorated function is called by another, 
+        the former will be allowed to raise exceptions normally.  Exceptions 
+        are only caught for the top level function call.
+        """
+
+        @classmethod
+        @functools.wraps(f)
+        def wrapper(cls, *args, **kwargs):
+            ok_to_raise_prev = cls.ok_to_raise
+            cls.ok_to_raise = True
+
+            try:
+                io = f(cls, *args, **kwargs)
+
+            except Exception as err:
+                if cls.ok_to_raise:
+                    raise
+
+                io = cls("", 1)
+
+                if isinstance(err, StepwiseError):
+                    err.report()
+                else:
+                    print_exc(file=sys.stderr)
+
+            cls.ok_to_raise = ok_to_raise_prev
+            cls.all_errors += io.errors
+            return io
+
+        return wrapper
+
+
+    def __init__(self, protocol=None, errors=0):
+        self.protocol = protocol or Protocol()
+        self.errors = errors
+
+    @no_errors
+    def from_stdin(cls):
+        """
+        Read a protocol from stdin.
+
+        This is meant mostly for interprocess communication via pipes.  If 
+        stdin is attached to a pipe (i.e. not a TTY), expect it to contain a 
+        pickled `ProtocolIO` instance.  This format allows arbitrary python 
+        objects to be passed between processes, and prevents the need to parse 
+        any protocol steps more than once.
+        """
+
+        # Don't try to read from a TTY, because it will hang until the user 
+        # enters an EOF.
+        if sys.stdin.isatty():
+            return cls()
+
+        return cls.from_bytes(sys.stdin.buffer.read())
+
+    @no_errors
+    def from_library(cls, tag, args=None, library=None):
+        """
+        Read a protocol matching the given tag.
+
+        See `Library` for a description of how tags are used to identify and 
+        load protocols.
+        """
+        from .library import Library
+        library = library or Library.from_singleton()
+        return library.find_entry(tag).load_protocol(args or [])
+
+    @no_errors
+    def from_file(cls, path, args, name=None):
+        """
+        Read a protocol from the given path.
+
+        There are a few ways for a path to be interpreted as a protocol:
+
+        - If the path is executable, it is executed.  The script can write to 
+          stdout either the text of a protocol or a pickled `ProtocolIO` 
+          instance.  (The latter may happen if the script invokes stepwise.)
+
+        - If the path has the '*.txt' extension, it will be read and parsed 
+          into a `Protocol` instance.
+
+        - Otherwise, the file will be taken as an "attachment".  A simple 
+          protocol will be created containing the attachment.
+        """
+
+        def from_file(path, args, name):
+            path = Path(path)
+
+            # If the path is a python file, run it without starting a new 
+            # process.  Starting new python processes is quite expensive, so 
+            # while this adds some complexity, it's an important optimization 
+            # for protocols built from lots of modular python scripts.
+            if path.suffix == '.py':
+                stdout = _run_python_script(path, args)
+                return cls.from_bytes(stdout)
+
+            # If the path is a text file, read it:
+            elif path.suffix == '.txt':
+                return cls.from_text(path.read_text())
+
+            # If the path is a script, run it:
+            if _is_executable(path):
+                from subprocess import run, PIPE, DEVNULL
+
+                cmd = str(path), *args
+                p = run(cmd, stdout=PIPE, stdin=DEVNULL)
+                if p.returncode != 0:
+                    raise LoadError(f"command failed with status {p.returncode}")
+
+                return cls.from_bytes(p.stdout)
+
+            # Otherwise, attach the file to a new protocol:
+            else:
+                io = cls()
+                io.protocol = Protocol(steps=[f"<{name or path.name}>"])
+                io.protocol.attachments = [path]
+                return io
+
+        with inform.set_culprit(name or path):
+            io = from_file(path, args, name)
+
+        if not io.errors:
+            io.protocol.set_current_date()
+            io.protocol.set_current_command()
+
+        return io
+
+    @no_errors
+    def from_bytes(cls, bytes):
+        from io import BytesIO
+        from pickle import UnpicklingError
+
+        ios = []
+        unread_bytes = bytes
+
+        # Byte streams (such as stdin) can consist of any number of pickled 
+        # `ProtocolIO` instances followed optionally by a text protocol.  The 
+        # most common case is for stdin to consist of a single pickle, 
+        # corresponding to the output from the previous command in a pipeline.  
+        # More interesting behavior is possible if you're using `zsh` with the 
+        # MULTIOS option enabled (the default), which allows processes to get 
+        # stdin from multiple sources (e.g. pipes, redirects, heredocs).
+        # 
+        # The text protocol must come last because there's no way to tell how 
+        # big it's supposed to be.  So when we encounter bytes that can't be 
+        # interpreted as a pickle, we read to the end of the stream and try to 
+        # parse it as a text protocol.
+        # 
+        # It's possible for stdin to be empty, e.g. if there are nested 
+        # stepwise processes (e.g. if a protocol calls stepwise itself).  In 
+        # this case, the outer process will read stdin, and the inner process 
+        # will have nothing to read.
+
+        def from_pickle(buffer):
+            """
+            Unpickle the given buffer, guaranteeing that `UnpicklingError` will 
+            be raised if the given buffer can't be unpickled for any reason.
+            """
+            try:
+                io = pickle.load(buffer)
+            except UnpicklingError as err:
+                raise err
+            except Exception as err:
+                raise UnpicklingError(str(err))
+
+            # Also make sure the right kind of object was unpickled.
+            if not isinstance(io, cls):
+                raise LoadError(f"unpickled {io.__class__.__name__!r}, expected {cls.__name__!r}")
+
+            return io
+
+        while unread_bytes:
+            unread_buffer = BytesIO(unread_bytes)
+
+            try:
+                io = from_pickle(unread_buffer)
+                ios.append(io)
+            except UnpicklingError:
+                io = cls.from_text(unread_bytes.decode())
+                ios.append(io)
+                break
+
+            unread_bytes = unread_buffer.read()
+
+        return cls.merge(*ios)
+
+    @no_errors
+    def from_text(cls, text):
+        """
+        Read a protocol from the given text.
+
+        See `Protocol.parse()` for more information.  This function adds some 
+        additional error handling and sanity checking.
+        """
+        io = cls()
+
+        try:
+            io.protocol = Protocol.parse(text)
+
+        except ParseError as err:
+            if not cls.all_errors:
+                warn("the protocol could not be properly rendered due to error(s):")
+            err.report(informant=warn)
+
+            io.protocol = err.content
+            io.errors = 1
+
+        else:
+            io.protocol.set_current_date()
+
+            if not io.protocol.steps:
+                warn("protocol is empty.", culprit=inform.get_culprit())
+
+        return io
+
+    @no_errors
+    def merge(cls, *others):
+        if not others:
+            return cls()
+
+        io = cls()
+        io.errors = sum(x.errors for x in others)
+
+        if not io.errors:
+            io.protocol = Protocol.merge(*(x.protocol for x in others))
+        else:
+            # When merging with the empty protocol created by default if stdin 
+            # is empty, an extraneous newline will be added to the front of the 
+            # protocol.  The strip() call deals with this.
+            io.protocol = '\n'.join((str(x.protocol) for x in others)).strip()
+
+        return io
+
+    def to_stdout(self, force_text=False):
+        """
+        Write the protocol to stdout.
+
+        If stdout is attached to a pipe (i.e. not a TTY), write the pickled 
+        `ProtocolIO` instance.  The command attached to the pipe (assumed to 
+        be a stepwise command) can recover this instance using 
+        `ProtocolIO.from_stdin()`.  This format allows arbitrary python 
+        objects to be passed between processes, and prevents the need to parse 
+        any protocol steps more than once.
+
+        Otherwise, print the formatted protocol to stdout for the user to see.  
+        This behavior can also be forced with the `force_text` argument.
+        """
+        if sys.stdout.isatty() or force_text:
+            print(self.protocol)
+        else:
+            return pickle.dump(self, sys.stdout.buffer)
+
+            stdout = self.to_pickle()
+            sys.stdout.buffer.write(stdout)
+
+    def to_pickle(self):
+        """
+        Write the protocol to the pickle format.
+
+        If this fails (e.g. if the protocol has non-pickle-able attributes), 
+        record the error and pickle an empty `ProtocolIO` instead.
+        """
+        try:
+            return pickle.dumps(self)
+        except Exception as err:
+            print_exc(file=sys.stderr)
+            io = ProtocolIO('', 1)
+            return pickle.dumps(io)
+
+    del no_errors
+
+def load(command, library=None):
+    tag, *args = shlex.split(command) if isinstance(command, str) else command
+    return ProtocolIO.from_library(tag, args, library=library)
+
+def load_file(path, args=None):
+    return ProtocolIO.from_file(path, args)
+
+
+def _match_tag(tag, name):
     """
     Indicate if the given tag matches the given name.
 
@@ -369,12 +685,12 @@ def match_tag(tag, name):
           evaluate greater than any other match.
             
     Examples:
-        >>> from stepwise import match_tag
-        >>> match_tag('pcr', '/home/rfranklin/pcr')
+        >>> from stepwise import _match_tag
+        >>> _match_tag('pcr', '/home/rfranklin/pcr')
         (3)
-        >>> match_tag('rf/pcr', '/home/rfranklin/pcr')
+        >>> _match_tag('rf/pcr', '/home/rfranklin/pcr')
         (3, 2)
-        >>> match_tag('rf', '/home/rfranklin/pcr')
+        >>> _match_tag('rf', '/home/rfranklin/pcr')
         ()
     """
     from os import sep 
@@ -419,7 +735,116 @@ def match_tag(tag, name):
 
     return match_parts(name_parts, tag_parts, required=True)
 
-def check_version_control(path):
+def _run_python_script(path, args):
+    """
+    Run the given python script without launching a new process.
+
+    Starting a python process is expensive, so when we need to run a python 
+    script, we can save a lot of time by running it in directly in this 
+    process.  In order for this to work, though, we need to temporarily 
+    configure this process to look like a new one:
+
+    - Replace `sys.path[0]` with the directory of the script being executed.  
+      This allows the script to use local imports.
+    - Put the desired arguments in `sys.argv`.
+    - Set `__name__` to `'__main__'`.
+    - Replace the stdout file descriptor with a pipe, so that we can read any 
+      output generated by the script no matter how it's generated.
+    - Replace the stdin file descriptor with an empty pipe, so that the script 
+      read input on stdin that's meant for us.
+    """
+    from runpy import run_path
+    from contextlib import redirect_stdout
+
+    argv = [str(path), *args]
+    dir = path.parent.resolve()
+
+    #from io import StringIO
+    #stdout = StringIO()
+            #redirect_stdout(stdout), \
+    with \
+            _capture_stdout() as stdout, \
+            _preserve_stdin(), \
+            _munge_sys_argv(argv), \
+            _munge_sys_path(dir) \
+    :
+        run_path(str(path), run_name='__main__')
+
+    return stdout.getvalue()
+    #return stdout.getvalue().encode()
+
+@contextmanager
+def _capture_stdout():
+    import ctypes
+    from io import BytesIO
+
+    out = BytesIO()
+    libc = ctypes.CDLL(None)
+    c_stdout = ctypes.c_void_p.in_dll(libc, 'stdout')
+
+    # Save the original stdout.
+    fd_stdout = sys.stdout.fileno()
+    fd_stdout_dup = os.dup(fd_stdout)
+
+    # Make a pipe to replace stdout with.
+    fd_pipe_read, fd_pipe_write = os.pipe()
+    os.dup2(fd_pipe_write, fd_stdout)
+
+    try:
+        yield out
+
+    finally:
+        # Flush any pending output.
+        libc.fflush(c_stdout)
+        os.close(fd_pipe_write)
+
+        # Restore stdout.
+        os.dup2(fd_stdout_dup, fd_stdout)
+        os.close(fd_stdout_dup)
+
+        # Read the contents of the pipe.
+        f = os.fdopen(fd_pipe_read, 'rb')
+        out.write(f.read())
+        os.close(fd_pipe_read)
+
+@contextmanager
+def _preserve_stdin():
+    # Save the original stdin.
+    fd_stdin = sys.stdin.fileno()
+    fd_stdin_dup = os.dup(fd_stdin)
+
+    # Make a pipe to replace stdin with.
+    r, w = os.pipe()
+    os.dup2(r, fd_stdin)
+
+    # Close the pipe, so there's nothing to read.
+    os.close(w)
+
+    try:
+        yield
+
+    finally:
+        # Restore stdout.
+        os.dup2(fd_stdin_dup, fd_stdin)
+
+@contextmanager
+def _munge_sys_argv(argv):
+    saved_argv = sys.argv
+    sys.argv = [str(x) for x in argv]
+    try:
+        yield
+    finally:
+        sys.argv = saved_argv
+
+@contextmanager
+def _munge_sys_path(dir):
+    sys.path.append(str(dir))
+    try:
+        yield
+    finally:
+        sys.path.pop()
+
+def _check_version_control(path):
     """
     Raise a warning if the given path has changes that haven't been committed.
     """
@@ -454,3 +879,12 @@ def check_version_control(path):
     )
     if str(git_relpath) in p3.stdout:
         raise VersionControlWarning(f"uncommitted changes", culprit=get_culprit() or path)
+
+def _is_executable(path):
+    """
+    Return true if the given path is executable.
+    """
+    import os, stat
+    return stat.S_IXUSR & os.stat(path)[stat.ST_MODE]
+
+

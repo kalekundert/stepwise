@@ -15,10 +15,9 @@ class DummyLibrary(stepwise.Library):
         # Don't load any collections by default.
         self.collections = collections or []
 
-
 def test_library_singleton():
-    lib1 = stepwise.Library.from_singleton()
-    lib2 = stepwise.Library.from_singleton()
+    lib1 = DummyLibrary.from_singleton()
+    lib2 = DummyLibrary.from_singleton()
     assert lib1 is lib2
 
 @parametrize_via_toml('test_library.toml')
@@ -44,7 +43,6 @@ def test_library_find_entries(collections, tag, expected):
 
     else:
         assert library.find_entry(tag).name == expected[0]
-
 
 @parametrize_via_toml('test_library.toml')
 def test_collection_is_unique(name, names, expected):
@@ -81,7 +79,6 @@ def test_cwd_collection_find_entries(tag, expected):
     finally:
         os.chdir(prev_cwd)
 
-
 @parametrize_via_toml('test_library.toml')
 def test_entry_full_name(collection_name, entry_name, full_name):
     import os
@@ -90,7 +87,7 @@ def test_entry_full_name(collection_name, entry_name, full_name):
     assert entry.full_name == full_name.replace('/', os.sep)
 
 @parametrize_via_toml('test_library.toml')
-def test_path_entry_load_protocol(relpath, args, steps, attachments):
+def test_path_entry_load_protocol(disable_capture, relpath, args, steps, attachments):
     collection = stepwise.PathCollection(COLLECT3_DIR)
     entry = stepwise.PathEntry(collection, relpath)
 
@@ -98,7 +95,9 @@ def test_path_entry_load_protocol(relpath, args, steps, attachments):
     library.collections = [collection]
 
     try:
-        io = entry.load_protocol(args)
+        with disable_capture:
+            io = entry.load_protocol(args)
+
         assert io.protocol.steps == steps
         assert io.protocol.attachments == [
                 COLLECT3_DIR / x
@@ -110,12 +109,65 @@ def test_path_entry_load_protocol(relpath, args, steps, attachments):
 
 @parametrize_via_toml('test_library.toml')
 def test_match_entry(tag, name, expected):
-    assert stepwise.match_tag(tag or None, name) == tuple(expected)
+    from stepwise.library import _match_tag
+    assert _match_tag(tag or None, name) == tuple(expected)
 
+def test_capture_stdout(capfd):
+    import ctypes
+    from io import BytesIO
+    from subprocess import run
+    from stepwise.library import _capture_stdout
+
+    libc = ctypes.CDLL(None)
+
+    with capfd.disabled():
+
+        # Don't do all the tests in the same with statement, because the 
+        # relative ordering of lines written in different environments (e.g.  
+        # python, libc) is not guaranteed to be maintained.  This is because 
+        # the different environments might flush at different times.
+
+        with _capture_stdout() as f:
+            print('python')
+        assert f.getvalue() == b'python\n'
+
+        with _capture_stdout() as f:
+            run(['echo', 'subprocess'])
+        assert f.getvalue() == b'subprocess\n'
+
+        with _capture_stdout() as f:
+            libc.puts(b'libc')
+        assert f.getvalue() == b'libc\n'
+
+def test_preserve_stdin():
+    import sys
+    from subprocess import run
+
+    # Run the following in a subprocess, so we can feed it stdin:
+    script = '''\
+from subprocess import run
+from stepwise.library import _preserve_stdin
+
+with _preserve_stdin():
+    run('cat')
+
+print('stdin:', input())
+'''
+    p = run(
+            ['python', '-c', script], 
+            input="not for cat",
+            capture_output=True,
+            text=True,
+    )
+
+    # If successful, the `cat` command will *not* have read the input we 
+    # provided.  If unsuccessful, it might just hang forever...
+    assert p.stdout == "stdin: not for cat\n"
+    
 def test_check_version_control(tmp_path):
     import subprocess as subp
     from pytest import raises
-    from stepwise import check_version_control, VersionControlWarning
+    from stepwise.library import _check_version_control, VersionControlWarning
 
     repo = tmp_path / 'repo'
     repo.mkdir()
@@ -123,21 +175,41 @@ def test_check_version_control(tmp_path):
     protocol.write_text("version 1")
 
     with raises(VersionControlWarning, match="not in a git repository"):
-        check_version_control(protocol)
+        _check_version_control(protocol)
 
     subp.run('git init', cwd=repo, shell=True)
 
     with raises(VersionControlWarning, match="not committed"):
-        check_version_control(protocol)
+        _check_version_control(protocol)
     
     subp.run(f'git add {protocol.name}', cwd=repo, shell=True)
     subp.run(f'git commit -m "Initial commit"', cwd=repo, shell=True)
 
-    check_version_control(protocol)
+    _check_version_control(protocol)
 
     protocol.write_text("version 2")
 
     with raises(VersionControlWarning, match="uncommitted changes"):
-        check_version_control(protocol)
+        _check_version_control(protocol)
 
+
+@pytest.fixture
+def disable_capture(pytestconfig):
+    # Equivalent to `pytest -s`, but temporary.
+    # This is necessary because even `capfd.disabled()` leaves stdin in a state 
+    # that somehow interferes with the redirection we're trying to do.
+
+    class suspend_guard:
+
+        def __init__(self):
+            self.capmanager = pytestconfig.pluginmanager.getplugin('capturemanager')
+
+        def __enter__(self):
+            self.capmanager.suspend_global_capture(in_=True)
+            pass
+
+        def __exit__(self, _1, _2, _3):
+            self.capmanager.resume_global_capture()
+
+    yield suspend_guard()
 

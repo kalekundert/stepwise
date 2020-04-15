@@ -48,7 +48,7 @@ Examples:
 
 import sys
 import docopt
-from ..protocol import ProtocolIO
+from ..library import ProtocolIO
 from ..errors import StepwiseError
 from .. import __version__
 

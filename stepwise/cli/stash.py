@@ -72,7 +72,7 @@ from pathlib import Path
 from datetime import datetime
 from contextlib import contextmanager
 from inform import Error, fatal
-from ..protocol import ProtocolIO
+from ..library import ProtocolIO
 from ..table import tabulate
 from ..config import config_dirs
 from ..errors import UsageError
