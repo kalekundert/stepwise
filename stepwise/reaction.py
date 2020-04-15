@@ -92,11 +92,15 @@ class MasterMix:
     def from_cols(cls, cols):
         return cls(Reaction.from_cols(cols))
 
-    def get_master_mix_reagents(self):
+    def iter_master_mix_reagents(self):
         yield from [x for x in self if x.master_mix]
 
     def get_master_mix_volume(self):
-        return sum(x.volume for x in self.master_mix_reagents)
+        v = 0
+        for reagent in self.iter_master_mix_reagents():
+            reagent.require_volume()
+            v += reagent.volume
+        return v
 
     def get_extra_percent(self):
         return 100 * self.extra_fraction
@@ -107,20 +111,20 @@ class MasterMix:
     def get_scale(self):
         self.require_volumes()
         min_volume = min(
-                (x.volume for x in self.master_mix_reagents),
+                (x.volume for x in self.iter_master_mix_reagents()),
                 default=None,
         )
         return max((
             self.num_reactions * (1 + self.extra_fraction),
             self.num_reactions + self.extra_reactions,
             self.num_reactions + self.extra_volume / self.volume,
-            self.extra_min_volume / min_volume if min_volume is not None else 0,
+            self.extra_min_volume / min_volume if min_volume else 0,
         ))
 
     def show(self):
         show_master_mix = not any([
                 # Nothing in the master mix:
-                not any(self.master_mix_reagents),
+                not any(self.iter_master_mix_reagents()),
 
                 # Only one reaction:
                 self.num_reactions == 1 and self.show_master_mix == None,  
@@ -163,13 +167,16 @@ class MasterMix:
                     f'{x.volume:.2f}',
                     f'{x.volume * self.scale:.2f}' if x.master_mix else '',
                 )
-                for x in self if x.volume
+                for x in self
+
+                # Leave out reagents that round to 0 volume.
+                if f'{abs(x.volume.value):.2f}' != '0.00'
         ]
         footer = None if not self.show_totals else cols(
                 '',
                 '',
                 f'{self.volume:.2f}',
-                f'{sum(x.volume for x in self.master_mix_reagents):.2f}',
+                f'{self.master_mix_volume:.2f}',
         )
         align = cols(*'<>>>')
 
@@ -409,6 +416,11 @@ class Reaction:
 
         return rxn
 
+    def iter_non_solvent_reagents(self):
+        for reagent in self:
+            if reagent.key != self._solvent:
+                yield reagent
+
     def get_volume(self):
         if self._solvent:
             return self._volume
@@ -422,6 +434,16 @@ class Reaction:
     def set_volume(self, volume):
         self.require_solvent()
         self._volume = Quantity.from_anything(volume)
+
+    def get_free_volume(self):
+        self.require_volume()
+        v = self.volume
+
+        for reagent in self.iter_non_solvent_reagents():
+            reagent.require_volume()
+            v -= reagent.volume
+
+        return v
 
     def get_solvent(self):
         return self._solvent
@@ -770,15 +792,7 @@ class Solvent:
         self._name = name
 
     def get_volume(self):
-        self._reaction.require_volume()
-        v = self._reaction.volume
-
-        for reagent in self._reaction:
-            if reagent.key != self.key:
-                reagent.require_volume()
-                v -= reagent.volume
-
-        return v
+        return self._reaction.free_volume
 
     def set_volume(self, volume):
         raise NotImplementedError("cannot directly set solvent volume, set the reaction volume instead.")

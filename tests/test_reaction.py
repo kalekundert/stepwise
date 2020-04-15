@@ -1066,34 +1066,6 @@ water           7.00 µL  14.00 µL
 buffer     10x  1.00 µL   2.00 µL
 enzyme      5x  2.00 µL"""
 
-def test_master_mix_show_no_solvent():
-    mm = MasterMix.from_text("""\
-Reagent  Stock    Volume  MM?
-=======  =====  ========  ===
-buffer     10x      1 µL  yes
-enzyme      5x      2 µL   no
-""")
-
-    mm.num_reactions = 1
-    assert str(mm) == """\
-Reagent  Stock   Volume
-───────────────────────
-buffer     10x  1.00 µL
-enzyme      5x  2.00 µL
-───────────────────────
-                3.00 µL"""
-
-    mm.num_reactions = 2
-    mm.extra_fraction = 0
-    mm.extra_reactions = 0
-    assert str(mm) == """\
-Reagent  Stock   Volume       2x
-────────────────────────────────
-buffer     10x  1.00 µL  2.00 µL
-enzyme      5x  2.00 µL
-────────────────────────────────
-                3.00 µL  1.00 µL/rxn"""
-
 def test_master_mix_show_scale_header():
     mm = MasterMix.from_text("""\
 Reagent  Stock    Volume  MM?
@@ -1147,4 +1119,69 @@ buffer     10x   1.00 µL  11.11 µL
 enzyme      5x   2.00 µL
 ──────────────────────────────────
                 10.00 µL   8.00 µL/rxn"""
+
+def test_master_mix_0_volume_reagent():
+    mm = MasterMix.from_text("""\
+Reagent  Stock   Volume  MM?
+=======  =====  =======  ===
+water           to 3 µL  yes
+buffer     10x     1 µL  yes
+enzyme      5x     2 µL   no
+""")
+    mm.num_reactions = 2
+    mm.extra_fraction = 0
+    mm.extra_reactions = 0
+    assert str(mm) == """\
+Reagent  Stock   Volume       2x
+────────────────────────────────
+buffer     10x  1.00 µL  2.00 µL
+enzyme      5x  2.00 µL
+────────────────────────────────
+                3.00 µL  1.00 µL/rxn"""
+
+    mm['buffer'].volume = 0.001, 'µL'
+    assert str(mm) == """\
+Reagent  Stock   Volume       2x
+────────────────────────────────
+water           1.00 µL  2.00 µL
+enzyme      5x  2.00 µL
+────────────────────────────────
+                3.00 µL  1.00 µL/rxn"""
+
+    mm['buffer'].volume = -0.001, 'µL'
+    assert str(mm) == """\
+Reagent  Stock   Volume       2x
+────────────────────────────────
+water           1.00 µL  2.00 µL
+enzyme      5x  2.00 µL
+────────────────────────────────
+                3.00 µL  1.00 µL/rxn"""
+
+def test_master_mix_show_no_solvent():
+    mm = MasterMix.from_text("""\
+Reagent  Stock    Volume  MM?
+=======  =====  ========  ===
+buffer     10x      1 µL  yes
+enzyme      5x      2 µL   no
+""")
+
+    mm.num_reactions = 1
+    assert str(mm) == """\
+Reagent  Stock   Volume
+───────────────────────
+buffer     10x  1.00 µL
+enzyme      5x  2.00 µL
+───────────────────────
+                3.00 µL"""
+
+    mm.num_reactions = 2
+    mm.extra_fraction = 0
+    mm.extra_reactions = 0
+    assert str(mm) == """\
+Reagent  Stock   Volume       2x
+────────────────────────────────
+buffer     10x  1.00 µL  2.00 µL
+enzyme      5x  2.00 µL
+────────────────────────────────
+                3.00 µL  1.00 µL/rxn"""
 
