@@ -18,7 +18,8 @@ class Quantity:
     - Immutable
     """
     FLOAT_REGEX = r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)'
-    QUANTITY_REGEX = fr'^\s*({FLOAT_REGEX})\s*([^\s\d]+)$'
+    UNIT_REGEX = r'[^\s\d]+'
+    QUANTITY_REGEX = fr'^\s*({FLOAT_REGEX})\s*({UNIT_REGEX})$'
     NO_PADDING = '%', 'x'
 
     @classmethod
@@ -49,7 +50,11 @@ class Quantity:
 
 
     def __init__(self, value, unit):
-        self._value = value
+        self._value = float(value)
+        self._unit = unit
+
+        if not re.fullmatch(self.UNIT_REGEX, unit):
+            raise ValueError(f"not a valid unit: {unit!r}")
 
         # There are two unicode "micro" characters (one is meant to be the 
         # micro prefix, while the other is meant to be the Greek mu).  Replace 
@@ -57,13 +62,16 @@ class Quantity:
         self._unit = unit.replace('\u03bc', 'µ')
 
     def __repr__(self):
-        return f'Quantity({self.value}, {self.unit!r})'
+        return f'Quantity({self.value:g}, {self.unit!r})'
 
     def __str__(self):
         return self.show()
 
     def __format__(self, spec):
         return self.show(spec)
+
+    def __bool__(self):
+        return bool(self.value)
 
     def get_value(self):
         return self._value

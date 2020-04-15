@@ -5,6 +5,19 @@ from stepwise import Quantity, Q
 from operator import *
 
 @pytest.mark.parametrize(
+        'value,unit,err', [
+            (None, 'ng', TypeError),
+            ('', 'ng', ValueError),
+            (Quantity(1, 'ng'), 'ng', TypeError),
+            (1, None, TypeError),
+            (1, '', ValueError),
+            (1, Quantity(1, 'ng'), TypeError),
+])
+def test_init_raises(value, unit, err):
+    with pytest.raises(err):
+        Quantity(value, unit)
+
+@pytest.mark.parametrize(
         'given,expected', [
             (Quantity(1, 'ng'), "Quantity(1, 'ng')"),
             (Quantity(1, '%'),  "Quantity(1, '%')"),
@@ -25,6 +38,11 @@ def test_format():
     assert f'{q}' == '1 ng'
     assert f'{q:g}' == '1 ng'
     assert f'{q:.2f}' == '1.00 ng'
+
+def test_bool():
+    assert not Quantity(0, 'ng')
+    assert Quantity(1, 'ng')
+    assert Quantity(1e-100, 'ng')
 
 def test_value():
     q = Quantity(1, 'ng')
@@ -92,9 +110,21 @@ def test_from_string_raises(given):
             ((1, 'ng'), Quantity(1, 'ng')),
             ((1, 'µL'), Quantity(1, 'µL')),
             ((1, '%'),  Quantity(1, '%')),
+            (('1', 'ng'), Quantity(1, 'ng')),
 ])
 def test_from_tuple(given, expected):
     assert Quantity.from_tuple(given) == expected
+
+@pytest.mark.parametrize(
+        'given', [
+            (),
+            (1,),
+            ('ng'),
+            (1, 'ng', None),
+])
+def test_from_tuple_raises(given):
+    with pytest.raises(ValueError, match=str(given)):
+        Quantity.from_tuple(given)
 
 @pytest.mark.parametrize(
         'given,expected', [
