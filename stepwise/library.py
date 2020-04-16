@@ -5,7 +5,7 @@ import inform
 from pathlib import Path
 from contextlib import contextmanager
 from more_itertools import one
-from inform import warn, set_culprit, get_culprit
+from inform import warn, error, set_culprit, get_culprit
 from .protocol import Protocol
 from .config import load_config
 from .errors import *
@@ -599,11 +599,26 @@ class ProtocolIO:
         """
         if sys.stdout.isatty() or force_text:
             print(self.protocol)
-        else:
-            return pickle.dump(self, sys.stdout.buffer)
 
-            stdout = self.to_pickle()
-            sys.stdout.buffer.write(stdout)
+        else:
+            # Raise if there's a broken pipe error.
+            from signal import signal, SIGPIPE, SIG_DFL
+            signal(SIGPIPE, SIG_DFL)
+
+            try:
+                pickle.dump(self, sys.stdout.buffer)
+
+            # If the pipe closed while we were making the protocol, e.g. if it 
+            # hit an early error, there's no point outputting anything.  Just 
+            # exit gracefully.
+            except BrokenPipeError:
+                return
+
+            # Pickling can fail, e.g. if the protocol has non-pickle-able 
+            # attributes, and can raise any kind of exception.  If this 
+            # happens, record the error and output an empty `ProtocolIO`:
+            except Exception as err:
+                pickle.dumps(ProtocolIO('', 1))
 
     def to_pickle(self):
         """
@@ -755,7 +770,6 @@ def _run_python_script(path, args):
       read input on stdin that's meant for us.
     """
     from runpy import run_path
-    from contextlib import redirect_stdout
 
     argv = [str(path), *args]
     dir = path.parent.resolve()
@@ -768,8 +782,8 @@ def _run_python_script(path, args):
     :
         try:
             run_path(str(path), run_name='__main__')
-        except SystemExit:
-            pass
+        except SystemExit as err:
+            print(err)
 
     return stdout.getvalue()
 
@@ -782,6 +796,10 @@ def _capture_stdout():
     libc = ctypes.CDLL(None)
     c_stdout = ctypes.c_void_p.in_dll(libc, 'stdout')
 
+    # Flush any pending output.
+    libc.fflush(c_stdout)
+    sys.stdout.flush()
+
     # Save the original stdout.
     fd_stdout = sys.stdout.fileno()
     fd_stdout_dup = os.dup(fd_stdout)
@@ -789,6 +807,7 @@ def _capture_stdout():
     # Make a pipe to replace stdout with.
     fd_pipe_read, fd_pipe_write = os.pipe()
     os.dup2(fd_pipe_write, fd_stdout)
+    os.close(fd_pipe_write)
 
     try:
         yield out
@@ -796,7 +815,7 @@ def _capture_stdout():
     finally:
         # Flush any pending output.
         libc.fflush(c_stdout)
-        os.close(fd_pipe_write)
+        sys.stdout.flush()
 
         # Restore stdout.
         os.dup2(fd_stdout_dup, fd_stdout)

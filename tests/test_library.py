@@ -113,8 +113,7 @@ def test_match_entry(tag, name, expected):
     assert _match_tag(tag or None, name) == tuple(expected)
 
 def test_capture_stdout(capfd):
-    import ctypes
-    from io import BytesIO
+    import sys, ctypes
     from subprocess import run
     from stepwise.library import _capture_stdout
 
@@ -138,6 +137,14 @@ def test_capture_stdout(capfd):
         with _capture_stdout() as f:
             libc.puts(b'libc')
         assert f.getvalue() == b'libc\n'
+
+        # Make sure the streams are being flushed correctly.  It's important 
+        # that these strings don't have newlines, because stdout flushes at 
+        # newlines by default.  
+        sys.stdout.write('outside')
+        with _capture_stdout() as f:
+            sys.stdout.write('inside')
+        assert f.getvalue() == b'inside'
 
 def test_preserve_stdin():
     import sys
