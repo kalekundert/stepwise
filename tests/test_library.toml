@@ -152,7 +152,7 @@ relpath = 'script_stdin.sh'
 args = []
 steps = ["cat"]
 attachments = []
-skip_windows = true
+skip_windows = "Cannot run Unix shell scripts on Windows."
 
 [[test_path_entry_load_protocol]]
 relpath = 'script_py.py'
