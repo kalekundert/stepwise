@@ -39,6 +39,9 @@ install:
   - pip3 install -U flit coverage pytest pytest-cov python-coveralls
   - flit install --symlink
 
+  - git config --global user.name "Travis CI"
+  - git config --global user.email "travis-ci@example.com"
+
 script: 
   - pytest tests --cov stepwise
 
