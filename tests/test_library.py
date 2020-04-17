@@ -3,8 +3,9 @@
 import sys
 import pytest
 import stepwise
-from utils import *
+from pathlib import Path
 from stepwise.library import _capture_stdout
+from utils import *
 
 LIBRARY_DIR = TEST_DIR / 'dummy_library'
 COLLECT1_DIR = LIBRARY_DIR / 'collection_1'
@@ -44,7 +45,7 @@ def test_library_find_entries(collections, tag, expected):
             library.find_entry(tag)
 
     else:
-        assert library.find_entry(tag).name == expected[0]
+        assert library.find_entry(tag).name == path(expected[0])
 
 @parametrize_via_toml('test_library.toml')
 def test_collection_is_unique(name, names, expected):
@@ -65,7 +66,7 @@ def test_path_collection_find_entries(tag, expected):
     entries = list(x.name for _, x in collection.find_entries(tag))
 
     assert collection.is_available()
-    assert entries == expected
+    assert entries == paths(expected)
 
 @parametrize_via_toml('test_library.toml')
 def test_cwd_collection_find_entries(tag, expected):
@@ -77,16 +78,15 @@ def test_cwd_collection_find_entries(tag, expected):
     entries = list(x.name for _, x in collection.find_entries(tag))
 
     try:
-        assert entries == expected
+        assert entries == paths(expected)
     finally:
         os.chdir(prev_cwd)
 
 @parametrize_via_toml('test_library.toml')
 def test_entry_full_name(collection_name, entry_name, full_name):
-    import os
     collection = stepwise.Collection(collection_name)
     entry = stepwise.Entry(collection, entry_name)
-    assert entry.full_name == full_name.replace('/', os.sep)
+    assert entry.full_name == path(full_name)
 
 @parametrize_via_toml('test_library.toml')
 def test_path_entry_load_protocol(disable_capture, relpath, args, steps, attachments):
@@ -221,6 +221,13 @@ def test_check_version_control(tmp_path):
     with raises(VersionControlWarning, match="uncommitted changes"):
         _check_version_control(protocol)
 
+
+def path(x):
+    from os.path import sep
+    return x.replace('/', sep)
+
+def paths(xs):
+    return [path(x) for x in xs]
 
 @pytest.fixture
 def disable_capture(pytestconfig):
