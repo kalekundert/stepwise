@@ -36,9 +36,11 @@ jobs:
 # This means we need to use `flit` directly to install the package.
 
 install:
-  - pip3 install -U flit coverage pytest pytest-cov python-coveralls
+  # 'coverage<5' won't be necessary once coveralls-python#203 is fixed.
+  - pip3 install -U flit 'coverage<5' pytest pytest-cov python-coveralls
   - flit install --symlink
 
+  # Required for the tests that call `git` and expected certain output.
   - git config --global user.name "Travis CI"
   - git config --global user.email "travis-ci@example.com"
 
