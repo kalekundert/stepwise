@@ -34,7 +34,7 @@ def test_library_find_entries(collections, tag, expected):
     library.collections = [collection_map[x] for x in collections]
     entries = list(x.name for x in library.find_entries(tag))
 
-    assert entries == expected
+    assert entries == paths(expected)
 
     if len(expected) < 1:
         with pytest.raises(stepwise.NoProtocolsFound):
