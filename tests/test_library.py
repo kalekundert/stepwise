@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+import sys
 import pytest
 import stepwise
 from utils import *
+from stepwise.library import _capture_stdout
 
 LIBRARY_DIR = TEST_DIR / 'dummy_library'
 COLLECT1_DIR = LIBRARY_DIR / 'collection_1'
@@ -112,42 +114,62 @@ def test_match_entry(tag, name, expected):
     from stepwise.library import _match_tag
     assert _match_tag(tag or None, name) == tuple(expected)
 
-def test_capture_stdout(capfd):
-    import sys, ctypes
-    from subprocess import run
-    from stepwise.library import _capture_stdout
+def test_capture_stdout_python():
+    with _capture_stdout() as f:
+        print('python')
 
+    assert f.getvalue() == b'python\n'
+
+def test_capture_stdout_subprocess(capfd):
+    from subprocess import run
+
+    with capfd.disabled():
+        with _capture_stdout() as f:
+            run(['echo', 'subprocess'])
+
+    assert f.getvalue() == b'subprocess\n'
+
+def test_capture_stdout_libc(capfd):
+    import ctypes
     libc = ctypes.CDLL(None)
 
     with capfd.disabled():
-
-        # Don't do all the tests in the same with statement, because the 
-        # relative ordering of lines written in different environments (e.g.  
-        # python, libc) is not guaranteed to be maintained.  This is because 
-        # the different environments might flush at different times.
-
-        with _capture_stdout() as f:
-            print('python')
-        assert f.getvalue() == b'python\n'
-
-        with _capture_stdout() as f:
-            run(['echo', 'subprocess'])
-        assert f.getvalue() == b'subprocess\n'
-
         with _capture_stdout() as f:
             libc.puts(b'libc')
-        assert f.getvalue() == b'libc\n'
 
-        # Make sure the streams are being flushed correctly.  It's important 
-        # that these strings don't have newlines, because stdout flushes at 
-        # newlines by default.  
-        sys.stdout.write('outside')
-        with _capture_stdout() as f:
-            sys.stdout.write('inside')
-        assert f.getvalue() == b'inside'
+    assert f.getvalue() == b'libc\n'
+
+def test_capture_stdout_nested():
+    with _capture_stdout() as f1:
+        print('1')
+        with _capture_stdout() as f2:
+            print('2')
+        print('3')
+
+    assert f1.getvalue() == b'1\n3\n'
+    assert f2.getvalue() == b'2\n'
+
+def test_capture_stdout_flush_before_after():
+    # It's important that the strings used in this test don't have newlines, 
+    # because python flushes stdout at newlines by default.
+
+    sys.stdout.write('before')
+    with _capture_stdout() as f:
+        sys.stdout.write('inside')
+    sys.stdout.write('after')
+
+    assert f.getvalue() == b'inside'
+
+def test_capture_stdout_exceed_pipe_capacity():
+    # Make a write that exceeds the size of the pipe buffer, which is 65536 
+    # (2¹⁶) bytes on my machine.
+    
+    data = (2**16 + 1) * 'a'
+    with _capture_stdout() as f:
+        sys.stdout.write(data)
+    assert f.getvalue() == data.encode()
 
 def test_preserve_stdin():
-    import sys
     from subprocess import run
 
     # Run the following in a subprocess, so we can feed it stdin:
@@ -213,10 +235,10 @@ def disable_capture(pytestconfig):
 
         def __enter__(self):
             self.capmanager.suspend_global_capture(in_=True)
-            pass
 
         def __exit__(self, _1, _2, _3):
             self.capmanager.resume_global_capture()
 
     yield suspend_guard()
+
 

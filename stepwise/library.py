@@ -791,40 +791,50 @@ def _run_python_script(path, args):
 def _capture_stdout():
     import ctypes
     from io import BytesIO
+    from threading import Thread
 
     out = BytesIO()
     libc = ctypes.CDLL(None)
     c_stdout = ctypes.c_void_p.in_dll(libc, 'stdout')
 
-    # Flush any pending output.
-    libc.fflush(c_stdout)
-    sys.stdout.flush()
+    def replace_stdout(fd):
+        # Flush any pending output.
+        libc.fflush(c_stdout)
+        sys.stdout.flush()
+
+        # Replace stdout with the given file descriptor.
+        os.dup2(fd, fd_stdout)
+        os.close(fd)
+
+    def read_pipe():
+        f = os.fdopen(fd_pipe_read, 'rb')
+
+        # Read (blocking) until the pipe is closed.
+        out.write(f.read())
+        f.close()
 
     # Save the original stdout.
     fd_stdout = sys.stdout.fileno()
     fd_stdout_dup = os.dup(fd_stdout)
 
-    # Make a pipe to replace stdout with.
+    # Replace stdout with a pipe.
     fd_pipe_read, fd_pipe_write = os.pipe()
-    os.dup2(fd_pipe_write, fd_stdout)
-    os.close(fd_pipe_write)
+    replace_stdout(fd_pipe_write)
+
+    # Read the pipe from a background thread, to prevent the pipe buffer from 
+    # filling up (which would hang the program).
+    p = Thread(target=read_pipe)
+    p.start()
 
     try:
         yield out
 
     finally:
-        # Flush any pending output.
-        libc.fflush(c_stdout)
-        sys.stdout.flush()
-
-        # Restore stdout.
-        os.dup2(fd_stdout_dup, fd_stdout)
-        os.close(fd_stdout_dup)
-
-        # Read the contents of the pipe.
-        f = os.fdopen(fd_pipe_read, 'rb')
-        out.write(f.read())
-        os.close(fd_pipe_read)
+        # Restore stdout.  This also closes the writing end of pipe, because it 
+        # overwrites the last file descriptor pointing to it.  In turn, this 
+        # allows the background thread to finish reading.
+        replace_stdout(fd_stdout_dup)
+        p.join()
 
 @contextmanager
 def _preserve_stdin():
