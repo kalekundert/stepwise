@@ -1,7 +1,24 @@
 language: python
 
-python:
-    - "3.8"
+jobs:
+  # All three OSes agree about 'pip3'.  'python' points to Python 3.8 on Linux 
+  # and Windows, but Python 2.7 on macOS.  'python3' is a 'command not found' 
+  # error on Windows and 'py' works on Windows only.
+
+  include:
+    - name: "Python 3.8.0 on Linux"
+      python: 3.8           # this works for Linux but is ignored on macOS or Windows
+    - name: "Python 3.7.4 on macOS"
+      os: osx
+      osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
+      language: shell       # 'language: python' is an error on Travis CI macOS
+    - name: "Python 3.8.0 on Windows"
+      os: windows           # Windows 10.0.17134 N/A Build 17134
+      language: shell       # 'language: python' is an error on Travis CI Windows
+      before_install:
+        - choco install python --version 3.8.0
+        - python -m pip install --upgrade pip
+      env: PATH=/c/Python38:/c/Python38/Scripts:$PATH
 
 # In order for coverage to work, the package needs to be installed in editable/
 # symlink mode.  Unfortunately, this means we can't use pip to install the 
@@ -9,13 +26,12 @@ python:
 # editable installs.  Instead it requires `setup.py`, which we don't have.  
 # This means we need to use `flit` directly to install the package.
 
-# 'coverage<5' won't be necessary once coveralls-python #203 is fixed.
 install:
-    - pip install -U flit flit 'coverage<5' pytest pytest-cov python-coveralls
+    - pip3 install -U flit coverage pytest pytest-cov python-coveralls
     - flit install --symlink
 
 script: 
-    - py.test tests --cov stepwise
+    - pytest tests --cov stepwise
 
 after_success:
     - coveralls
