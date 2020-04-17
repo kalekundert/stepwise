@@ -13,7 +13,7 @@ def load_config():
     global config
     if config: return config
 
-    # `configurator` is slow to load, because it imports `pkg_resources`.
+    # `pkg_resources` is slow to load.
     from configurator import Config, default_mergers
     from voluptuous import Schema, Invalid
     from pkg_resources import iter_entry_points
