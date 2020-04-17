@@ -447,7 +447,7 @@ class ProtocolIO:
                 return cls.from_bytes(stdout)
 
             # If the path is a text file, read it:
-            elif path.suffix == '.txt':
+            if path.suffix == '.txt':
                 return cls.from_text(path.read_text())
 
             # If the path is a script, run it:
@@ -789,17 +789,13 @@ def _run_python_script(path, args):
 
 @contextmanager
 def _capture_stdout():
-    import ctypes
     from io import BytesIO
     from threading import Thread
 
     out = BytesIO()
-    libc = ctypes.CDLL(None)
-    c_stdout = ctypes.c_void_p.in_dll(libc, 'stdout')
 
     def replace_stdout(fd):
         # Flush any pending output.
-        libc.fflush(c_stdout)
         sys.stdout.flush()
 
         # Replace stdout with the given file descriptor.

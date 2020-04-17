@@ -129,16 +129,6 @@ def test_capture_stdout_subprocess(capfd):
 
     assert f.getvalue() == b'subprocess\n'
 
-def test_capture_stdout_libc(capfd):
-    import ctypes
-    libc = ctypes.CDLL(None)
-
-    with capfd.disabled():
-        with _capture_stdout() as f:
-            libc.puts(b'libc')
-
-    assert f.getvalue() == b'libc\n'
-
 def test_capture_stdout_nested():
     with _capture_stdout() as f1:
         print('1')

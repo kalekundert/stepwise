@@ -198,12 +198,6 @@ args = []
 steps = ["cat"]
 attachments = []
 
-[[test_path_entry_load_protocol]]
-relpath = 'script_libc.py'
-args = []
-steps = ["libc"]
-attachments = []
-
 
 # Tag-matching tests:
 ## None
