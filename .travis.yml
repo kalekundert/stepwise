@@ -8,9 +8,18 @@ jobs:
   include:
     - name: "Python 3.8.0 on Linux"
       python: 3.8           # this works for Linux but is ignored on macOS or Windows
-    - name: "Python 3.7.4 on macOS"
+    - name: "Python 3.8.0 on macOS"
       os: osx
-      osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
+      before_install:
+        - brew unlink python@2
+        - brew unlink python
+        - brew unlink python3
+        - brew install python@3.8
+        - brew link --overwrite --force python@3.8
+        - python3 --version
+        - python3 -m venv venv
+        - source venv/bin/activate
+        - pip3 install --upgrade pip
       language: shell       # 'language: python' is an error on Travis CI macOS
     - name: "Python 3.8.0 on Windows"
       os: windows           # Windows 10.0.17134 N/A Build 17134
@@ -27,11 +36,19 @@ jobs:
 # This means we need to use `flit` directly to install the package.
 
 install:
-    - pip3 install -U flit coverage pytest pytest-cov python-coveralls
-    - flit install --symlink
+  - pip3 install -U flit coverage pytest pytest-cov python-coveralls
+  - flit install --symlink
 
 script: 
-    - pytest tests --cov stepwise
+  - pytest tests --cov stepwise
 
 after_success:
-    - coveralls
+  - coveralls
+
+deploy:
+  provider: pypi
+  user: "__token__"
+  password:
+    secure: "U4pA9MLYI067GtRlA1OW/QZVvmX3OAVgYx0r1vX0YUyz8+sFWLhuTugshe/13NYG2ticOkv+8U6TMZMH6ULmV0mL29heSMIvUcagGgbrlHqZxVvRBiciO3NSvs6lvbqi18zte3TfYmetUFCmt07n3H1Udg3vWyXv1102mV4JdVFY7js5J/MJ05oCMaGOcBUt9Zpm9p9U7wTeUVkSAy2tQaYBRt0sHQQXWENWq2gb4ag6VOfRxldgQF5NEJDlzU/+9/pLQAM3Y9Eto5nmMAIhHj6SxteyN8jcdqQkAfMBCJd2nJVDRf6YPdQ/pMKdOPawCRjQBmesyoMhuZ6FxB1E3Xw+EfrdudJ+NdZp9F28YGl9RL9kB+Ejoz5mH1G2NQRg1kkOUuHzwrhEXZAk0+Ep3Lm5DXHg1/rE/2vJGEENHc75ECpiFjW8pLMISAEu79KdA2M45Lctb093QLK6TxgL9jSzYg1N7GQ9+u5vyZWtd2TA5y881z7Z9PQGv5BUiJXBlEoKjasekhLyPTIGkycPVe8By658/xCwAJQMEYLFy8HUjc0aoFaSTzHaa6s0oaLPRmZgSfYSJXNdk+3ssiFsXnX/rxLKI6QzWuhGv1tU1SQCYsNFpJw/lolkwIf/3Jx0nUs6FhHO8O49WNpCuLPn6OOROQwMjpWAxQlgPZ4jr/0="
+  on:
+    tags: true
