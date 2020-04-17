@@ -451,7 +451,7 @@ class ProtocolIO:
                 return cls.from_text(path.read_text())
 
             # If the path is a script, run it:
-            if _is_executable(path):
+            try:
                 from subprocess import run, PIPE, DEVNULL
 
                 cmd = str(path), *args
@@ -462,7 +462,7 @@ class ProtocolIO:
                 return cls.from_bytes(p.stdout)
 
             # Otherwise, attach the file to a new protocol:
-            else:
+            except OSError:
                 io = cls()
                 io.protocol = Protocol(steps=[f"<{name or path.name}>"])
                 io.protocol.attachments = [path]
@@ -904,12 +904,4 @@ def _check_version_control(path):
     )
     if str(git_relpath) in p3.stdout:
         raise VersionControlWarning(f"uncommitted changes", culprit=get_culprit() or path)
-
-def _is_executable(path):
-    """
-    Return true if the given path is executable.
-    """
-    import os, stat
-    return stat.S_IXUSR & os.stat(path)[stat.ST_MODE]
-
 
