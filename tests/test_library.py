@@ -89,7 +89,10 @@ def test_entry_full_name(collection_name, entry_name, full_name):
     assert entry.full_name == path(full_name)
 
 @parametrize_via_toml('test_library.toml')
-def test_path_entry_load_protocol(disable_capture, relpath, args, steps, attachments):
+def test_path_entry_load_protocol(disable_capture, relpath, args, steps, attachments, skip_windows):
+    if skip_windows and sys.platform == 'win32':
+        pytest.skip(skip_windows)
+
     collection = stepwise.PathCollection(COLLECT3_DIR)
     entry = stepwise.PathEntry(collection, relpath)
 

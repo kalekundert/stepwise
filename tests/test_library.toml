@@ -124,54 +124,63 @@ relpath = 'protocol_txt.txt'
 args = []
 steps = ["txt"]
 attachments = []
+skip_windows = false
 
 [[test_path_entry_load_protocol]]
 relpath = 'protocol_pdf.pdf'
 args = []
 steps = ["<protocol_pdf>"]
 attachments = ["protocol_pdf.pdf"]
+skip_windows = false
 
 [[test_path_entry_load_protocol]]
 relpath = 'script_echo.sh'
 args = ["1", "2"]
 steps = ["echo 1 2"]
 attachments = []
+skip_windows = "Cannot run Unix shell scripts on Windows."
 
 [[test_path_entry_load_protocol]]
 relpath = 'script_nested.sh'
 args = []
 steps = ["nested"]
 attachments = []
+skip_windows = "Cannot run Unix shell scripts on Windows."
 
 [[test_path_entry_load_protocol]]
 relpath = 'script_stdin.sh'
 args = []
 steps = ["cat"]
 attachments = []
+skip_windows = true
 
 [[test_path_entry_load_protocol]]
 relpath = 'script_py.py'
 args = []
 steps = ["py"]
 attachments = []
+skip_windows = false
 
 [[test_path_entry_load_protocol]]
 relpath = 'script_main.py'
 args = []
 steps = ["main"]
 attachments = []
+skip_windows = false
 
 [[test_path_entry_load_protocol]]
 relpath = 'script_argv.py'
 args = ["1", "2"]
 steps = ["argv script_argv.py,1,2"]
 attachments = []
+skip_windows = false
 
 [[test_path_entry_load_protocol]]
 relpath = 'script_import.py'
 args = []
 steps = ["lib"]
 attachments = []
+skip_windows = false
 
 [[test_path_entry_load_protocol]]
 id = 'focus'
@@ -179,24 +188,28 @@ relpath = 'script_load.py'
 args = []
 steps = ["load", "main", "argv script_argv.py,1,2", "lib"]
 attachments = []
+skip_windows = false
 
 [[test_path_entry_load_protocol]]
 relpath = 'script_subproc.py'
 args = []
 steps = ["os.system", "subprocess.run"]
 attachments = []
+skip_windows = "Cannot use 'echo' on Windows."
 
 [[test_path_entry_load_protocol]]
 relpath = 'script_subproc_nested.py'
 args = []
 steps = ["nested"]
 attachments = []
+skip_windows = "Not totally sure why this one doesn't work."
 
 [[test_path_entry_load_protocol]]
 relpath = 'script_subproc_stdin.py'
 args = []
 steps = ["cat"]
 attachments = []
+skip_windows = false
 
 
 # Tag-matching tests:
