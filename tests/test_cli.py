@@ -4,13 +4,19 @@ import pytest, sys, re
 from utils import *
 
 DATE = r'\w+ \d{1,2}, \d{4}'
+skip_windows = pytest.mark.skipif(
+        sys.platform == 'win32',
+        reason="Cannot import pty on windows."
+)
 
 @pytest.mark.slow
+@skip_windows
 @parametrize_via_toml('test_cli.toml')
 def test_main(cmd, env, stdout, stderr, return_code):
     check_command(cmd, stdout, stderr, return_code, env)
 
 @pytest.mark.slow
+@skip_windows
 def test_stash():
     # Test `ls` and `add`:
     check_command('stepwise stash clear')
