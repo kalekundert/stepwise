@@ -14,8 +14,8 @@ Arguments:
 import docopt
 import toml
 from inform import fatal
+from stepwise import load_config
 from .main import command
-from ..config import load_config
 
 @command
 def config():

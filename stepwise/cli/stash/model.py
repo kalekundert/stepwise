@@ -64,19 +64,10 @@ possible (although hopefully unlikely) that upgrading either stepwise or
 python could corrupt the stash.
 """
 
-import sys
-import docopt
-import pickle
-import sqlite3
 from pathlib import Path
 from datetime import datetime
 from contextlib import contextmanager
-from inform import Error, fatal
-from .main import command
-from ..library import ProtocolIO
-from ..table import tabulate
-from ..config import config_dirs
-from ..errors import UsageError
+from stepwise import ProtocolIO, UsageError, tabulate, config_dirs
 
 from sqlalchemy import Column, Integer, DateTime, String, PickleType
 from sqlalchemy.ext.declarative import declarative_base
@@ -101,43 +92,6 @@ class Stash(Base):
     categories = Column(CategoriesType)
     message = Column(String)
     protocol = Column(PickleType)
-
-@command
-def stash(quiet, force_text):
-    args = docopt.docopt(__doc__)
-    id = parse_id(args['<id>'])
-    categories = parse_categories(args['--categories'])
-    message = args['--message']
-
-    with open_db() as db:
-        if args['ls']:
-            list_protocols(db, categories)
-
-        elif args['label']:
-            label_protocol(db, id, categories, message)
-
-        elif args['peek']:
-            peek_protocol(db, id, quiet, force_text)
-
-        elif args['pop']:
-            pop_protocol(db, id, quiet, force_text)
-
-        elif args['drop']:
-            drop_protocol(db, id)
-
-        elif args['clear']:
-            clear_protocols(db)
-
-        else:
-            io = ProtocolIO.from_stdin()
-            if io.errors:
-                fatal("protocol has errors, not stashing.")
-
-            if not io.protocol:
-                if args['add']: fatal("no protocol specified.")
-                list_protocols(db, categories)
-            else:
-                add_protocol(db, io.protocol, categories, message)
 
 @contextmanager
 def open_db():
@@ -169,7 +123,7 @@ def list_protocols(db, categories=[]):
 
     if not stash:
         print("No stashed protocols.")
-        sys.exit()
+        return
 
     rows = []
     header = ["#", "Name", "Category", "Message"]

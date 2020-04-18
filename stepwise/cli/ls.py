@@ -18,9 +18,8 @@ Options:
 import docopt
 from itertools import groupby
 from operator import itemgetter
+from stepwise import Library, load_config
 from .main import command
-from ..library import Library
-from ..config import load_config
 
 @command
 def ls():

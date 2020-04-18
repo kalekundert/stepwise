@@ -47,9 +47,7 @@ Examples:
 
 import sys, inspect
 import docopt
-from ..library import ProtocolIO
-from ..errors import StepwiseError
-from .. import __version__
+from stepwise import ProtocolIO, StepwiseError, __version__
 
 COMMANDS = {}
 

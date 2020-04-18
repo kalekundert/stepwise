@@ -10,8 +10,8 @@ Usage:
 import os
 import docopt
 import subprocess as subp
+from stepwise import Library
 from .main import command
-from ..library import Library
 
 @command
 def edit():

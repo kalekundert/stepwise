@@ -35,9 +35,8 @@ Options:
 import sys, re, textwrap
 import docopt
 from inform import fatal
+from stepwise import ProtocolIO, load_config
 from .main import command
-from ..library import ProtocolIO
-from ..config import load_config
 
 @command
 def note(force_text):

@@ -8,8 +8,8 @@ Usage:
 """
 
 import docopt
+from stepwise import Library
 from .main import command
-from ..library import Library
 
 @command
 def which():

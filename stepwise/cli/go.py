@@ -35,10 +35,9 @@ import sys
 import docopt
 from pathlib import Path
 from inform import fatal
+from stepwise import ProtocolIO, print_protocol, get_default_printer
+from stepwise import user_config_path, site_config_path
 from .main import command
-from ..library import ProtocolIO
-from ..printer import print_protocol, get_default_printer
-from ..config import user_config_path, site_config_path
 
 @command
 def go(quiet):
