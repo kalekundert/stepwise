@@ -21,13 +21,19 @@ jobs:
         - source venv/bin/activate
         - pip3 install --upgrade pip
       language: shell       # 'language: python' is an error on Travis CI macOS
-    - name: "Python 3.8.0 on Windows"
-      os: windows           # Windows 10.0.17134 N/A Build 17134
-      language: shell       # 'language: python' is an error on Travis CI Windows
-      before_install:
-        - choco install python --version 3.8.0
-        - python -m pip install --upgrade pip
-      env: PATH=/c/Python38:/c/Python38/Scripts:$PATH
+
+    # Remove Windows support until I can get a Windows machine to test with.  
+    # It seems like a few things are just a bit off, e.g. how arguments are 
+    # quoted by the shell, and I just think it'll be too much of a pain to 
+    # figure out by pushing to Travis CI over and over.
+
+    #- name: "Python 3.8.0 on Windows"
+    #  os: windows           # Windows 10.0.17134 N/A Build 17134
+    #  language: shell       # 'language: python' is an error on Travis CI Windows
+    #  before_install:
+    #    - choco install python --version 3.8.0
+    #    - python -m pip install --upgrade pip
+    #  env: PATH=/c/Python38:/c/Python38/Scripts:$PATH
 
 # In order for coverage to work, the package needs to be installed in editable/
 # symlink mode.  Unfortunately, this means we can't use pip to install the 
