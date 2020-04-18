@@ -4,12 +4,12 @@
 
 [[test_main]]
 id = 'builtin-echo'
-cmd = "stepwise echo -e '- A\\n- B'"
+cmd = "stepwise echo '- A\\n- B'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise echo -e '- A\\n- B'
+\$ stepwise echo '- A\\n- B'
 
 1\. A
 
@@ -287,7 +287,7 @@ return_code = 0
 id = 'edit'
 cmd = "stepwise edit echo"
 env = {EDITOR = 'echo'}
-stdout = '.*/builtins/echo$'
+stdout = '.*/builtins/echo.py$'
 stderr = '^$'
 return_code = 0
 
