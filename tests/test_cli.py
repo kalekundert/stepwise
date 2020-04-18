@@ -1,22 +1,16 @@
 #!/usr/bin/env python3
 
-import pytest, sys, re
+import pytest, sys, os, re
 from utils import *
 
 DATE = r'\w+ \d{1,2}, \d{4}'
-skip_windows = pytest.mark.skipif(
-        sys.platform == 'win32',
-        reason="Cannot import pty on windows."
-)
 
 @pytest.mark.slow
-@skip_windows
 @parametrize_via_toml('test_cli.toml')
 def test_main(cmd, env, stdout, stderr, return_code):
     check_command(cmd, stdout, stderr, return_code, env)
 
 @pytest.mark.slow
-@skip_windows
 def test_stash():
     # Test `ls` and `add`:
     check_command('stepwise stash clear')
@@ -138,7 +132,27 @@ def test_stash():
 
 
 def check_command(cmd, stdout='^$', stderr='^$', return_code=0, env={}):
-    p = tty_capture(cmd, env=env, shell=True)
+    home = Path(__file__).parent / 'dummy_home'
+    env={**os.environ, 'COLUMNS': '80', 'HOME': str(home), **env}
+
+    # Stepwise only produces text output if (i) it detects that it is attached 
+    # to a TTY or (ii) it is given the `-x` flag.  If neither condition is met, 
+    # it produces a binary pickle meant to be consumed by another stepwise 
+    # command.
+    #
+    # For testing, we need text output.  The preferred way to do this is by 
+    # making pseudo-TTYs for stdout, stderr, and stdin, since this best mimics 
+    # the environment that stepwise is meant to run in.  Unfortunately, the 
+    # python package for making pseudo-TTYs does not work on Windows, so on 
+    # that platform, instead edit the command to add the `-x` flag.
+
+    if sys.platform != 'win32':
+        p = tty_capture(cmd, env=env, shell=True)
+    else:
+        from subprocess import run
+        i = cmd.rfind('stepwise') + len('stepwise')
+        cmd = cmd[:i] + ' -x' + cmd[i:]
+        p = run(cmd, env=env, capture_output=True, text=True, shell=True)
 
     print(cmd, file=sys.stderr)
     check_output(p.stderr, stderr, sys.stderr)
@@ -173,7 +187,6 @@ def tty_capture(cmd, stdin=None, env={}, **kwargs):
     me, se = pty.openpty()  
     mi, si = pty.openpty()  
 
-    home = Path(__file__).parent / 'dummy_home'
     p = subp.Popen(
         cmd,
         bufsize=1,
@@ -181,7 +194,7 @@ def tty_capture(cmd, stdin=None, env={}, **kwargs):
         stdout=so,
         stderr=se, 
         close_fds=True,
-        env={**os.environ, 'COLUMNS': '80', 'HOME': str(home), **env},
+        env=env,
         **kwargs,
     )
     for fd in [so, se, si]:
