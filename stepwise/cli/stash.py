@@ -72,14 +72,13 @@ from pathlib import Path
 from datetime import datetime
 from contextlib import contextmanager
 from inform import Error, fatal
+from .main import command
 from ..library import ProtocolIO
 from ..table import tabulate
 from ..config import config_dirs
 from ..errors import UsageError
 
-from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, DateTime, String, PickleType
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.types import TypeDecorator
 
@@ -103,7 +102,8 @@ class Stash(Base):
     message = Column(String)
     protocol = Column(PickleType)
 
-def main():
+@command
+def stash(quiet, force_text):
     args = docopt.docopt(__doc__)
     id = parse_id(args['<id>'])
     categories = parse_categories(args['--categories'])
@@ -117,10 +117,10 @@ def main():
             label_protocol(db, id, categories, message)
 
         elif args['peek']:
-            peek_protocol(db, id)
+            peek_protocol(db, id, quiet, force_text)
 
         elif args['pop']:
-            pop_protocol(db, id)
+            pop_protocol(db, id, quiet, force_text)
 
         elif args['drop']:
             drop_protocol(db, id)
@@ -141,6 +141,9 @@ def main():
 
 @contextmanager
 def open_db():
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
     path = Path(config_dirs.user_data_dir) / 'stash.sqlite'
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -205,15 +208,19 @@ def label_protocol(db, id=None, categories=None, message=None):
     row.categories = categories
     row.message = message
 
-def peek_protocol(db, id=None):
+def peek_protocol(db, id=None, quiet=False, force_text=False):
     row = load_protocol(db, id)
     row.protocol.set_current_date()
-    ProtocolIO(row.protocol).to_stdout()
+    io = ProtocolIO(row.protocol)
+    io.make_quiet(quiet)
+    io.to_stdout(force_text)
 
-def pop_protocol(db, id=None):
+def pop_protocol(db, id=None, quiet=False, force_text=False):
     row = load_protocol(db, id)
     row.protocol.set_current_date()
-    ProtocolIO(row.protocol).to_stdout()
+    io = ProtocolIO(row.protocol)
+    io.make_quiet(quiet)
+    io.to_stdout(force_text)
     db.delete(row)
 
 def drop_protocol(db, id=None):

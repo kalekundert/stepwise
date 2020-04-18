@@ -14,9 +14,11 @@ Arguments:
 import docopt
 import toml
 from inform import fatal
+from .main import command
 from ..config import load_config
 
-def main():
+@command
+def config():
     args = docopt.docopt(__doc__)
     config = load_config().data
 

@@ -33,15 +33,6 @@ test = [
 [tool.flit.scripts]
 stepwise = "stepwise.cli.main:main"
 
-[tool.flit.entrypoints."stepwise.commands"]
-ls = "stepwise.cli.ls:main"
-which = "stepwise.cli.which:main"
-edit = "stepwise.cli.edit:main"
-note = "stepwise.cli.note:main"
-go = "stepwise.cli.go:main"
-stash = "stepwise.cli.stash:main"
-config = "stepwise.cli.config:main"
-
 [tool.flit.entrypoints."stepwise.protocols"]
 builtins = "stepwise:Builtins"
 

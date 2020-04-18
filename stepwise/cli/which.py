@@ -8,9 +8,11 @@ Usage:
 """
 
 import docopt
+from .main import command
 from ..library import Library
 
-def main():
+@command
+def which():
     args = docopt.docopt(__doc__)
     library = Library()
     entries = library.find_entries(args['<protocol>'])

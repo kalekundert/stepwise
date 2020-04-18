@@ -196,6 +196,8 @@ def _measure_cols(table, truncate, max_width, pad):
         raise ValueError(f"table has {plural(num_cols):# column/s}, but truncation specified for {len(truncate)}: {truncate!r}")
     if not max_width:
         max_width = get_terminal_size().columns - 1
+    if max_width < 0:
+        max_width = get_terminal_size().columns - 1 - max_width
 
     sum_col_widths = lambda: sum(col_widths) + pad * max(num_cols - 1, 0)
     table_width = sum_col_widths()

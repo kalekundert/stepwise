@@ -583,6 +583,13 @@ class ProtocolIO:
 
         return io
 
+    def make_quiet(self, quiet):
+        """
+        Helper function to implement the `--quiet` flag.
+        """
+        if quiet and not self.errors:
+            self.protocol.clear_footnotes()
+
     def to_stdout(self, force_text=False):
         """
         Write the protocol to stdout.

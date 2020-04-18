@@ -25,8 +25,7 @@ Options:
         Show version information and exit.
 
     -q --quiet
-        Remove footnotes from the protocol.  This option only applies to the 
-        `go` command and protocols.
+        Remove footnotes from the protocol, if applicable.
 
     -x --force-text
         Force the protocol to be printed in human-readable format (rather than 
@@ -36,7 +35,7 @@ Options:
 Examples:
 
     Create a protocol for cloning by inverse PCR.  First do PCR, then ligate 
-    with KLD, then send the full protocol to the printer.
+    with KLD, then print a paper copy of the full protocol:
 
         $ alias sw=stepwise
         $ sw pcr | sw kld | sw go
@@ -46,29 +45,37 @@ Examples:
         $ stepwise ls
 """
 
-import sys
+import sys, inspect
 import docopt
 from ..library import ProtocolIO
 from ..errors import StepwiseError
 from .. import __version__
 
+COMMANDS = {}
+
 def main():
     try:
-        # `pkg_resources` is slow to import, so defer until we need it.
-        from pkg_resources import iter_entry_points
-        plugins = {
-                x.name: x.load()
-                for x in iter_entry_points('stepwise.commands')
-        }
+        load_commands()
         args = docopt.docopt(
-                __doc__.format(commands=list_commands(plugins)),
+                __doc__.format(commands=list_commands()),
                 version=__version__,
                 options_first=True,
         )
 
-        command = args['<command>']
-        if command in plugins:
-            plugins[command]()
+        if args['<command>'] in COMMANDS:
+            command = COMMANDS[args['<command>']]
+            sig = inspect.signature(command)
+            possible_kwargs = [
+                    ('quiet', '--quiet'),
+                    ('force_text', '--force-text'),
+            ]
+            kwargs = {
+                    k1: args[k2]
+                    for k1, k2 in possible_kwargs
+                    if k1 in sig.parameters
+            }
+            sys.argv = [sys.argv[0], args['<command>'], *args['<args>']]
+            command(**kwargs)
 
         else:
             io_cli = ProtocolIO()
@@ -104,33 +111,40 @@ def main():
     except StepwiseError as err:
         err.terminate()
 
-def list_commands(plugins):
+def command(f):
+    COMMANDS[f.__name__] = f
+    return f
+
+def load_commands():
+    # The order these modules are imported in defines the order that the 
+    # associated subcommands will appear in the help text.
+    from . import ls
+    from . import which
+    from . import edit
+    from . import note
+    from . import go
+    from . import stash
+    from . import config
+
+def list_commands():
     """
     Return a nicely formatted list of all the subcommands installed on this 
     system, to incorporate into the usage text.
     """
-    from shutil import get_terminal_size
-    from textwrap import shorten
-    from inspect import getmodule
-
-    indent, pad = 4, 2
-    max_width = get_terminal_size().columns - 1
-    max_command = max(len(x) for x in plugins) + 1
-    max_brief = max_width - max_command - pad
+    from stepwise import tabulate
+    from inform import indent
 
     # Make the table.
 
-    desc = ''
-    row = f'{" " * indent}{{:<{max_command}}}{" " * pad}{{}}\n'
+    def get_brief(func):
+        doc = func.__doc__ or inspect.getmodule(func).__doc__ or "No summary"
+        return doc.strip().split('\n')[0]
 
-    for command, plugin in plugins.items():
-        usage = plugin.__doc__ or getmodule(plugin).__doc__ or "No summary"
-        brief = usage.strip().split('\n')[0]
-        desc += row.format(
-                command + ':',
-                shorten(brief, width=max_brief, placeholder='...'),
-        )
-
-    return desc.strip()
+    rows = [
+            [f'{name}:', get_brief(func)]
+            for name, func in COMMANDS.items()
+    ]
+    table = tabulate(rows, truncate='x-', max_width=-4)
+    return indent(table, leader='    ', first=-1)
 
 

@@ -18,10 +18,12 @@ Options:
 import docopt
 from itertools import groupby
 from operator import itemgetter
+from .main import command
 from ..library import Library
 from ..config import load_config
 
-def main():
+@command
+def ls():
     args = docopt.docopt(__doc__)
     config = load_config()
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """\
-Write the protocol to a file and print a paper copy.
+Make copies of a protocol before starting an experiment.
 
 Usage:
     stepwise go [options]
@@ -24,9 +24,6 @@ Options:
         Print to the specified printer, rather than the system default.  The 
         current system default is: {default_printer}
 
-    -q --quiet
-        Remove footnotes from the protocol.
-
 Many aspects of the print job (e.g. the dimensions of the paper, the font face 
 and size, etc.) can be configured in:
 
@@ -38,23 +35,23 @@ import sys
 import docopt
 from pathlib import Path
 from inform import fatal
+from .main import command
 from ..library import ProtocolIO
 from ..printer import print_protocol, get_default_printer
 from ..config import user_config_path, site_config_path
 
-def main():
+@command
+def go(quiet):
     args = docopt.docopt(__doc__.format(
             default_printer=get_default_printer(),
             user_config_path=user_config_path,
             site_config_path=site_config_path,
     ))
     io = ProtocolIO.from_stdin()
+    io.make_quiet(quiet)
 
     if not io.protocol:
         fatal("No protocol specified.")
-
-    if args['--quiet']:
-        io.protocol.clear_footnotes()
 
     # Write the protocol to a file.
     if not args['--no-file']:

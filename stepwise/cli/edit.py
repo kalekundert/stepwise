@@ -10,9 +10,11 @@ Usage:
 import os
 import docopt
 import subprocess as subp
+from .main import command
 from ..library import Library
 
-def main():
+@command
+def edit():
     args = docopt.docopt(__doc__)
     library = Library()
     entry = library.find_entry(args['<protocol>'])

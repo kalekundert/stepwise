@@ -35,10 +35,12 @@ Options:
 import sys, re, textwrap
 import docopt
 from inform import fatal
+from .main import command
 from ..library import ProtocolIO
 from ..config import load_config
 
-def main():
+@command
+def note(force_text):
     args = docopt.docopt(__doc__)
     footnote = args['<footnote>']
     pattern = re.compile(args['<where>'] or '(?=[.:])')
@@ -73,5 +75,5 @@ def main():
     else:
         fatal(f"pattern {pattern!r} not found in protocol.")
 
-    io.to_stdout()
+    io.to_stdout(force_text)
 
