@@ -292,6 +292,96 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
+id = 'note-defaults-1'
+cmd = "stepwise custom A: | stepwise note Z"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ stepwise custom A:
+
+1\. A \[1\]:
+
+Note:
+\[1\] Z
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'note-defaults-2'
+cmd = "stepwise custom 'A:;B:' | stepwise note Z"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ stepwise custom 'A:;B:'
+
+1\. A:
+
+2\. B \[1\]:
+
+Note:
+\[1\] Z
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'note-where'
+cmd = "stepwise custom 'A:;B:' | stepwise note Z A"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ stepwise custom 'A:;B:'
+
+1\. A \[1\]:
+
+2\. B:
+
+Note:
+\[1\] Z
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'note-wrap'
+cmd = "stepwise custom A: | stepwise note '123456789 123456789 123456789 123456789 123456789 123456789'"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ stepwise custom A:
+
+1\. A \[1\]:
+
+Note:
+\[1\] 123456789 123456789 123456789 123456789 123456789
+    123456789
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'note-no-wrap'
+cmd = "stepwise custom A: | stepwise note -W '123456789 123456789 123456789 123456789 123456789 123456789'"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ stepwise custom A:
+
+1\. A \[1\]:
+
+Note:
+\[1\] 123456789 123456789 123456789 123456789 123456789 123456789
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
 id = 'which'
 cmd = "stepwise which a"
 env = {}

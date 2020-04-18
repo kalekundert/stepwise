@@ -13,8 +13,6 @@ skip_windows = pytest.mark.skipif(
 @skip_windows
 @parametrize_via_toml('test_cli.toml')
 def test_main(cmd, env, stdout, stderr, return_code):
-    from stepwise.config import user_config_path
-    print("user_config_path", user_config_path)
     check_command(cmd, stdout, stderr, return_code, env)
 
 @pytest.mark.slow
