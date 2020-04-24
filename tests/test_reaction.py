@@ -596,6 +596,23 @@ def test_reaction_hold_ratios_in_place():
     rxn.hold_ratios.volume /= 2
     assert rxn.volume == '10 µL'
     assert rxn['x'].volume == '2 µL'
+
+def test_reaction_hold_ratios_no_solvent():
+    rxn = Reaction()
+    del rxn.solvent
+    rxn['x'].volume = '1 µL'
+    rxn['y'].volume = '2 µL'
+
+    assert rxn.volume == '3 µL'
+
+    with pytest.raises(ValueError, match="no solvent"):
+        rxn.volume = '6 µL'
+
+    rxn.hold_ratios.volume = '6 µL'
+    assert rxn.volume == '6 µL'
+    assert rxn['x'].volume == '2 µL'
+    assert rxn['y'].volume == '4 µL'
+
 @pytest.mark.parametrize(
         'cols,volume,reagents', [(
 

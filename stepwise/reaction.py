@@ -521,7 +521,8 @@ class Reaction:
                     reagent.require_volume()
                     reagent.volume *= v2 / v1
 
-            self.reaction.volume = v2
+            if self.reaction._solvent:
+                self.reaction.volume = v2
 
 @autoprop
 class Reagent:
