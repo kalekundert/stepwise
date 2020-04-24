@@ -127,7 +127,7 @@ def list_protocols(db, categories=[]):
 
     rows = []
     header = ["#", "Name", "Category", "Message"]
-    truncate = list('---x')
+    truncate = list('-x-x')
 
     for row in stash.values():
         if not categories or categories.intersection(row.categories):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from math import ceil
+from math import ceil, floor
 from textwrap import shorten
 from shutil import get_terminal_size
 from itertools import repeat, zip_longest
@@ -83,7 +83,12 @@ def tabulate(
         return pad.join(cells).rstrip()
 
     def format_cell(cell, width, align):
-        cell = shorten(cell, width=width, placeholder=style['placeholder'])
+        if len(cell) > width:
+            if ' ' in cell:
+                cell = shorten(cell, width=width, placeholder=style['placeholder'])
+            else:
+                dots = style['placeholder']
+                cell = cell[:width - len(dots)] + dots
         return f'{cell:{align}{width}}'
 
     table_fmt = [
@@ -199,28 +204,26 @@ def _measure_cols(table, truncate, max_width, pad):
     if max_width < 0:
         max_width = get_terminal_size().columns - 1 - max_width
 
-    sum_col_widths = lambda: sum(col_widths) + pad * max(num_cols - 1, 0)
+    tot_pad = pad * max(num_cols - 1, 0)
+    sum_col_widths = lambda: sum(col_widths) + tot_pad
     table_width = sum_col_widths()
     overfull_width = table_width - max_width
 
     if max_width > 0 and (overfull_width <= 0 or not truncate):
         return col_widths, table_width
 
-    trunc_cols = [
-            (i, w)
-            for i, (w, x) in enumerate(zip(col_widths, truncate))
-            if x == 'x'
-    ]
+    trunc_cols = [i for i, x in enumerate(truncate) if x == 'x']
+    fixed_cols = [i for i, x in enumerate(truncate) if x != 'x']
     remaining_trunc_cols = len(trunc_cols)
+    available_width = max(
+            max_width - sum(col_widths[i] for i in fixed_cols) - tot_pad,
+            0,
+    )
 
-    for i, col_width in trunc_cols:
-            delta_width = min(
-                ceil(overfull_width / remaining_trunc_cols),
-                col_width,
-            )
-            col_widths[i] -= delta_width
-            overfull_width -= delta_width
-            remaining_trunc_cols -= 1
+    for i in trunc_cols:
+        col_widths[i] = floor(available_width / remaining_trunc_cols)
+        available_width -= col_widths[i]
+        remaining_trunc_cols -= 1
 
     return col_widths, sum_col_widths()
 
