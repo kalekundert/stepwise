@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from math import ceil, floor
+from math import ceil
 from textwrap import shorten
 from shutil import get_terminal_size
 from itertools import repeat, zip_longest
@@ -90,6 +90,7 @@ def tabulate(
                 dots = style['placeholder']
                 cell = cell[:width - len(dots)] + dots
         return f'{cell:{align}{width}}'
+
 
     table_fmt = [
         format_row(x)
@@ -204,8 +205,7 @@ def _measure_cols(table, truncate, max_width, pad):
     if max_width < 0:
         max_width = get_terminal_size().columns - 1 - max_width
 
-    tot_pad = pad * max(num_cols - 1, 0)
-    sum_col_widths = lambda: sum(col_widths) + tot_pad
+    sum_col_widths = lambda: sum(col_widths) + pad * max(num_cols - 1, 0)
     table_width = sum_col_widths()
     overfull_width = table_width - max_width
 
@@ -213,17 +213,18 @@ def _measure_cols(table, truncate, max_width, pad):
         return col_widths, table_width
 
     trunc_cols = [i for i, x in enumerate(truncate) if x == 'x']
-    fixed_cols = [i for i, x in enumerate(truncate) if x != 'x']
-    remaining_trunc_cols = len(trunc_cols)
-    available_width = max(
-            max_width - sum(col_widths[i] for i in fixed_cols) - tot_pad,
-            0,
-    )
+    if not trunc_cols:
+        return col_widths, table_width
 
-    for i in trunc_cols:
-        col_widths[i] = floor(available_width / remaining_trunc_cols)
-        available_width -= col_widths[i]
-        remaining_trunc_cols -= 1
+    # There's probably a smarter/faster way to do this...
+
+    while overfull_width > 0:
+        widest_col = max(
+                trunc_cols, 
+                key=lambda i: col_widths[i],
+        )
+        col_widths[widest_col] -= 1
+        overfull_width -= 1
 
     return col_widths, sum_col_widths()
 

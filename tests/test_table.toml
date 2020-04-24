@@ -499,6 +499,27 @@ max_width = 5
 pad = 2
 expected = {cols=[2, 1], table=5}
 
+[[test_measure_cols]]
+table = [['12', '34']]
+truncate = 'xx'
+max_width = 4
+pad = 2
+expected = {cols=[1, 1], table=4}
+
+[[test_measure_cols]]
+table = [['12', '345']]
+truncate = 'xx'
+max_width = 6
+pad = 2
+expected = {cols=[2, 2], table=6}
+
+[[test_measure_cols]]
+table = [['12', '3456789']]
+truncate = 'xx'
+max_width = 6
+pad = 2
+expected = {cols=[2, 2], table=6}
+
 [[test_measure_cols_err]]
 table = [['A']]
 truncate = '--'
