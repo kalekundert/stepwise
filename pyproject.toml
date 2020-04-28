@@ -14,10 +14,10 @@ requires = [
   'autoprop',
   'configurator',
   'docopt',
+  'entrypoints',
   'inform',
   'more_itertools',
   'nonstdlib',
-  'setuptools',
   'sqlalchemy',
   'voluptuous',
 ]

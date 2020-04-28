@@ -39,9 +39,6 @@ class Library:
     _singleton = None
 
     def __init__(self):
-        # `pkg_resources` is slow to import, so defer until we need it.
-        from pkg_resources import iter_entry_points
-
         self.collections = []
         config = load_config()
 
@@ -67,8 +64,9 @@ class Library:
             add(PathCollection(dir))
 
         # Add directories specified by plugins.
+        from entrypoints import get_group_all
         plugins = sorted(
-                iter_entry_points('stepwise.protocols'),
+                get_group_all('stepwise.protocols'),
                 key=lambda x: (
                     x.module_name == 'stepwise',
                     x.module_name,

@@ -13,10 +13,9 @@ def load_config():
     global config
     if config: return config
 
-    # `pkg_resources` is slow to load.
     from configurator import Config, default_mergers
     from voluptuous import Schema, Invalid
-    from pkg_resources import iter_entry_points
+    from entrypoints import get_group_all
     from collections.abc import Mapping
     from inform import warn
 
@@ -32,7 +31,7 @@ def load_config():
     plugin_configs = {}
     plugin_schemas = {}
 
-    for entry in iter_entry_points('stepwise.protocols'):
+    for entry in get_group_all('stepwise.protocols'):
         plugin = entry.load()
         defaults = getattr(plugin, 'config_defaults', {})
         schema = getattr(plugin, 'config_schema', {})
