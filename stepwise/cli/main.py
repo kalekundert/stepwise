@@ -122,6 +122,7 @@ def load_commands():
     from . import note
     from . import go
     from . import stash
+    from . import metric
     from . import config
 
 def list_commands():
