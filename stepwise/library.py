@@ -648,6 +648,9 @@ def load(command, library=None):
 def load_file(path, args=None):
     return ProtocolIO.from_file(path, args)
 
+def load_text(text, args=None):
+    return ProtocolIO.from_text(text, args)
+
 
 def _match_tag(tag, name):
     """
