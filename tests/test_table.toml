@@ -299,6 +299,15 @@ i_header = 1
 i_footer = 1
 
 [[test_concat_rows]]
+header = true
+rows = [['A', 'B']]
+footer = []
+format = 'None'
+expected = [['A', 'B']]
+i_header = 1
+i_footer = 1
+
+[[test_concat_rows]]
 header = []
 rows = [['C', 'D']]
 footer = []
@@ -320,6 +329,15 @@ i_footer = 2
 header = []
 rows = []
 footer = ['G', 'H']
+format = 'None'
+expected = [['G', 'H']]
+i_header = 0
+i_footer = 0
+
+[[test_concat_rows]]
+header = []
+rows = [['G', 'H']]
+footer = true
 format = 'None'
 expected = [['G', 'H']]
 i_header = 0

@@ -30,8 +30,10 @@ def tabulate(
 
     Arguments:
         rows (list of lists): The content of the table.
-        header (list of str): Text to display above each column.
-        footer (list of str): Text to display below each column.
+        header (list of str or True): Text to display above each column.  If 
+            ``True``, the first row will be interpreted as the header.
+        footer (list of str or True): Text to display below each column.  If 
+            ``True``, the last row will be interpreted as the footer.
         format (list of callables): Functions that can be used to convert the 
             cells in each column to strings.  Each function should take one 
             argument (the value to convert) and return a string.
@@ -118,6 +120,14 @@ def _concat_rows(rows, header, footer, format):
     """
     table = []
 
+    if header is True:
+        header = rows[0]
+        rows = rows[1:]
+
+    if footer is True:
+        footer = rows[-1]
+        rows = rows[:-1]
+
     def process(row, format=None, *, valign='top'):
         if not format:
             format = [str] * len(row)
@@ -161,8 +171,8 @@ def _auto_align(rows):
     """
     Provide a reasonable default alignment for each column.
 
-    Columns that appear to contain numeric values are right-aligned, while all 
-    other columns are left-aligned.
+    Columns that appear to contain numeric values (i.e. numbers with or with 
+    units) are right-aligned, while all other columns are left-aligned.
     """
 
     def is_col_numeric(xs):
