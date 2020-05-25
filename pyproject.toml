@@ -32,6 +32,7 @@ test = [
 
 [tool.flit.scripts]
 stepwise = "stepwise.cli.main:main"
+sw = "stepwise.cli.main:main"
 
 [tool.flit.entrypoints."stepwise.protocols"]
 builtins = "stepwise:Builtins"
