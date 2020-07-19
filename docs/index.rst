@@ -3,6 +3,7 @@
 .. toctree::
    :maxdepth: 2
    :hidden:
+<<<<<<< HEAD
 
    installation
    configuration
@@ -11,3 +12,5 @@
    sharing_protocols
    python_api
    contributing
+=======
+>>>>>>> cookie/master
