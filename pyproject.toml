@@ -1,0 +1,41 @@
+[build-system]
+requires = ["flit"]
+build-backend = "flit.buildapi"
+
+[tool.flit.metadata]
+module = "stepwise"
+author = "Kale Kundert"
+author-email = "kale@thekunderts.net"
+home-page = 'https://github.com/kalekundert/stepwise'
+description-file = 'README.rst'
+requires-python = "~=3.8"
+requires = [
+]
+classifiers = [
+  'Programming Language :: Python :: 3',
+  'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+]
+
+[tool.flit.metadata.requires-extra]
+tests = [
+  'pytest',
+  'pytest-cov',
+  'coveralls',
+]
+docs = [
+  'sphinx',
+  'sphinx_rtd_theme',
+  'autoclasstoc',
+]
+[tool.flit.scripts]
+stepwise = "stepwise:main"
+[tool.flit.metadata.urls]
+'Documentation' = 'https://stepwise.readthedocs.io/en/latest/'
+'Version Control' = 'https://github.com/kalekundert/stepwise'
+'Bug Tracker' = 'https://github.com/kalekundert/stepwise/issues'
+'Continuous Integration' = 'https://github.com/kalekundert/stepwise/actions'
+'Test Coverage' = 'https://coveralls.io/github/kalekundert/stepwise'
+
+[tool.semantic_release]
+version_variable = 'stepwise/__init__.py:__version__'
+build_command = 'python -m pip install flit && flit build'
