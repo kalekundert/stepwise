@@ -285,8 +285,6 @@ class Reaction:
         header = split_columns(lines[0])
         reagents = [split_columns(x) for x in lines[2:]]  # list of tuples
 
-        #df = pd.DataFrame.from_records(reagents, columns=header)
-
         cols = {
                 k: row
                 for k, row in zip(header, zip(*reagents))
@@ -566,6 +564,9 @@ class Reagent:
     def set_volume(self, volume):
         self._volume = Quantity.from_anything(volume)
 
+    def del_volume(self, volume):
+        self._volume = None
+
     def get_conc(self):
         self.require_volume()
         self.require_stock_conc()
@@ -578,7 +579,13 @@ class Reagent:
         return self._stock_conc
 
     def set_stock_conc(self, stock_conc):
-        self._stock_conc = Quantity.from_anything(stock_conc)
+        try:
+            self._stock_conc = Quantity.from_anything(stock_conc)
+        except ValueError:
+            self._stock_conc = stock_conc
+
+    def del_stock_conc(self):
+        self._stock_conc = None
 
     @property
     def hold_volume(self):
@@ -599,6 +606,8 @@ class Reagent:
     def require_stock_conc(self):
         if self.stock_conc is None:
             raise ValueError(f"no stock concentration specified for '{self.name}'")
+        if not isinstance(self.stock_conc, Quantity):
+            raise ValueError(f"stock concentration specified for '{self.name}' cannot be interpreted as a value with a unit")
 
     @autoprop
     class _HoldConc:
