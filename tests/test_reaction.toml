@@ -1,0 +1,42 @@
+[[test_fix_volumes]]
+id              = '1'
+donor_before    = 0
+donor_after     = 0
+acceptor_before = 0
+acceptor_after  = 0
+
+[[test_fix_volumes]]
+id              = '2'
+donor_before    = 0
+donor_after     = -1
+acceptor_before = -1
+acceptor_after  = 0
+
+[[test_fix_volumes]]
+id              = '3'
+donor_before    = 0
+donor_after     = 0
+acceptor_before = 1
+acceptor_after  = 1
+
+[[test_fix_volumes]]
+id              = '4'
+donor_before    = 1
+donor_after     = 1
+acceptor_before = 0
+acceptor_after  = 0
+
+[[test_fix_volumes]]
+id              = '5'
+donor_before    = 1
+donor_after     = 0
+acceptor_before = -1
+acceptor_after  = 0
+
+[[test_fix_volumes]]
+id              = '6'
+donor_before    = 1
+donor_after     = 1
+acceptor_before = 1
+acceptor_after  = 1
+

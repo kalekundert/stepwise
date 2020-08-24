@@ -5,7 +5,7 @@ import math
 import autoprop
 import functools
 from pathlib import Path
-from inform import plural
+from inform import plural, warn
 from more_itertools import one, only
 from .quantity import Quantity
 from .table import tabulate
@@ -480,6 +480,35 @@ class Reaction:
     @property
     def hold_ratios(self):
         return self._HoldRatios(self)
+
+    def fix_volumes(self, donor, acceptor=None):
+        """
+        Make sure that all of the reagents fit in the reaction (i.e. that there 
+        are no negative volumes) by transferring volume from the donor reagent 
+        to the acceptor reagent, if necessary.
+
+        Note that the volume of the donor reagent itself may be negative after 
+        this method completes.  In some cases it may make sense to call this 
+        method multiple times with different pairs of donors and acceptors.
+        """
+        if acceptor is None:
+            acceptor = self.solvent
+
+        self.require_reagent(donor)
+        self.require_reagent(acceptor)
+
+        donor_reagent = self[donor]
+        acceptor_reagent = self[acceptor]
+
+        if acceptor_reagent.volume < 0:
+            donor_volume = donor_reagent.volume
+            donor_reagent.volume += acceptor_reagent.volume
+            acceptor_reagent.volume -= acceptor_reagent.volume
+            warn(f"reagent volumes exceed reaction volume, reducing '{donor_reagent.name}' from {donor_volume} to {donor_reagent.volume} to compensate.")
+
+    def require_reagent(self, key):
+        if key not in self._reagents:
+            raise ValueError(f"no '{key}` reagent in the reaction")
 
     def require_volume(self):
         if self._solvent and self._volume is None:

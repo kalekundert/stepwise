@@ -4,6 +4,7 @@ import pytest, re
 from io import StringIO
 from stepwise import MasterMix, Reaction, Reagent, Solvent, Quantity, Q
 from stepwise import UsageError
+from utils import parametrize_via_toml
 
 wx = '8 µL', {
         'w': ('5 µL',  ..., True),
@@ -879,6 +880,22 @@ def test_reaction_from_text(text, volume, reagents):
 def test_reaction_from_text_raises(text, err):
     with pytest.raises(UsageError, match=err):
         Reaction.from_text(text)
+
+@parametrize_via_toml('test_reaction.toml')
+def test_fix_volumes(donor_before, acceptor_before, donor_after, acceptor_after):
+    rxn = Reaction()
+    rxn['donor'].volume = donor_before, 'µL'
+    rxn['acceptor'].volume = acceptor_before, 'µL'
+    rxn.fix_volumes('donor', 'acceptor')
+
+    assert rxn['donor'].volume == (donor_after, 'µL')
+    assert rxn['acceptor'].volume == (acceptor_after, 'µL')
+
+def test_fix_volumes_err():
+    # donor doesn't exist
+    # acceptor doesn't exist
+    pass
+
 
 
 def test_master_mix_getattr():
