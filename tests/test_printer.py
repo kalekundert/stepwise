@@ -9,8 +9,11 @@ def test_repr():
     assert repr(options) == "PrinterOptions(printer='PrinterName', options={'content_width': 53})"
 
 @parametrize_via_toml('test_printer.toml')
-def test_truncate_lines(text_in, text_out, content_width):
-    options = PrinterOptions('PrinterName', dict(content_width=content_width))
+def test_truncate_lines(text_in, text_out, page_width, margin_width):
+    options = PrinterOptions('PrinterName', dict(
+        page_width=page_width,
+        margin_width=margin_width,
+    ))
     assert truncate_lines(text_in, options) == text_out
 
 @parametrize_via_toml('test_printer.toml')

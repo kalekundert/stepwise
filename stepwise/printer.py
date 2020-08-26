@@ -55,8 +55,9 @@ def load_printer_options(printer=None):
 
 def truncate_lines(lines, options):
     def do_truncate(line):
-        if line.startswith('$') and len(line) > options.content_width:
-            return line[:options.content_width - 1] + '…'
+        line_width = options.page_width - options.margin_width
+        if len(line) > line_width:
+            return line[:line_width - 1] + '…'
         else:
             return line
 
