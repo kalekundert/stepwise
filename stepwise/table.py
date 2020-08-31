@@ -171,7 +171,7 @@ def _auto_align(rows):
     """
     Provide a reasonable default alignment for each column.
 
-    Columns that appear to contain numeric values (i.e. numbers with or with 
+    Columns that appear to contain numeric values (i.e. numbers with or without 
     units) are right-aligned, while all other columns are left-aligned.
     """
 
