@@ -502,8 +502,10 @@ class Reaction:
 
         if acceptor_reagent.volume < 0:
             donor_volume = donor_reagent.volume
-            donor_reagent.volume += acceptor_reagent.volume
-            acceptor_reagent.volume -= acceptor_reagent.volume
+            if donor != self.solvent:
+                donor_reagent.volume += acceptor_reagent.volume
+            if acceptor != self.solvent:
+                acceptor_reagent.volume -= acceptor_reagent.volume
             warn(f"reagent volumes exceed reaction volume, reducing '{donor_reagent.name}' from {donor_volume} to {donor_reagent.volume} to compensate.")
 
     def require_reagent(self, key):

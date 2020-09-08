@@ -5,6 +5,7 @@ from pathlib import Path
 from functools import lru_cache
 
 TEST_DIR = Path(__file__).parent
+parametrize = pytest.mark.parametrize
 
 def parametrize_via_toml(relpath):
 
