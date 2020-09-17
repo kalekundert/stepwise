@@ -83,9 +83,9 @@ Options:
         dependencies.  Use this option when listing protocols to view only 
         those protocols that depend on the specified ids.
 
-    -D --no-dependencies
-        Only list protocols that have no incomplete dependencies.  In other 
-        words, list protocols that you could start working on right now.
+    -D --show-dependents
+        Include protocols that have incomplete dependencies when displaying the 
+        stash.
 
     -a --all
         List all stashed protocols, complete and incomplete.  This can be 
@@ -117,10 +117,7 @@ def stash(quiet, force_text):
     ids = model.parse_ids(args['<ids>'])
     message = args['--message']
     categories = model.parse_categories(args['--categories'])
-    dependencies = model.parse_dependencies(
-            args['--dependencies'],
-            args['--no-dependencies'],
-    )
+    dependencies = model.parse_dependencies(args['--dependencies'])
 
     with model.open_db() as db:
         if args['ls']:
@@ -128,6 +125,7 @@ def stash(quiet, force_text):
                     db,
                     categories=categories,
                     dependencies=dependencies,
+                    include_dependents=args['--show-dependents'],
                     include_complete=args['--all'],
             )
 
@@ -176,6 +174,7 @@ def stash(quiet, force_text):
                         db,
                         categories=categories,
                         dependencies=dependencies,
+                        include_dependents=args['--show-dependents'],
                         include_complete=args['--all'],
                 )
             else:

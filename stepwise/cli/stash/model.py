@@ -7,7 +7,7 @@ from inform import parse_range, format_range
 from stepwise import ProtocolIO, UsageError, tabulate, config_dirs
 
 from sqlalchemy import func, Table, Column, ForeignKey, Integer, DateTime, String, Boolean, PickleType
-from sqlalchemy.orm import relationship, aliased, backref
+from sqlalchemy.orm import relationship, aliased
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -84,15 +84,16 @@ def open_db(path=None):
     finally:
         session.close()
 
-def list_protocols(db, *, categories=None, dependencies=None, include_complete=False):
+def list_protocols(db, *, categories=None, dependencies=None, include_dependents=False, include_complete=False):
     stash = find_protocols(
             db,
             categories=categories,
             dependencies=dependencies,
+            include_dependents=include_dependents,
             include_complete=include_complete,
     )
     if not stash:
-        if categories or (dependencies is not None):
+        if categories or dependencies:
             print("No matching protocols found.")
         else:
             print("No stashed protocols.")
@@ -129,6 +130,38 @@ def list_protocols(db, *, categories=None, dependencies=None, include_complete=F
     remove_empty_col("Category")
 
     print(tabulate(rows, header, truncate=truncate, align=align))
+
+def find_protocols(db, *, categories=None, dependencies=None, include_dependents=False, include_complete=False):
+    query = db.query(Stash).order_by(Stash.id)
+
+    if categories:
+        query = query\
+                .join(Stash.categories)\
+                .filter(Category.name.in_(categories))
+
+    if dependencies:
+        Upstream = aliased(Stash)
+        query = query\
+                .outerjoin(Stash.upstream_deps.of_type(Upstream))\
+                .filter(Upstream.id.in_(dependencies))
+
+    if not include_dependents and not dependencies and not include_complete:
+        # Select just those upstream dependencies that are incomplete.
+        dep = db.query(stash_dependencies)\
+                .join(Stash, Stash.pk == stash_dependencies.c.upstream_pk)\
+                .filter(Stash.is_complete == False)\
+                .subquery()
+
+        # Select rows that aren't present as downstream dependencies in the 
+        # above query.  This is an anti-join.
+        query = query\
+                .outerjoin(dep, Stash.pk == dep.c.downstream_pk)\
+                .filter(dep.c.downstream_pk == None)
+
+    if not include_complete:
+        query = query.filter(Stash.is_complete == False)
+
+    return query.all()
 
 def add_protocol(db, protocol, *, message=None, categories=None, dependencies=None):
     protocol.date = None
@@ -229,39 +262,6 @@ def get_protocols(db, ids):
             for id in ids or []
     ]
 
-def find_protocols(db, *, categories=None, dependencies=None, include_complete=False):
-    query = db.query(Stash).order_by(Stash.id)
-
-    if categories:
-        query = query\
-                .join(Stash.categories)\
-                .filter(Category.name.in_(categories))
-
-    if dependencies:
-
-        if dependencies == 'ready':
-            # Select just those upstream dependencies that are incomplete.
-            dep = db.query(stash_dependencies)\
-                    .join(Stash, Stash.pk == stash_dependencies.c.upstream_pk)\
-                    .filter(Stash.is_complete == False)\
-                    .subquery()
-
-            # Select rows that aren't present as downstream dependencies in the 
-            # above query.  This is an anti-join.
-            query = query\
-                    .outerjoin(dep, Stash.pk == dep.c.downstream_pk)\
-                    .filter(dep.c.downstream_pk == None)
-        else:
-            Upstream = aliased(Stash)
-            query = query\
-                    .outerjoin(Stash.upstream_deps.of_type(Upstream))\
-                    .filter(Upstream.id.in_(dependencies))
-
-    if not include_complete:
-        query = query.filter(Stash.is_complete == False)
-
-    return query.all()
-
 def get_or_create_categories(db, names):
     if not names:
         return []
@@ -297,11 +297,8 @@ def parse_categories(categories):
         return []
     return [x.strip() for x in categories.split(',')]
   
-def parse_dependencies(dependencies, no_dependencies):
-    if no_dependencies:
-        return 'ready'
-    if dependencies:
-        return parse_range(dependencies)
+def parse_dependencies(dependencies):
+    return parse_range(dependencies) if dependencies else []
 
 def get_next_id(db):
     curr_id = db.query(func.max(Stash.id)).scalar()

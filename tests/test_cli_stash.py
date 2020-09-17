@@ -388,6 +388,10 @@ def test_api_edit_dependencies(empty_db):
             dict(upstream_pk=1, downstream_pk=3),
     ])
 
+    # Don't allow self-dependencies:
+    with pytest.raises(UsageError, match="Cannot add '13' as a dependency of itself"):
+        edit_protocol(db, 13, dependencies=[13])
+
     # Keep other annotations:
     edit_protocol(db, 12, dependencies=[11])
     assert stash_rows(db) == ul([
@@ -801,12 +805,6 @@ def test_api_reset_dependencies_2(empty_db):
 
 @pytest.mark.parametrize(
         'params', [
-            dict(
-                complete=[],
-                kwargs=dict(),
-                hits=[11,12,13],
-            ),
-
             # Categories
             dict(
                 complete=[],
@@ -822,6 +820,11 @@ def test_api_reset_dependencies_2(empty_db):
             # Dependencies
             dict(
                 complete=[],
+                kwargs=dict(),
+                hits=[11,12],
+            ),
+            dict(
+                complete=[],
                 kwargs=dict(dependencies=[11]),
                 hits=[13],
             ),
@@ -832,15 +835,9 @@ def test_api_reset_dependencies_2(empty_db):
             ),
             dict(
                 complete=[],
-                kwargs=dict(dependencies='ready'),
-                hits=[11,12],
+                kwargs=dict(include_dependents=True),
+                hits=[11,12,13],
             ),
-            dict(
-                complete=[11],
-                kwargs=dict(dependencies='ready'),
-                hits=[12,13],
-            ),
-
             # Completed
             dict(
                 complete=[11],
@@ -890,15 +887,15 @@ def test_api_find_protocols_dependencies(empty_db):
     p1.id, p2.id, p3.id = 11, 12, 13
     db.commit()
 
-    hits = find_protocols(db, dependencies='ready')
+    hits = find_protocols(db)
     assert {x.id for x in hits} == {p1.id, p2.id}
 
     drop_protocols(db, [p1.id])
-    hits = find_protocols(db, dependencies='ready')
+    hits = find_protocols(db)
     assert {x.id for x in hits} == {p2.id}
 
     drop_protocols(db, [p2.id])
-    hits = find_protocols(db, dependencies='ready')
+    hits = find_protocols(db)
     assert {x.id for x in hits} == {p3.id}
 
 def test_api_get_protocol(empty_db):
@@ -1043,7 +1040,7 @@ def test_cli_ls_empty(empty_stash):
 
 @pytest.mark.slow
 def test_cli_ls_full(full_stash):
-    check_command('stepwise stash ls', '''\
+    check_command('stepwise stash ls -D', '''\
 #  Dep  Name    Category  Message
 ─────────────────────────────────
 1       custom            M
@@ -1087,13 +1084,19 @@ def test_cli_ls_dependencies(empty_stash):
     check_command('stepwise custom 3 | stepwise stash -d 1')
     check_command('stepwise custom 4 | stepwise stash -d 2,3')
 
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -D', '''\
 #  Dep  Name    Message
 ───────────────────────
 1       custom
 2    1  custom
 3    1  custom
 4  2,3  custom
+''')
+
+    check_command('stepwise stash', '''\
+#  Name    Message
+──────────────────
+1  custom
 ''')
 
     check_command('stepwise stash -d 1', '''\
@@ -1119,21 +1122,18 @@ def test_cli_ls_dependencies(empty_stash):
 No matching protocols found.
 ''')
 
-    check_command('stepwise stash -D', '''\
-#  Name    Message
-──────────────────
-1  custom
-''')
-
+    # Complete a dependency:
     check_command('stepwise stash drop 1')
-    check_command('stepwise stash', '''\
+
+    check_command('stepwise stash -D', '''\
 #  Dep  Name    Message
 ───────────────────────
 2       custom
 3       custom
 4  2,3  custom
 ''')
-    check_command('stepwise stash -D', '''\
+
+    check_command('stepwise stash', '''\
 #  Name    Message
 ──────────────────
 2  custom
@@ -1168,7 +1168,7 @@ def test_cli_add(empty_stash):
 def test_cli_edit(empty_stash):
     check_command('stepwise custom X | stepwise stash')
     check_command('stepwise custom Y | stepwise stash')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -a', '''\
 #  Name    Message
 ──────────────────
 1  custom
@@ -1183,7 +1183,7 @@ def test_cli_edit(empty_stash):
 ''')
     
     check_command('stepwise stash edit 1 -m M')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -a', '''\
 #  Name    Message
 ──────────────────
 1  custom  M
@@ -1191,7 +1191,7 @@ def test_cli_edit(empty_stash):
 ''')
 
     check_command('stepwise stash edit 1 -c A')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -a', '''\
 #  Name    Category  Message
 ────────────────────────────
 1  custom  A         M
@@ -1199,7 +1199,7 @@ def test_cli_edit(empty_stash):
 ''')
 
     check_command('stepwise stash edit 1 -d 2')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -a', '''\
 #  Dep  Name    Category  Message
 ─────────────────────────────────
 1    2  custom  A         M
@@ -1207,7 +1207,7 @@ def test_cli_edit(empty_stash):
 ''')
 
     check_command('stepwise custom Z | stepwise stash edit 1')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -a', '''\
 #  Dep  Name    Category  Message
 ─────────────────────────────────
 1    2  custom  A         M
@@ -1222,7 +1222,7 @@ def test_cli_edit(empty_stash):
 ''')
 
     check_command('stepwise stash edit 1 -x -m N')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -a', '''\
 #  Name    Message
 ──────────────────
 1  custom  N
@@ -1230,7 +1230,7 @@ def test_cli_edit(empty_stash):
 ''')
 
     check_command('stepwise stash edit 1 -x -c B')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -a', '''\
 #  Name    Category  Message
 ────────────────────────────
 1  custom  B
@@ -1238,7 +1238,7 @@ def test_cli_edit(empty_stash):
 ''')
 
     check_command('stepwise stash edit 1 -x -d 2')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -a', '''\
 #  Dep  Name    Message
 ───────────────────────
 1    2  custom
@@ -1254,7 +1254,7 @@ def test_cli_peek(full_stash):
 
 1\\. X
 ''')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -D', '''\
 #  Dep  Name    Category  Message
 ─────────────────────────────────
 1       custom            M
@@ -1305,7 +1305,7 @@ def test_cli_drop_restore(full_stash):
 ''')
 
     check_command('stepwise stash restore 1')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -D', '''\
 #  Dep  Name    Category  Message
 ─────────────────────────────────
 1       custom            M
@@ -1329,7 +1329,7 @@ def test_cli_clear(full_stash):
 def test_cli_reset(empty_stash):
     check_command('stepwise custom 1 | stepwise stash')
     check_command('stepwise custom 2 | stepwise stash -c A -d 1')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -D', '''\
 #  Dep  Name    Category  Message
 ─────────────────────────────────
 1       custom
@@ -1341,7 +1341,7 @@ def test_cli_reset(empty_stash):
     # - Categories and dependencies not confused by changing id numbers.
     check_command('stepwise stash drop 1')
     check_command('stepwise stash reset')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -D', '''\
 #  Name    Category  Message
 ────────────────────────────
 1  custom  A
@@ -1356,7 +1356,7 @@ No stashed protocols.
     # - Categories and dependencies don't persist across resets.
     check_command('stepwise custom 1 | stepwise stash')
     check_command('stepwise custom 2 | stepwise stash')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -D', '''\
 #  Name    Message
 ──────────────────
 1  custom
