@@ -11,133 +11,6 @@ def test_main(cmd, env, stdout, stderr, return_code):
     check_command(cmd, stdout, stderr, return_code, env)
 
 
-# Check that -d uses ids and not primary keys:
-# - So add some things, delete some things, then check
-#
-# Check that -D ignores completed protocols
-@pytest.mark.slow
-def test_stash():
-    # Test `ls` and `add`:
-    check_command('stepwise stash clear')
-    check_command('stepwise stash purge')
-
-    check_command('stepwise stash ls', '^No stashed protocols.$')
-    check_command('stepwise stash', '^No stashed protocols.$')
-
-    check_command('stepwise custom A | stepwise stash add')
-    check_command('stepwise custom B | stepwise stash -c b')
-    check_command('stepwise custom BC | stepwise stash -c b,c')
-    check_command('stepwise custom D | stepwise stash -m "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam justo sem, malesuada ut ultricies ac, bibendum eu neque."')
-
-    check_command('stepwise stash', '''\
-#  Name    Category  Message
-───────────────────────────────────────────────────────────────────────────────
-1  custom
-2  custom  b
-3  custom  b,c
-4  custom            Lorem ipsum dolor sit amet, consectetur adipiscing elit.…
-
-''')
-
-    check_command('stepwise stash -c b', '''\
-#  Name    Category  Message
-────────────────────────────
-2  custom  b
-3  custom  b,c
-''')
-
-    check_command('stepwise stash -c c', '''\
-#  Name    Category  Message
-────────────────────────────
-3  custom  b,c
-''')
-
-    # Test `peek`:
-    check_command('stepwise stash peek 1', '''\
-{DATE}
-
-\\$ stepwise custom A
-
-1\\. A
-''')
-
-    # Test `pop`:
-    check_command('stepwise stash pop 1', '''\
-{DATE}
-
-\\$ stepwise custom A
-
-1\\. A
-''')
-
-    check_command('stepwise stash ls', '''\
-#  Name    Category  Message
-───────────────────────────────────────────────────────────────────────────────
-2  custom  b
-3  custom  b,c
-4  custom            Lorem ipsum dolor sit amet, consectetur adipiscing elit.… 
-''')
-
-    # Test `drop`:
-    check_command('stepwise stash drop 2')
-    check_command('stepwise stash ls', '''\
-#  Name    Category  Message
-───────────────────────────────────────────────────────────────────────────────
-3  custom  b,c
-4  custom            Lorem ipsum dolor sit amet, consectetur adipiscing elit.… 
-''')
-
-    check_command('stepwise stash drop 3')
-    check_command('stepwise stash ls', '''\
-#  Name    Message
-───────────────────────────────────────────────────────────────────────────────
-4  custom  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam justo…
-''')
-
-    # Test `label`:
-    check_command('stepwise stash label 4')
-    check_command('stepwise stash ls', '''\
-#  Name    Message
-──────────────────
-4  custom
-''')
-
-    check_command('stepwise stash label 4 -c d')
-    check_command('stepwise stash ls', '''\
-#  Name    Category  Message
-────────────────────────────
-4  custom  d
-''')
-
-    check_command('stepwise stash label 4 -m "Lorem ipsum"')
-    check_command('stepwise stash ls', '''\
-#  Name    Message
-──────────────────────
-4  custom  Lorem ipsum
-''')
-
-    # Test implicit id:
-    check_command('stepwise stash peek', '''\
-{DATE}
-
-\\$ stepwise custom D
-
-1\\. D
-''')
-
-    check_command('stepwise stash pop', '''\
-{DATE}
-
-\\$ stepwise custom D
-
-1\\. D
-''')
-
-    # Test `clear`:
-    check_command('stepwise stash clear')
-    check_command('stepwise stash', '^No stashed protocols.$')
-
-
 def check_command(cmd, stdout='^$', stderr='^$', return_code=0, env={}, home=None):
     if home is None:
         home = Path(__file__).parent / 'dummy_home'
@@ -173,12 +46,12 @@ def check_command(cmd, stdout='^$', stderr='^$', return_code=0, env={}, home=Non
 
 def check_output(captured, expected, file=sys.stdout):
     expected = expected.format(DATE=DATE).strip()
-    captured = captured.replace('\r', '')
+    captured = captured.replace('\r', '').strip()
 
     print(repr(captured), file=file)
     print(repr(expected), file=file)
 
-    #assert re.match(expected, captured, flags=re.DOTALL)
+    assert re.match(expected, captured, flags=re.DOTALL)
 
 def tty_capture(cmd, stdin=None, env={}, **kwargs):
     """

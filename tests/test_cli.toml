@@ -250,7 +250,6 @@ stdout = '''
 stepwise\.builtins
   custom
   echo
-.*\
 '''
 stderr = '^$'
 return_code = 0
@@ -263,7 +262,6 @@ stdout = '''
 .*/dummy_home/protocols
 .*\
 stepwise\.builtins
-.*\
 '''
 stderr = '^$'
 return_code = 0
@@ -278,7 +276,6 @@ b
 .*\
 custom
 echo
-.*\
 '''
 stderr = '^$'
 return_code = 0

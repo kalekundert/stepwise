@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
 import pytest
-import stepwise.cli.stash.model as m
 
 from stepwise import Protocol, UsageError
 from stepwise.cli.stash.model import *
-from sqlalchemy import inspect
 from test_cli import check_command
 
 @pytest.fixture
@@ -730,6 +728,11 @@ def test_api_reset_dependencies_2(empty_db):
                 kwargs=dict(dependencies='ready'),
                 hits=[11,12],
             ),
+            dict(
+                complete=[11],
+                kwargs=dict(dependencies='ready'),
+                hits=[12,13],
+            ),
 
             # Completed
             dict(
@@ -769,6 +772,27 @@ def test_api_find_protocols(full_db, params):
     drop_protocols(db, params['complete'])
     hits = find_protocols(db, **params['kwargs'])
     assert [x.id for x in hits] == params['hits']
+
+def test_api_find_protocols_dependencies(empty_db):
+    # Extra tests for the specific case where a protocol has two dependencies, 
+    # one of which is completed.  This is a bit tricky to get right.
+    db = empty_db
+    p1 = add_protocol(db, Protocol())
+    p2 = add_protocol(db, Protocol())
+    p3 = add_protocol(db, Protocol(), dependencies=[p1.id, p2.id])
+    p1.id, p2.id, p3.id = 11, 12, 13
+    db.commit()
+
+    hits = find_protocols(db, dependencies='ready')
+    assert {x.id for x in hits} == {p1.id, p2.id}
+
+    drop_protocols(db, [p1.id])
+    hits = find_protocols(db, dependencies='ready')
+    assert {x.id for x in hits} == {p2.id}
+
+    drop_protocols(db, [p2.id])
+    hits = find_protocols(db, dependencies='ready')
+    assert {x.id for x in hits} == {p3.id}
 
 def test_api_get_protocol(empty_db):
     db = empty_db
@@ -962,7 +986,7 @@ def test_cli_ls_dependencies(empty_stash):
 1       custom
 2    1  custom
 3    1  custom
-3  2,3  custom
+4  2,3  custom
 ''')
 
     check_command('stepwise stash -d 1', '''\
@@ -975,13 +999,13 @@ def test_cli_ls_dependencies(empty_stash):
     check_command('stepwise stash -d 2', '''\
 #  Dep  Name    Message
 ───────────────────────
-3  2,3  custom
+4  2,3  custom
 ''')
 
     check_command('stepwise stash -d 3', '''\
 #  Dep  Name    Message
 ───────────────────────
-3  2,3  custom
+4  2,3  custom
 ''')
 
     check_command('stepwise stash -d 4', '''\
@@ -989,9 +1013,9 @@ No matching protocols found.
 ''')
 
     check_command('stepwise stash -D', '''\
-#  Dep  Name    Message
-───────────────────────
-1       custom
+#  Name    Message
+──────────────────
+1  custom
 ''')
 
     check_command('stepwise stash drop 1')
@@ -1000,7 +1024,7 @@ No matching protocols found.
 ───────────────────────
 2       custom
 3       custom
-3  2,3  custom
+4  2,3  custom
 ''')
     check_command('stepwise stash -D', '''\
 #  Name    Message
@@ -1061,8 +1085,8 @@ def test_cli_edit(empty_stash):
 
     check_command('stepwise stash edit 1 -c A')
     check_command('stepwise stash', '''\
-#  Name    Categories  Message
-──────────────────────────────
+#  Name    Category  Message
+────────────────────────────
 1  custom  A
 2  custom
 ''')
@@ -1117,10 +1141,10 @@ def test_cli_pop(full_stash):
 1\\. X
 ''')
     check_command('stepwise stash', '''\
-#  Dep  Name    Category  Message
-─────────────────────────────────
-2       custom  A
-3    1  custom
+#  Name    Category  Message
+────────────────────────────
+2  custom  A
+3  custom
 ''')
 
     # Can still view a popped protocol, even though it's not listed anymore.
@@ -1136,17 +1160,17 @@ def test_cli_pop(full_stash):
 def test_cli_drop_restore(full_stash):
     check_command('stepwise stash drop 1')
     check_command('stepwise stash', '''\
-#  Dep  Name    Category  Message
-─────────────────────────────────
-2       custom  A
-3    1  custom
+#  Name    Category  Message
+────────────────────────────
+2  custom  A
+3  custom
 ''')
     check_command('stepwise stash -a', '''\
-#  Dep  Name    Category  Message
-─────────────────────────────────
-1       custom            M
-2       custom  A
-3    1  custom
+#  Name    Category  Message
+────────────────────────────
+1  custom            M
+2  custom  A
+3  custom
 ''')
 
     check_command('stepwise stash restore 1')
@@ -1163,11 +1187,11 @@ def test_cli_clear(full_stash):
     check_command('stepwise stash clear')
     check_command('stepwise stash', '^No stashed protocols.$')
     check_command('stepwise stash -a', '''\
-#  Dep  Name    Category  Message
-─────────────────────────────────
-1       custom            M
-2       custom  A
-3    1  custom
+#  Name    Category  Message
+────────────────────────────
+1  custom            M
+2  custom  A
+3  custom
 ''')
 
 @pytest.mark.slow
@@ -1187,18 +1211,18 @@ def test_cli_reset(empty_stash):
     check_command('stepwise stash drop 1')
     check_command('stepwise stash reset')
     check_command('stepwise stash', '''\
-#  Dep  Name    Category  Message
-─────────────────────────────────
-1    1  custom  A
+#  Name    Category  Message
+────────────────────────────
+1  custom  A
 ''')
 
     check_command('stepwise stash drop 1')
     check_command('stepwise stash reset')
-    check_command('stepwise stash', '''\
+    check_command('stepwise stash -a', '''\
 No stashed protocols.
 ''')
 
-    # - Categories and dependencies don't persist.
+    # - Categories and dependencies don't persist across resets.
     check_command('stepwise custom 1 | stepwise stash')
     check_command('stepwise custom 2 | stepwise stash')
     check_command('stepwise stash', '''\

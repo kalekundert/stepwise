@@ -101,6 +101,7 @@ def list_protocols(db, *, categories=None, dependencies=None, include_complete=F
     rows = []
     header = ["#", "Dep", "Name", "Category", "Message"]
     truncate = list('--x-x')
+    align = list('>><<<')
 
     for row in stash:
         rows.append([
@@ -111,7 +112,7 @@ def list_protocols(db, *, categories=None, dependencies=None, include_complete=F
                 if not x.is_complete
             ),
             row.protocol.pick_slug(),
-            ','.join(x.name for x in row.categories),
+            ','.join(x.name for x in sorted(row.categories, key=lambda x: x.pk)),
             row.message or '',
         ])
 
@@ -120,13 +121,14 @@ def list_protocols(db, *, categories=None, dependencies=None, include_complete=F
         if not any(x[i] for x in rows):
             del header[i]
             del truncate[i]
+            del align[i]
             for row in rows:
                 del row[i]
 
     remove_empty_col("Dep")
     remove_empty_col("Category")
 
-    print(tabulate(rows, header, truncate=truncate))
+    print(tabulate(rows, header, truncate=truncate, align=align))
 
 def add_protocol(db, protocol, *, message=None, categories=None, dependencies=None):
     protocol.date = None
@@ -146,6 +148,7 @@ def edit_protocol(db, id=None, protocol=None, *, message=None, categories=None, 
     row.categories = get_or_create_categories(db, categories)
     row.upstream_deps = get_protocols(db, dependencies)
     if protocol:
+        protocol.date = None
         row.protocol = protocol
     return row
 
@@ -230,14 +233,24 @@ def find_protocols(db, *, categories=None, dependencies=None, include_complete=F
                 .filter(Category.name.in_(categories))
 
     if dependencies:
-        Upstream = aliased(Stash)
-        query = query\
-                .outerjoin(Stash.upstream_deps.of_type(Upstream))\
-                .filter(
-                        Upstream.id.in_(dependencies)
-                        if dependencies != 'ready' else
-                        Upstream.id == None
-                )
+
+        if dependencies == 'ready':
+            # Select just those upstream dependencies that are incomplete.
+            dep = db.query(stash_dependencies)\
+                    .join(Stash, Stash.pk == stash_dependencies.c.upstream_pk)\
+                    .filter(Stash.is_complete == False)\
+                    .subquery()
+
+            # Select rows that aren't present as downstream dependencies in the 
+            # above query.  This is an anti-join.
+            query = query\
+                    .outerjoin(dep, Stash.pk == dep.c.downstream_pk)\
+                    .filter(dep.c.downstream_pk == None)
+        else:
+            Upstream = aliased(Stash)
+            query = query\
+                    .outerjoin(Stash.upstream_deps.of_type(Upstream))\
+                    .filter(Upstream.id.in_(dependencies))
 
     if not include_complete:
         query = query.filter(Stash.is_complete == False)
