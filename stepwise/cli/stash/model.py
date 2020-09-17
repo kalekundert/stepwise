@@ -1,107 +1,77 @@
 #!/usr/bin/env python3
 
-"""\
-Save protocols for later use.
-
-Usage:
-    stepwise stash [add] [-c <categories>] [-m <message>]
-    stepwise stash [ls] [-c <categories>]
-    stepwise stash label [<id>] [-c <categories>] [-m <message>]
-    stepwise stash peek [<id>]
-    stepwise stash pop [<id>]
-    stepwise stash drop [<id>]
-    stepwise stash clear
-
-Commands:
-    [add]
-        Read a protocol from stdin and save it for later use.  This command is 
-        meant to be used at the end of pipelines, like `stepwise go`, and is 
-        the default command if stdin is connected to a pipe.
-
-    [ls]
-        Display any protocols that have saved for later use.  This is the 
-        default command if stdin is not connected to a pipe.
-
-    label [<id>]
-        Provide new annotations (e.g. message, categories) for the indicated 
-        protocol.  Any existing annotations will be overwritten.
-
-    peek [<id>]
-        Display the indicated protocol, but do not remove it from the stash.  
-
-    pop [<id>]
-        Display the indicated protocol, then remove it from the stash.  
-
-    drop [<id>]
-        Remove the indicated protocol from the stash.
-
-    clear
-        Remove all stashed protocols.
-
-Arguments:
-    <id>
-        A number that identifies which stashed protocol to use.  The <id> for 
-        each stashed protocol is displayed by the `ls` command.  If only one 
-        protocol is stashed, the <id> does not need to be specified.
-
-Options:
-    -m --message <text>
-        A brief description of the protocol to help you remember what it's for. 
-        The message will be displayed by the `list` command.
-
-    -c --categories <str>
-        A comma-separated list of categories that apply to a protocol.  The 
-        categories can be whatever you want, e.g. names of projects, 
-        collaborations, techniques, etc.
-
-        Use this option when adding/labeling a protocol to specify which 
-        categories it belongs to.  Use this option when listing stashed 
-        protocols to display only protocols belonging to the specified 
-        categories.
-
-Note that stashed protocols are not meant to be stored indefinitely.  It is 
-possible (although hopefully unlikely) that upgrading either stepwise or 
-python could corrupt the stash.
-"""
-
 from pathlib import Path
 from datetime import datetime
 from contextlib import contextmanager
+from inform import parse_range, format_range
 from stepwise import ProtocolIO, UsageError, tabulate, config_dirs
 
-from sqlalchemy import Column, Integer, DateTime, String, PickleType
+from sqlalchemy import func, Table, Column, ForeignKey, Integer, DateTime, String, Boolean, PickleType
+from sqlalchemy.orm import relationship, aliased, backref
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.types import TypeDecorator
 
 Base = declarative_base()
 
-class CategoriesType(TypeDecorator):
-    impl = String
-
-    def process_bind_param(self, value, dialect):
-        return ','.join(value) if value else None
-
-    def process_result_value(self, value, dialect):
-        return parse_categories(value)
+stash_categories = Table(
+        'stash_categories', Base.metadata,
+        Column('stash_pk', Integer, ForeignKey('stash.pk')),
+        Column('category_pk', Integer, ForeignKey('categories.pk')),
+)
+stash_dependencies = Table(
+        'stash_dependencies', Base.metadata,
+        Column('upstream_pk', Integer, ForeignKey('stash.pk')),
+        Column('downstream_pk', Integer, ForeignKey('stash.pk')),
+)
 
 class Stash(Base):
     __tablename__ = 'stash'
 
-    id = Column(Integer, primary_key=True)
-    timestamp = Column(DateTime)
-    categories = Column(CategoriesType)
+    pk = Column(Integer, primary_key=True)
+    id = Column(Integer, index=True, unique=True)
+    date_added = Column(DateTime, default=datetime.now)
+    is_complete = Column(Boolean, default=False)
     message = Column(String)
     protocol = Column(PickleType)
 
+    categories = relationship(
+            'Category',
+            secondary=stash_categories,
+            backref='protocols',
+    )
+    upstream_deps = relationship(
+            'Stash',
+            secondary=stash_dependencies,
+            primaryjoin=(pk == stash_dependencies.c.downstream_pk),
+            secondaryjoin=(pk == stash_dependencies.c.upstream_pk),
+            backref='downstream_deps',
+    )
+
+    def __repr__(self):
+        return f"Stash(id={self.id!r})"
+
+class Category(Base):
+    __tablename__ = 'categories'
+
+    pk = Column(Integer, primary_key=True)
+    name = Column(String, unique=True)
+
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return f"Category(name={self.name!r})"
+
 @contextmanager
-def open_db():
+def open_db(path=None):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
-    path = Path(config_dirs.user_data_dir) / 'stash.sqlite'
-    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path:
+        path = Path(config_dirs.user_data_dir) / 'stash.sqlite'
+        path.parent.mkdir(parents=True, exist_ok=True)
 
-    engine = create_engine(f'sqlite:///{path}')
+    engine = create_engine(f'sqlite:///{path}', echo=False)
     Base.metadata.create_all(engine)
     session = sessionmaker(bind=engine)()
 
@@ -114,104 +84,211 @@ def open_db():
     finally:
         session.close()
 
-def list_protocols(db, categories=[]):
-    from shutil import get_terminal_size
-    from textwrap import shorten
-
-    stash = load_stash(db)
-    categories = set(categories)
-
+def list_protocols(db, *, categories=None, dependencies=None, include_complete=False):
+    stash = find_protocols(
+            db,
+            categories=categories,
+            dependencies=dependencies,
+            include_complete=include_complete,
+    )
     if not stash:
-        print("No stashed protocols.")
+        if categories or (dependencies is not None):
+            print("No matching protocols found.")
+        else:
+            print("No stashed protocols.")
         return
 
     rows = []
-    header = ["#", "Name", "Category", "Message"]
-    truncate = list('-x-x')
+    header = ["#", "Dep", "Name", "Category", "Message"]
+    truncate = list('--x-x')
 
-    for row in stash.values():
-        if not categories or categories.intersection(row.categories):
-            rows.append([
-                row.id,
-                row.protocol.pick_slug(),
-                ','.join(row.categories),
-                row.message or '',
-            ])
+    for row in stash:
+        rows.append([
+            row.id,
+            format_range(
+                x.id
+                for x in row.upstream_deps
+                if not x.is_complete
+            ),
+            row.protocol.pick_slug(),
+            ','.join(x.name for x in row.categories),
+            row.message or '',
+        ])
 
-    # Remove the "Category" column if it would be empty.
-    if not any(x[2] for x in rows):
-        del header[2]
-        del truncate[2]
-        for row in rows:
-            del row[2]
+    def remove_empty_col(col):
+        i = header.index(col)
+        if not any(x[i] for x in rows):
+            del header[i]
+            del truncate[i]
+            for row in rows:
+                del row[i]
+
+    remove_empty_col("Dep")
+    remove_empty_col("Category")
 
     print(tabulate(rows, header, truncate=truncate))
 
-def add_protocol(db, protocol, categories=None, message=None):
+def add_protocol(db, protocol, *, message=None, categories=None, dependencies=None):
     protocol.date = None
-    entry = Stash(
-            timestamp=datetime.now(),
-            categories=categories,
+    row = Stash(
+            id=get_next_id(db),
+            categories=get_or_create_categories(db, categories),
             message=message,
             protocol=protocol,
+            upstream_deps=get_protocols(db, dependencies),
     )
-    db.add(entry)
+    db.add(row)
+    return row
 
-def label_protocol(db, id=None, categories=None, message=None):
-    row = load_protocol(db, id)
-    row.categories = categories
+def edit_protocol(db, id=None, protocol=None, *, message=None, categories=None, dependencies=None):
+    row = get_protocol(db, id)
     row.message = message
+    row.categories = get_or_create_categories(db, categories)
+    row.upstream_deps = get_protocols(db, dependencies)
+    if protocol:
+        row.protocol = protocol
+    return row
 
-def peek_protocol(db, id=None, quiet=False, force_text=False):
-    row = load_protocol(db, id)
+def peek_protocol(db, id=None, *, quiet=False, force_text=False):
+    row = get_protocol(db, id)
     row.protocol.set_current_date()
     io = ProtocolIO(row.protocol)
     io.make_quiet(quiet)
     io.to_stdout(force_text)
+    return row
 
-def pop_protocol(db, id=None, quiet=False, force_text=False):
-    row = load_protocol(db, id)
-    row.protocol.set_current_date()
-    io = ProtocolIO(row.protocol)
-    io.make_quiet(quiet)
-    io.to_stdout(force_text)
-    db.delete(row)
+def pop_protocol(db, id=None, *, quiet=False, force_text=False):
+    row = peek_protocol(db, id, quiet=quiet, force_text=force_text)
+    row.is_complete = True
+    return row
 
-def drop_protocol(db, id=None):
-    row = load_protocol(db, id)
-    db.delete(row)
+def drop_protocols(db, ids):
+    for id in ids:
+        row = get_protocol(db, id)
+        row.is_complete = True
+
+def restore_protocols(db, ids):
+    for id in ids:
+        row = get_protocol(db, id)
+        row.is_complete = False
 
 def clear_protocols(db):
-    return db.query(Stash).delete()
+    for row in db.query(Stash).all():
+        row.is_complete = True
 
-def load_stash(db):
-    return {
-            x.id: x
-            for x in db.query(Stash).order_by(Stash.timestamp).all()
-    }
+def reset_protocols(db):
+    # Use `db.delete()` rather than `query.delete()` because the latter does 
+    # not respect in-python delete cascades, which are used here to update the 
+    # association table.  Also, `query.delete()` is not compatible with joins.
 
-def load_protocol(db, id):
-    stash = load_stash(db)
-    
-    if len(stash) == 1 and id is None:
-        return stash.popitem()[1]
+    for row in db.query(Stash).filter_by(is_complete=True).all():
+        db.delete(row)
 
-    try:
-        return stash[id]
-    except KeyError:
-        raise UsageError(f"No stashed protocol with id '{id}'.")
+    for i, row in enumerate(db.query(Stash).order_by(Stash.id), 1):
+        row.id = i
+
+    stale_categories = db.query(Category)\
+            .outerjoin(stash_categories)\
+            .filter(stash_categories.c.stash_pk == None)\
+            .all()
+
+    for category in stale_categories:
+        db.delete(category)
+
+def get_protocol(db, id=None):
+    if id is None:
+        try:
+            return db.query(Stash).filter_by(is_complete=False).one()
+        except NoResultFound:
+            raise UsageError("No stashed protocols")
+        except MultipleResultsFound:
+            raise UsageError("Multiple stashed protocols, please specify an id")
+
+    else:
+        try:
+            return db.query(Stash).filter_by(id=id).one()
+        except NoResultFound:
+            raise UsageError(f"No stashed protocol with id '{id}'")
+        except MultipleResultsFound:  # pragma: no cover
+            # Database constraints should prevent this from ever occurring.
+            raise AssertionError(f"Multiple stashed protocols with id '{id}'.  This should never happen!  Please report a bug: <https://github.com/kalekundert/stepwise/issues>")
+
+def get_protocols(db, ids):
+    # Get each protocol individually (as opposed to getting them all in one 
+    # query) to make sure that an error is raised if we're given an invalid id.
+    return [
+            get_protocol(db, id)
+            for id in ids or []
+    ]
+
+def find_protocols(db, *, categories=None, dependencies=None, include_complete=False):
+    query = db.query(Stash).order_by(Stash.id)
+
+    if categories:
+        query = query\
+                .join(Stash.categories)\
+                .filter(Category.name.in_(categories))
+
+    if dependencies:
+        Upstream = aliased(Stash)
+        query = query\
+                .outerjoin(Stash.upstream_deps.of_type(Upstream))\
+                .filter(
+                        Upstream.id.in_(dependencies)
+                        if dependencies != 'ready' else
+                        Upstream.id == None
+                )
+
+    if not include_complete:
+        query = query.filter(Stash.is_complete == False)
+
+    return query.all()
+
+def get_or_create_categories(db, names):
+    if not names:
+        return []
+
+    categories = db.query(Category).filter(Category.name.in_(names)).all()
+
+    existing_names = {x.name for x in categories}
+    missing_names = [x for x in names if x not in existing_names]
+
+    for name in missing_names:
+        category = Category(name=name)
+        categories.append(category)
+        db.add(category)
+
+    return categories
 
 def parse_id(id):
     if id is None:
         return None
-
     try:
         return int(id)
     except ValueError:
         raise UsageError(f"Expected an integer id, not {id!r}.")
+
+def parse_ids(ids):
+    if ids is None:
+        return []
+
+    return parse_range(ids, cast=parse_id)
         
 def parse_categories(categories):
     if categories is None:
         return []
     return [x.strip() for x in categories.split(',')]
-    
+  
+def parse_dependencies(dependencies, no_dependencies):
+    if no_dependencies:
+        return 'ready'
+    if dependencies:
+        return parse_range(dependencies)
+
+def get_next_id(db):
+    curr_id = db.query(func.max(Stash.id)).scalar()
+
+    # The max() function returns None if there are no rows in the table, so we
+    # have to handle this case specially.
+    return 1 if curr_id is None else curr_id + 1
+
