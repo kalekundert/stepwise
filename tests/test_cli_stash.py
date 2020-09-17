@@ -682,9 +682,6 @@ def test_api_reset_dependencies_2(empty_db):
     # Delete a downstream protocol.
     # Delete two association table entries.
     drop_protocols(db, [3])
-
-    debug(stash_rows(db), stash_dependency_rows(db))
-
     reset_protocols(db)
     assert stash_rows(db) == ul([
             dict(pk=2, id=1, is_complete=False),
