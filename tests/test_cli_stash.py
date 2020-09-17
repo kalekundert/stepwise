@@ -173,48 +173,21 @@ def test_api_add_dependencies(empty_db):
     with pytest.raises(UsageError, match="No stashed protocol with id '11'"):
         add_protocol(db, Protocol(), dependencies=[11])
 
-def test_api_edit_message(full_db):
-    db = full_db
-    stash_rows = query_helper(Stash.id, Stash.message)
-
-    assert stash_rows(db) == ul([
-            dict(id=11, message='M'),
-            dict(id=12, message=None),
-            dict(id=13, message=None),
-    ])
-
-    # Change message:
-    edit_protocol(db, 11, message='N')
-    assert stash_rows(db) == ul([
-            dict(id=11, message='N'),
-            dict(id=12, message=None),
-            dict(id=13, message=None),
-    ])
-
-    # Remove message:
-    edit_protocol(db, 11)
-    assert stash_rows(db) == ul([
-            dict(id=11, message=None),
-            dict(id=12, message=None),
-            dict(id=13, message=None),
-    ])
-
-    # Add message:
-    edit_protocol(db, 11, message='O')
-    assert stash_rows(db) == ul([
-            dict(id=11, message='O'),
-            dict(id=12, message=None),
-            dict(id=13, message=None),
-    ])
-
-def test_api_edit_categories(full_db):
-    db = full_db
+def test_api_edit_message(empty_db):
+    db = empty_db
     stash_rows = query_helper(Stash.pk, Stash.id, Stash.message)
+
+    p1 = add_protocol(db, Protocol(), message='M')
+    p2 = add_protocol(db, Protocol(), categories=['A'], dependencies=[p1.id])
+    p1.id, p2.id = 11, 12
+    db.commit()
 
     assert stash_rows(db) == ul([
             dict(pk=1, id=11, message='M'),
             dict(pk=2, id=12, message=None),
-            dict(pk=3, id=13, message=None),
+    ])
+    assert stash_dependency_rows(db) == ul([
+            dict(upstream_pk=1, downstream_pk=2),
     ])
     assert stash_category_rows(db) == ul([
             dict(stash_pk=2, category_pk=1),
@@ -223,15 +196,79 @@ def test_api_edit_categories(full_db):
             dict(pk=1, name='A'),
     ])
 
-    # Change category:
-    edit_protocol(db, 12, categories=['B'])
+    # Change message:
+    edit_protocol(db, 11, message='N')
     assert stash_rows(db) == ul([
-            dict(pk=1, id=11, message='M'),
+            dict(pk=1, id=11, message='N'),
             dict(pk=2, id=12, message=None),
-            dict(pk=3, id=13, message=None),
+    ])
+
+    # Remove message:
+    edit_protocol(db, 11, explicit=True)
+    assert stash_rows(db) == ul([
+            dict(pk=1, id=11, message=None),
+            dict(pk=2, id=12, message=None),
+    ])
+
+    # Add message:
+    edit_protocol(db, 11, message='O')
+    assert stash_rows(db) == ul([
+            dict(pk=1, id=11, message='O'),
+            dict(pk=2, id=12, message=None),
+    ])
+
+    # Keep other annotations:
+    edit_protocol(db, 12, message='P')
+    assert stash_rows(db) == ul([
+            dict(pk=1, id=11, message='O'),
+            dict(pk=2, id=12, message='P'),
     ])
     assert stash_category_rows(db) == ul([
-            dict(stash_pk=2, category_pk=2),
+            dict(stash_pk=2, category_pk=1),
+    ])
+    assert category_rows(db) == ul([
+            dict(pk=1, name='A'),
+    ])
+
+    # Drop other annotations:
+    edit_protocol(db, 12, message='Q', explicit=True)
+    assert stash_rows(db) == ul([
+            dict(pk=1, id=11, message='O'),
+            dict(pk=2, id=12, message='Q'),
+    ])
+    assert stash_category_rows(db) == ul([])
+    assert category_rows(db) == ul([
+            dict(pk=1, name='A'),
+    ])
+
+def test_api_edit_categories(empty_db):
+    db = empty_db
+    stash_rows = query_helper(Stash.pk, Stash.id, Stash.message)
+
+    p1 = add_protocol(db, Protocol(), categories=['A'])
+    p2 = add_protocol(db, Protocol(), message='M', dependencies=[p1.id])
+    p1.id, p2.id = 11, 12
+    db.commit()
+
+    assert stash_rows(db) == ul([
+            dict(pk=1, id=11, message=None),
+            dict(pk=2, id=12, message='M'),
+    ])
+    assert stash_category_rows(db) == ul([
+            dict(stash_pk=1, category_pk=1),
+    ])
+    assert category_rows(db) == ul([
+            dict(pk=1, name='A'),
+    ])
+
+    # Change category:
+    edit_protocol(db, 11, categories=['B'])
+    assert stash_rows(db) == ul([
+            dict(pk=1, id=11, message=None),
+            dict(pk=2, id=12, message='M'),
+    ])
+    assert stash_category_rows(db) == ul([
+            dict(stash_pk=1, category_pk=2),
     ])
     assert category_rows(db) == ul([
             dict(pk=1, name='A'),
@@ -239,11 +276,10 @@ def test_api_edit_categories(full_db):
     ])
 
     # Remove category:
-    edit_protocol(db, 12)
+    edit_protocol(db, 11, explicit=True)
     assert stash_rows(db) == ul([
-            dict(pk=1, id=11, message='M'),
-            dict(pk=2, id=12, message=None),
-            dict(pk=3, id=13, message=None),
+            dict(pk=1, id=11, message=None),
+            dict(pk=2, id=12, message='M'),
     ])
     assert stash_category_rows(db) == ul([])
     assert category_rows(db) == ul([
@@ -252,14 +288,49 @@ def test_api_edit_categories(full_db):
     ])
 
     # Add categories:
-    edit_protocol(db, 12, categories=['A', 'B'])
+    edit_protocol(db, 11, categories=['A', 'B'])
     assert stash_rows(db) == ul([
-            dict(pk=1, id=11, message='M'),
-            dict(pk=2, id=12, message=None),
-            dict(pk=3, id=13, message=None),
+            dict(pk=1, id=11, message=None),
+            dict(pk=2, id=12, message='M'),
     ])
     assert stash_category_rows(db) == ul([
+            dict(stash_pk=1, category_pk=1),
+            dict(stash_pk=1, category_pk=2),
+    ])
+    assert category_rows(db) == ul([
+            dict(pk=1, name='A'),
+            dict(pk=2, name='B'),
+    ])
+
+    # Keep other annotations:
+    edit_protocol(db, 12, categories=['A'])
+    assert stash_rows(db) == ul([
+            dict(pk=1, id=11, message=None),
+            dict(pk=2, id=12, message='M'),
+    ])
+    assert stash_dependency_rows(db) == ul([
+            dict(upstream_pk=1, downstream_pk=2),
+    ])
+    assert stash_category_rows(db) == ul([
+            dict(stash_pk=1, category_pk=1),
+            dict(stash_pk=1, category_pk=2),
             dict(stash_pk=2, category_pk=1),
+    ])
+    assert category_rows(db) == ul([
+            dict(pk=1, name='A'),
+            dict(pk=2, name='B'),
+    ])
+
+    # Drop other annotations:
+    edit_protocol(db, 12, categories=['B'], explicit=True)
+    assert stash_rows(db) == ul([
+            dict(pk=1, id=11, message=None),
+            dict(pk=2, id=12, message=None),
+    ])
+    assert stash_dependency_rows(db) == ul([])
+    assert stash_category_rows(db) == ul([
+            dict(stash_pk=1, category_pk=1),
+            dict(stash_pk=1, category_pk=2),
             dict(stash_pk=2, category_pk=2),
     ])
     assert category_rows(db) == ul([
@@ -267,13 +338,19 @@ def test_api_edit_categories(full_db):
             dict(pk=2, name='B'),
     ])
 
-def test_api_edit_dependencies(full_db):
-    db = full_db
+def test_api_edit_dependencies(empty_db):
+    db = empty_db
     stash_rows = query_helper(Stash.pk, Stash.id, Stash.message)
 
+    p1 = add_protocol(db, Protocol())
+    p2 = add_protocol(db, Protocol(), message='M', categories=['A'])
+    p3 = add_protocol(db, Protocol(), dependencies=[p1.id])
+    p1.id, p2.id, p3.id = 11, 12, 13
+    db.commit()
+
     assert stash_rows(db) == ul([
-            dict(pk=1, id=11, message='M'),
-            dict(pk=2, id=12, message=None),
+            dict(pk=1, id=11, message=None),
+            dict(pk=2, id=12, message='M'),
             dict(pk=3, id=13, message=None),
     ])
     assert stash_dependency_rows(db) == ul([
@@ -283,8 +360,8 @@ def test_api_edit_dependencies(full_db):
     # Change dependency
     edit_protocol(db, 13, dependencies=[12])
     assert stash_rows(db) == ul([
-            dict(pk=1, id=11, message='M'),
-            dict(pk=2, id=12, message=None),
+            dict(pk=1, id=11, message=None),
+            dict(pk=2, id=12, message='M'),
             dict(pk=3, id=13, message=None),
     ])
     assert stash_dependency_rows(db) == ul([
@@ -292,24 +369,57 @@ def test_api_edit_dependencies(full_db):
     ])
 
     # Remove dependency
-    edit_protocol(db, 13)
+    edit_protocol(db, 13, explicit=True)
     assert stash_rows(db) == ul([
-            dict(pk=1, id=11, message='M'),
-            dict(pk=2, id=12, message=None),
+            dict(pk=1, id=11, message=None),
+            dict(pk=2, id=12, message='M'),
             dict(pk=3, id=13, message=None),
     ])
     assert stash_dependency_rows(db) == ul([])
 
     # Add dependencies
-    edit_protocol(db, 13, dependencies=[11,12])
+    edit_protocol(db, 13, dependencies=[11])
     assert stash_rows(db) == ul([
-            dict(pk=1, id=11, message='M'),
+            dict(pk=1, id=11, message=None),
+            dict(pk=2, id=12, message='M'),
+            dict(pk=3, id=13, message=None),
+    ])
+    assert stash_dependency_rows(db) == ul([
+            dict(upstream_pk=1, downstream_pk=3),
+    ])
+
+    # Keep other annotations:
+    edit_protocol(db, 12, dependencies=[11])
+    assert stash_rows(db) == ul([
+            dict(pk=1, id=11, message=None),
+            dict(pk=2, id=12, message='M'),
+            dict(pk=3, id=13, message=None),
+    ])
+    assert stash_dependency_rows(db) == ul([
+            dict(upstream_pk=1, downstream_pk=3),
+            dict(upstream_pk=1, downstream_pk=2),
+    ])
+    assert stash_category_rows(db) == ul([
+            dict(stash_pk=2, category_pk=1),
+    ])
+    assert category_rows(db) == ul([
+            dict(pk=1, name='A'),
+    ])
+
+    # Drop other annotations:
+    edit_protocol(db, 12, dependencies=[13], explicit=True)
+    assert stash_rows(db) == ul([
+            dict(pk=1, id=11, message=None),
             dict(pk=2, id=12, message=None),
             dict(pk=3, id=13, message=None),
     ])
     assert stash_dependency_rows(db) == ul([
             dict(upstream_pk=1, downstream_pk=3),
-            dict(upstream_pk=2, downstream_pk=3),
+            dict(upstream_pk=3, downstream_pk=2),
+    ])
+    assert stash_category_rows(db) == ul([])
+    assert category_rows(db) == ul([
+            dict(pk=1, name='A'),
     ])
 
 def test_api_edit_protocol(empty_db):
@@ -1084,24 +1194,24 @@ def test_cli_edit(empty_stash):
     check_command('stepwise stash', '''\
 #  Name    Category  Message
 ────────────────────────────
-1  custom  A
+1  custom  A         M
 2  custom
 ''')
 
     check_command('stepwise stash edit 1 -d 2')
     check_command('stepwise stash', '''\
-#  Dep  Name    Message
-───────────────────────
-1    2  custom
+#  Dep  Name    Category  Message
+─────────────────────────────────
+1    2  custom  A         M
 2       custom
 ''')
 
     check_command('stepwise custom Z | stepwise stash edit 1')
     check_command('stepwise stash', '''\
-#  Name    Message
-──────────────────
-1  custom
-2  custom
+#  Dep  Name    Category  Message
+─────────────────────────────────
+1    2  custom  A         M
+2       custom
 ''')
     check_command('stepwise stash peek 1', '''\
 {DATE}
@@ -1109,6 +1219,30 @@ def test_cli_edit(empty_stash):
 \\$ stepwise custom Z
 
 1\\. Z
+''')
+
+    check_command('stepwise stash edit 1 -x -m N')
+    check_command('stepwise stash', '''\
+#  Name    Message
+──────────────────
+1  custom  N
+2  custom
+''')
+
+    check_command('stepwise stash edit 1 -x -c B')
+    check_command('stepwise stash', '''\
+#  Name    Category  Message
+────────────────────────────
+1  custom  B
+2  custom
+''')
+
+    check_command('stepwise stash edit 1 -x -d 2')
+    check_command('stepwise stash', '''\
+#  Dep  Name    Message
+───────────────────────
+1    2  custom
+2       custom
 ''')
 
 @pytest.mark.slow

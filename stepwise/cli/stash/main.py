@@ -6,7 +6,7 @@ Save protocols for later use.
 Usage:
     stepwise stash [add] [-m <message>] [-c <categories>] [-d <ids>]
     stepwise stash [ls] [-a] [-c <categories>] [-d <ids> | -D]
-    stepwise stash edit [<id>] [-m <message>] [-c <categories>] [-d <ids>]
+    stepwise stash edit [<id>] [-m <message>] [-c <categories>] [-d <ids>] [-x]
     stepwise stash peek [<id>]
     stepwise stash pop [<id>]
     stepwise stash drop [<ids>]
@@ -26,9 +26,9 @@ Commands:
         protocol that hasn't been completed will be included in the output.
 
     edit [<id>]
-        Provide new annotations (e.g. message, categories) for the indicated 
-        protocol.  Any existing annotations will be overwritten.  If stdin is 
-        connected to a pipe, it can provide a new protocol.
+        Provide new annotations (e.g. message, categories, dependencies) for 
+        the indicated protocol.  If stdin is connected to a pipe, it will be 
+        read to update the protocol itself.
 
     peek [<id>]
         Display the indicated protocol, but do not mark it as completed (i.e. 
@@ -49,7 +49,7 @@ Commands:
 
     reset
         Permanently delete every completed protocol, and reset the ID numbers 
-        to count consecutively from 1.  Be careful before running this command, 
+        to count consecutively from 1.  Be careful before running this command; 
         it is destructive and cannot be undone!
 
 Arguments:
@@ -90,6 +90,12 @@ Options:
     -a --all
         List all stashed protocols, complete and incomplete.  This can be 
         useful if you want to refer back to an old protocol.
+
+    -x --explicit
+        When editing a stashed protocol, indicate that any annotations that are 
+        not specified (e.g. message, categories, dependencies) should be unset.  
+        This differs from the default, where only values that are specified are 
+        updated.
 
 Note that stashed protocols are not meant to be stored indefinitely.  It is 
 possible (although hopefully unlikely) that upgrading either stepwise or 
@@ -132,6 +138,7 @@ def stash(quiet, force_text):
                     message=message,
                     categories=categories,
                     dependencies=dependencies,
+                    explicit=args['--explicit'],
             )
 
         elif args['peek']:

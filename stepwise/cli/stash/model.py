@@ -142,11 +142,16 @@ def add_protocol(db, protocol, *, message=None, categories=None, dependencies=No
     db.add(row)
     return row
 
-def edit_protocol(db, id=None, protocol=None, *, message=None, categories=None, dependencies=None):
+def edit_protocol(db, id=None, protocol=None, *, message=None, categories=None, dependencies=None, explicit=False):
     row = get_protocol(db, id)
-    row.message = message
-    row.categories = get_or_create_categories(db, categories)
-    row.upstream_deps = get_protocols(db, dependencies)
+    if message or explicit:
+        row.message = message
+    if categories or explicit:
+        row.categories = get_or_create_categories(db, categories)
+    if dependencies or explicit:
+        if row.id in (dependencies or []):
+            raise UsageError(f"Cannot add '{row.id}' as a dependency of itself.")
+        row.upstream_deps = get_protocols(db, dependencies)
     if protocol:
         protocol.date = None
         row.protocol = protocol
