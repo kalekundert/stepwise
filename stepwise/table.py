@@ -37,9 +37,9 @@ def tabulate(
         format (list of callables): Functions that can be used to convert the 
             cells in each column to strings.  Each function should take one 
             argument (the value to convert) and return a string.
-        align (str): Whether each column should be left ('<') or right ('>') 
-            aligned.  By default, columns will be right-aligned if they appear 
-            to contain numeric values, and left-aligned otherwise.
+        align (str): Whether each column should be left ('<'), center ('^'), or 
+            right ('>') aligned.  By default, columns will be right-aligned if 
+            they appear to contain numeric values, and left-aligned otherwise.
         truncate (str): Whether each column can be truncated ('x') or not ('-') 
             to help fit the table within the given `max_width`.
         max_width (int): The maximum width of the table to strive for by 
