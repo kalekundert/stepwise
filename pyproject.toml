@@ -32,7 +32,7 @@ tests = [
   'pytest',
   'pytest-cov',
   'coveralls',
-  'toml',
+  'rtoml',
 ]
 docs = [
   'sphinx',
