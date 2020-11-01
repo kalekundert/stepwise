@@ -35,13 +35,16 @@ Options:
 import sys, re, textwrap
 import docopt
 from inform import fatal
-from stepwise import ProtocolIO, load_config
+from stepwise import ProtocolIO, Footnote
 from .main import command
 
 @command
 def note(force_text):
     args = docopt.docopt(__doc__)
-    footnote = args['<footnote>']
+    footnote = Footnote(
+            args['<footnote>'],
+            wrap=not args['--no-wrap'],
+    )
     pattern = re.compile(args['<where>'] or '(?=[.:])')
 
     io = ProtocolIO.from_stdin()
@@ -51,11 +54,6 @@ def note(force_text):
         fatal("no protocol specified.")
 
     p = io.protocol
-
-    if not args['--no-wrap']:
-        content_width = load_config().printer.default.content_width
-        pad = len(str(len(p.footnotes) + 1)) + 3
-        footnote = textwrap.fill(footnote, width=content_width - pad)
 
     # The protocol could have footnotes in any order, so number this footnote 
     # based on `max() + 1` instead of `len() + 1` or similar.

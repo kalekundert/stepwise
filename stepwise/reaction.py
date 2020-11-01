@@ -187,6 +187,16 @@ class MasterMix:
 
         return table
 
+    def format_text(self, width):
+        # Don't wrap the table, because that would make it unreadable.
+        return self.show()
+
+    def replace_text(self, pattern, repl, **kwargs):
+        from .protocol import replace_text
+        # Only make substitutions in the reagent names.
+        for reagent in self:
+            reagent.name = replace_text(pattern, repl, reagent.name, **kwargs)
+
 
 @autoprop
 class Reaction:

@@ -28,8 +28,8 @@ def parametrize_via_toml(relpath):
 
         args = list(raw_args)
         params = [
-                pytest.param(*(x[k] for k in args), id=x.get('id', None))
-                for x in raw_params
+                pytest.param(*(x[k] for k in args), id=x.get('id', str(i)))
+                for i, x in enumerate(raw_params, 1)
         ]
         return pytest.mark.parametrize(args, params)(f)
 

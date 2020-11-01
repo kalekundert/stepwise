@@ -22,47 +22,13 @@ Options:
 """
 
 from docopt import docopt
-from stepwise import Protocol, load_config
-import textwrap
+from stepwise import Protocol, Step
 
-def format_steps(steps, wrap, delim, subdelim):
-    step_strs = steps.split(delim)
-    max_width = load_config().printer.default.content_width
-    prefix_width = len(str(len(step_strs))) + 2
-    wrap_width = max_width - prefix_width if wrap else False
+args = docopt(__doc__)
+p = Protocol()
 
-    return [
-            format_step(x, wrap_width, subdelim)
-            for x in steps.split(delim)
-    ]
+for step in args['<protocol>'].split(args['--delimiter']):
+    body, *substeps = step.split(args['--sub-delimiter'])
+    p += Step(body, substeps=substeps, wrap=not args['--no-wrap'])
 
-def format_step(step, wrap_width, subdelim):
-    step, *substeps = step.split(subdelim)
-
-    step_fmt = textwrap.fill(step, width=wrap_width) if wrap_width else step
-    substeps_fmt = [
-            format_substep(x, wrap_width)
-            for x in substeps
-    ]
-
-    br = '\n'
-    return f'{step_fmt}{br}{br}{br.join(substeps_fmt)}'
-
-def format_substep(substep, wrap_width):
-    if not wrap_width:
-        return '- ' + substep
-
-    substep = textwrap.wrap(substep, width=wrap_width - 2)
-    return '- ' + '\n  '.join(substep)
-
-if __name__ == '__main__':
-    args = docopt(__doc__)
-
-    protocol = Protocol()
-    protocol.steps = format_steps(
-            args['<protocol>'],
-            not args['--no-wrap'],
-            args['--delimiter'],
-            args['--sub-delimiter'],
-    )
-    print(protocol)
+print(p)
