@@ -113,9 +113,43 @@ def test_path_entry_load_protocol(disable_capture, relpath, args, steps, attachm
 
 
 @parametrize_via_toml('test_library.toml')
-def test_match_entry(tag, name, expected):
+def test_match_tag(tag, name, expected):
     from stepwise.library import _match_tag
     assert _match_tag(tag or None, name) == tuple(expected)
+
+@parametrize_via_toml('test_library.toml')
+def test_run_python_script(tmp_path, scripts, args, stdout, stderr, return_code):
+    import pickle
+    from subprocess import run
+
+    for name, code in scripts.items():
+        py_path = tmp_path / f'{name}.py'
+        py_path.write_text(code)
+
+    # Run the following in a subprocess, so the stdin redirection doesn't 
+    # conflict with pytest.
+    wrapper_path = tmp_path / 'wrapper.py'
+    wrapper_path.write_text('''\
+import sys, pickle
+from stepwise.library import _run_python_script
+
+args = pickle.load(sys.stdin.buffer)
+p = _run_python_script(*args)
+pickle.dump(p, sys.stdout.buffer)
+''')
+
+    # Pass the arguments via stdin for they aren't interpreted as text.
+    args = (tmp_path / 'main.py', args)
+    p1 = run(
+            ['python', wrapper_path],
+            input=pickle.dumps(args),
+            capture_output=True,
+    )
+    p2 = pickle.loads(p1.stdout)
+
+    assert p2.stdout.decode() == stdout
+    assert p2.returncode == return_code
+    assert stderr in p1.stderr.decode()
 
 def test_capture_stdout_python():
     with _capture_stdout() as f:

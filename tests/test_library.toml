@@ -214,221 +214,289 @@ skip_windows = false
 
 # Tag-matching tests:
 ## None
-[[test_match_entry]]
+[[test_match_tag]]
 tag = ''
 name = 'a'
 expected = [0]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = ''
 name = 'a/b'
 expected = [0]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = ''
 name = 'a/b/c'
 expected = [0]
 
 
 ## One part
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'ab'
 name = 'ab'
 expected = [3]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'a'
 name = 'ab'
 expected = [2]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'b'
 name = 'ab'
 expected = [1]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'z'
 name = 'abc'
 expected = []
 
 
 ## Two parts
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'ab'
 name = 'ab/cd'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'cd'
 name = 'ab/cd'
 expected = [3]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'a'
 name = 'ab/cd'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'b'
 name = 'ab/cd'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'c'
 name = 'ab/cd'
 expected = [2]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'd'
 name = 'ab/cd'
 expected = [1]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'z'
 name = 'ab/cd'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'ab/cd'
 name = 'ab/cd'
 expected = [3, 3]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'ab/c'
 name = 'ab/cd'
 expected = [2, 3]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'ab/d'
 name = 'ab/cd'
 expected = [1, 3]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'ab/z'
 name = 'ab/cd'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'a/cd'
 name = 'ab/cd'
 expected = [3, 2]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'a/c'
 name = 'ab/cd'
 expected = [2, 2]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'a/d'
 name = 'ab/cd'
 expected = [1, 2]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'a/z'
 name = 'ab/cd'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'b/cd'
 name = 'ab/cd'
 expected = [3, 1]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'b/c'
 name = 'ab/cd'
 expected = [2, 1]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'b/d'
 name = 'ab/cd'
 expected = [1, 1]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'b/z'
 name = 'ab/cd'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'z/cd'
 name = 'ab/cd'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'z/c'
 name = 'ab/cd'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'z/d'
 name = 'ab/cd'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'z/z'
 name = 'ab/cd'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'a/a'
 name = 'a'
 expected = []
 
 
 ## Three parts
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'a/b'
 name = 'a/b/c'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'a/c'
 name = 'a/b/c'
 expected = [3, 0, 3]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'b/c'
 name = 'a/b/c'
 expected = [3, 3]
 
 
 ## Redundancy
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'a'
 name = 'ab/bc'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'b'
 name = 'ab/bc'
 expected = [2]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'c'
 name = 'ab/bc'
 expected = [1]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'a/b'
 name = 'ab/bc'
 expected = [2, 2]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'b/a'
 name = 'ab/bc'
 expected = []
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'b/b'
 name = 'ab/bc'
 expected = [2, 1]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'b/c'
 name = 'ab/bc'
 expected = [1, 1]
 
-[[test_match_entry]]
+[[test_match_tag]]
 tag = 'c/b'
 name = 'ab/bc'
 expected = []
+
+
+# Python script tests
+[[test_run_python_script]]
+id = 'stdout_1'
+scripts.main = '''
+print("hello world")
+'''
+args = []
+stdout = "hello world\n"
+stderr = ""
+return_code = 0
+
+[[test_run_python_script]]
+id = 'main_1'
+scripts.main = '''
+if __name__ == '__main__':
+  print("hello world")
+'''
+args = []
+stdout = "hello world\n"
+stderr = ""
+return_code = 0
+
+[[test_run_python_script]]
+id = 'arguments_1'
+scripts.main = '''
+import sys
+print(sys.argv[1:])
+'''
+args = ['hello', 'world']
+stdout = "['hello', 'world']\n"
+stderr = ""
+return_code = 0
+
+[[test_run_python_script]]
+id = 'imports_1'
+scripts.main = '''
+import greeting
+'''
+scripts.greeting = '''
+print("hello world")
+'''
+args = []
+stdout = "hello world\n"
+stderr = ""
+return_code = 0
+
+[[test_run_python_script]]
+id = 'exceptions_1'
+scripts.main = '''
+import sys
+sys.exit(1)
+'''
+args = []
+stdout = ""
+stderr = ""
+return_code = 1
+
+[[test_run_python_script]]
+id = 'exceptions_2'
+scripts.main = '''
+raise ValueError("some error")
+'''
+args = []
+stdout = ""
+stderr = "ValueError: some error"
+return_code = 1
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import pytest, toml, inspect
+import pytest, rtoml, inspect
 from pathlib import Path
 from functools import lru_cache
 
@@ -37,7 +37,7 @@ def parametrize_via_toml(relpath):
 
 @lru_cache
 def cached_load(path):
-    return toml.load(path)
+    return rtoml.load(path)
 
 class Params:
 
