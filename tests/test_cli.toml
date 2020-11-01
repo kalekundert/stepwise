@@ -19,13 +19,13 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-custom'
-cmd = "stepwise custom 'A;B~b'"
+id = 'builtin-step'
+cmd = "stepwise step 'A;B~b'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise custom 'A;B~b'
+\$ stepwise step 'A;B~b'
 
 1\. A
 
@@ -37,13 +37,13 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-custom-wrap'
-cmd = "stepwise custom '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'"
+id = 'builtin-step-wrap'
+cmd = "stepwise step '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise custom '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
+\$ stepwise step '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
 
 1\. 123456789 123456789 123456789 123456789 123456789
    123456789
@@ -55,13 +55,13 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-custom-no-wrap'
-cmd = "stepwise custom -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'"
+id = 'builtin-step-no-wrap'
+cmd = "stepwise step -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise custom -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
+\$ stepwise step -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
 
 1\. 123456789 123456789 123456789 123456789 123456789 123456789
 
@@ -71,13 +71,13 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-custom-delimiter'
-cmd = "stepwise custom -dx 'AxB~b'"
+id = 'builtin-step-delimiter'
+cmd = "stepwise step -dx 'AxB~b'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise custom -dx 'AxB~b'
+\$ stepwise step -dx 'AxB~b'
 
 1\. A
 
@@ -89,13 +89,13 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-custom-subdelimiter'
-cmd = "stepwise custom -Dx 'A;Bxb'"
+id = 'builtin-step-subdelimiter'
+cmd = "stepwise step -Dx 'A;Bxb'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise custom -Dx 'A;Bxb'
+\$ stepwise step -Dx 'A;Bxb'
 
 1\. A
 
@@ -154,13 +154,13 @@ return_code = 1
 
 [[test_main]]
 id = 'pipeline-2'
-cmd = "stepwise custom A | stepwise custom B"
+cmd = "stepwise step A | stepwise step B"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise custom A
-\$ stepwise custom B
+\$ stepwise step A
+\$ stepwise step B
 
 1\. A
 
@@ -171,14 +171,14 @@ return_code = 0
 
 [[test_main]]
 id = 'pipeline-3'
-cmd = "stepwise custom A | stepwise custom B | stepwise custom C"
+cmd = "stepwise step A | stepwise step B | stepwise step C"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise custom A
-\$ stepwise custom B
-\$ stepwise custom C
+\$ stepwise step A
+\$ stepwise step B
+\$ stepwise step C
 
 1\. A
 
@@ -289,8 +289,9 @@ stdout = '''
   b
 .*\
 stepwise\.builtins
-  custom
   echo
+  reactions
+  step
 '''
 stderr = '^$'
 return_code = 0
@@ -315,8 +316,9 @@ stdout = '''
 a
 b
 .*\
-custom
 echo
+reactions
+step
 '''
 stderr = '^$'
 return_code = 0
@@ -331,12 +333,12 @@ return_code = 0
 
 [[test_main]]
 id = 'note-defaults-1'
-cmd = "stepwise custom A: | stepwise note Z"
+cmd = "stepwise step A: | stepwise note Z"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise custom A:
+\$ stepwise step A:
 
 1\. A \[1\]:
 
@@ -348,12 +350,12 @@ return_code = 0
 
 [[test_main]]
 id = 'note-defaults-2'
-cmd = "stepwise custom 'A:;B:' | stepwise note Z"
+cmd = "stepwise step 'A:;B:' | stepwise note Z"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise custom 'A:;B:'
+\$ stepwise step 'A:;B:'
 
 1\. A:
 
@@ -367,12 +369,12 @@ return_code = 0
 
 [[test_main]]
 id = 'note-where'
-cmd = "stepwise custom 'A:;B:' | stepwise note Z A"
+cmd = "stepwise step 'A:;B:' | stepwise note Z A"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise custom 'A:;B:'
+\$ stepwise step 'A:;B:'
 
 1\. A \[1\]:
 
@@ -386,12 +388,12 @@ return_code = 0
 
 [[test_main]]
 id = 'note-wrap'
-cmd = "stepwise custom A: | stepwise note '123456789 123456789 123456789 123456789 123456789 123456789'"
+cmd = "stepwise step A: | stepwise note '123456789 123456789 123456789 123456789 123456789 123456789'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise custom A:
+\$ stepwise step A:
 
 1\. A \[1\]:
 
@@ -404,12 +406,12 @@ return_code = 0
 
 [[test_main]]
 id = 'note-no-wrap'
-cmd = "stepwise custom A: | stepwise note -W '123456789 123456789 123456789 123456789 123456789 123456789'"
+cmd = "stepwise step A: | stepwise note -W '123456789 123456789 123456789 123456789 123456789 123456789'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise custom A:
+\$ stepwise step A:
 
 1\. A \[1\]:
 

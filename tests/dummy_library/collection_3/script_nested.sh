@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 
-stepwise custom nested
+stepwise step nested
 

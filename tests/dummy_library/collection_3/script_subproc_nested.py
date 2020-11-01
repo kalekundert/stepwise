@@ -12,5 +12,5 @@ from subprocess import run
 # pickle.  This cause problems if the parser is looking for a text protocol, or 
 # even if it assumes that stdout is utf8-encoded.
 
-run(['stepwise', 'custom', 'nested'])
+run(['stepwise', 'step', 'nested'])
 
