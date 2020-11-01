@@ -21,6 +21,7 @@ requires = [
   'nonstdlib',
   'sqlalchemy',
   'voluptuous',
+  'pandas',
 ]
 classifiers = [
   'Programming Language :: Python :: 3',
