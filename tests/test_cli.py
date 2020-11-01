@@ -29,12 +29,12 @@ def check_command(cmd, stdout='^$', stderr='^$', return_code=0, env={}, home=Non
     # that platform, instead edit the command to add the `-x` flag.
 
     if sys.platform != 'win32':
-        p = tty_capture(cmd, env=env, shell=True)
+        p = tty_capture(cmd, env=env, shell=True, cwd=str(home))
     else:
         from subprocess import run
         i = cmd.rfind('stepwise') + len('stepwise')
         cmd = cmd[:i] + ' -x' + cmd[i:]
-        p = run(cmd, env=env, capture_output=True, text=True, shell=True)
+        p = run(cmd, env=env, capture_output=True, text=True, shell=True, cwd=str(home))
 
     print(cmd, file=sys.stderr)
     check_output(p.stderr, stderr, sys.stderr)

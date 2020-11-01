@@ -106,6 +106,47 @@ stdout = '''
 stderr = '^$'
 return_code = 0
 
+[[test_main]]
+id = 'builtin-reactions'
+cmd = "stepwise reactions reactions.csv"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ stepwise reactions reactions\.csv
+
+1\. In the following steps, setup these reactions:
+
+   Condition A:  −  −  \+  \+
+   Condition B:  −  \+  −  \+
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'builtin-reactions'
+cmd = "stepwise reactions reactions.xlsx"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ stepwise reactions reactions\.xlsx
+
+1\. In the following steps, setup these reactions:
+
+   Condition A:  −  −  \+  \+
+   Condition B:  −  \+  −  \+
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'builtin-reactions'
+cmd = "stepwise reactions does_not_exist.csv"
+env = {}
+stdout = '^$'
+stderr = '.*stepwise error.*does_not_exist.csv.*no such file'
+return_code = 1
 
 ###############################################################################
 ### Pipes
