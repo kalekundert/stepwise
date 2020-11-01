@@ -300,11 +300,11 @@ return_code = 0
 id = 'ls-d'
 cmd = "stepwise ls -d"
 env = {}
-stdout = '''
-.*/dummy_home/protocols
+stdout = """
+.*/dummy_home/protocols\
 .*\
-stepwise\.builtins
-'''
+stepwise\\.builtins
+"""
 stderr = '^$'
 return_code = 0
 
