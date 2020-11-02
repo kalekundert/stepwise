@@ -500,3 +500,16 @@ stdout = ""
 stderr = "ValueError: some error"
 return_code = 1
 
+[[test_run_python_script]]
+id = 'exceptions_3'
+# A SystemExit with no return code should be considered as terminating 
+# successfully.  Note that by default the 'code' attribute of the SystemExit 
+# exception is None, so we have to detect that case and replace it with 0.
+scripts.main = '''
+raise SystemExit
+'''
+args = []
+stdout = ""
+stderr = ""
+return_code = 0
+

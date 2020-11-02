@@ -119,8 +119,13 @@ def test_match_tag(tag, name, expected):
 
 @parametrize_via_toml('test_library.toml')
 def test_run_python_script(tmp_path, scripts, args, stdout, stderr, return_code):
-    import pickle
+    import sys, pickle
     from subprocess import run
+
+    # The following commands are helpful for debugging these tests:
+    #
+    #   $ cd /tmp/directory/containing/test/scripts
+    #   $ py -c 'import sys, pickle, pathlib; pickle.dump((pathlib.Path("main.py"), []), sys.stdout.buffer)' | py wrapper.py | py -c 'import sys, pickle; debug(pickle.load(sys.stdin.buffer))'
 
     for name, code in scripts.items():
         py_path = tmp_path / f'{name}.py'
@@ -146,6 +151,9 @@ pickle.dump(p, sys.stdout.buffer)
             capture_output=True,
     )
     p2 = pickle.loads(p1.stdout)
+
+    print(p1.stdout)
+    print(p1.stderr, file=sys.stderr)
 
     assert p2.stdout.decode() == stdout
     assert p2.returncode == return_code

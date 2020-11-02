@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, os, pickle, shlex, functools
+import sys, os, re, pickle, shlex, functools
 import inform
 from pathlib import Path
 from contextlib import contextmanager
@@ -804,7 +804,9 @@ def _run_python_script(path, args):
             print_exc(file=sys.stderr)
             p.returncode = 1
         except SystemExit as err:
-            p.returncode = err.code
+            # The SystemExit code is sometimes None, but we want to 
+            # consistently return an integer.
+            p.returncode = err.code or 0
 
     p.stdout = stdout.getvalue()
     return p
