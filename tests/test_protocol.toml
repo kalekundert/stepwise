@@ -222,6 +222,30 @@ steps_after  = ['"[1]"']
 footnotes_before = {1 = 'Footnote("Footnote 1")', 2 = 'Footnote("Footnote 2")'}
 footnotes_after  = {1 = 'Footnote("Footnote 2")'}
 
+[[test_protocol_prune_footnotes]]
+steps_before = ['"[1,2]"']
+steps_after  = ['"[1,2]"']
+footnotes_before = {1 = '"Footnote 1"', 2 = '"Footnote 2"', 3 = '"Footnote 3"'}
+footnotes_after  = {1 = '"Footnote 1"', 2 = '"Footnote 2"'}
+
+[[test_protocol_prune_footnotes]]
+steps_before = ['"[1-2]"']
+steps_after  = ['"[1,2]"']
+footnotes_before = {1 = '"Footnote 1"', 2 = '"Footnote 2"', 3 = '"Footnote 3"'}
+footnotes_after  = {1 = '"Footnote 1"', 2 = '"Footnote 2"'}
+
+[[test_protocol_prune_footnotes]]
+steps_before = ['"[2,3]"']
+steps_after  = ['"[1,2]"']
+footnotes_before = {1 = '"Footnote 1"', 2 = '"Footnote 2"', 3 = '"Footnote 3"'}
+footnotes_after  = {1 = '"Footnote 2"', 2 = '"Footnote 3"'}
+
+[[test_protocol_prune_footnotes]]
+steps_before = ['"[2-3]"']
+steps_after  = ['"[1,2]"']
+footnotes_before = {1 = '"Footnote 1"', 2 = '"Footnote 2"', 3 = '"Footnote 3"'}
+footnotes_after  = {1 = '"Footnote 2"', 2 = '"Footnote 3"'}
+
 [[test_protocol_clear_footnotes]]
 steps_before = []
 steps_after  = []

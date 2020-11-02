@@ -18,7 +18,6 @@ requires = [
   'entrypoints',
   'inform',
   'more_itertools',
-  'nonstdlib',
   'sqlalchemy',
   'voluptuous',
   'pandas',

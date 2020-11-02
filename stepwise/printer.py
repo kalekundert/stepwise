@@ -2,8 +2,7 @@
 
 import sys
 import shlex
-from inform import warn
-from nonstdlib import pretty_range
+from inform import warn, format_range
 from .config import load_config
 from .errors import *
 
@@ -79,7 +78,7 @@ def check_for_long_lines(lines, options):
         warning = "lines {} are more than {} characters long."
 
     warning = warning.format(
-            pretty_range(too_long_lines),
+            format_range(too_long_lines),
             options.content_width,
     )
     raise PrinterWarning(warning)

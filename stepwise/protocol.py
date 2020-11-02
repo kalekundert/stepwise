@@ -3,8 +3,7 @@
 import sys, shlex, re, textwrap
 import arrow, inform
 from pathlib import Path
-from inform import plural
-from nonstdlib import indices_from_str, pretty_range as str_from_indices
+from inform import plural, parse_range, format_range
 from .config import load_config
 from .errors import *
 
@@ -173,11 +172,11 @@ class Protocol:
             """
             for i, line in enumerate(lines, start=1):
                 for match in re.finditer(cls.FOOTNOTE_REGEX, line):
-                    refs = indices_from_str(match.group(1))
+                    refs = parse_range(match.group(1))
                     unknown_refs = set(refs) - set(footnotes)
                     if unknown_refs:
                         raise ParseError(
-                                template=f"unknown {plural(unknown_refs):footnote/s} [{str_from_indices(unknown_refs)}]",
+                                template=f"unknown {plural(unknown_refs):footnote/s} [{format_range(unknown_refs)}]",
                                 culprit=inform.get_culprit(i),
                                 unknown_refs=unknown_refs,
                         )
@@ -353,10 +352,14 @@ class Protocol:
         This can happen if a particular footnote applies to a part of a 
         protocol that wasn't included.
         """
-        referenced_ids = {
-                int(m.group(1))
+
+        def union(it):
+            return set.union(set(), *it)
+
+        referenced_ids = union(
+                parse_range(m.group(1))
                 for m in re.finditer(self.FOOTNOTE_REGEX, self.show_steps())
-        }
+        )
         self.footnotes = {
                 k: v
                 for k, v in self.footnotes.items()
@@ -391,9 +394,9 @@ class Protocol:
             new_ids = {j: new_ids(j) for j in old_ids}
 
         def renumber_footnote(m):
-            ii = indices_from_str(m.group(1))
+            ii = parse_range(m.group(1))
             jj = [new_ids[i] for i in ii]
-            return f'[{str_from_indices(jj)}]'
+            return f'[{format_range(jj)}]'
 
         self.steps = [
                 replace_text(self.FOOTNOTE_REGEX, renumber_footnote, x)
