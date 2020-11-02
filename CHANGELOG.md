@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.7.2 (2020-11-02)
+### Fix
+* Support the range syntax when pruning footnotes ([`790b6f2`](https://github.com/kalekundert/stepwise/commit/790b6f217908f89bc329f5526dc8c3c0923d2203))
+
 ## v0.7.1 (2020-11-02)
 ### Fix
 * Ensure that return codes are always integers ([`5cd681e`](https://github.com/kalekundert/stepwise/commit/5cd681e7c38948b6b1d00f9207bbba13b6bd8a9d))
