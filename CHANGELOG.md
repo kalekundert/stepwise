@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.7.1 (2020-11-02)
+### Fix
+* Ensure that return codes are always integers ([`5cd681e`](https://github.com/kalekundert/stepwise/commit/5cd681e7c38948b6b1d00f9207bbba13b6bd8a9d))
+
 ## v0.7.0 (2020-11-01)
 ### Feature
 * Rename the `custom` builtin protocol to `step` ([`62ed97c`](https://github.com/kalekundert/stepwise/commit/62ed97cd47608ba3c3e415a99b3fb016e57e52ea))
