@@ -266,6 +266,12 @@ class Protocol:
 
         return s
 
+    def print(self):
+        #print(self)
+        from .library import ProtocolIO
+        io = ProtocolIO(self)
+        io.to_stdout()
+
     def append(self, other):
         self.merge(self, other, target=self)
 
