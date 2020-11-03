@@ -584,18 +584,22 @@ def test_protocol_iadd():
 
     p += "Step 1"
     assert p.steps == ["Step 1"]
+    assert p.s == p.step == "Step 1"
 
     # Do it again just to make sure the first addition didn't put the protocol 
     # into some kind of broken state.
     p += "Step 2"
     assert p.steps == ["Step 1", "Step 2"]
+    assert p.s == p.step == "Step 2"
 
     p += ["Step 3", "Step 4"]
     assert p.steps == ["Step 1", "Step 2", "Step 3", "Step 4"]
+    assert p.s == p.step == "Step 4"
 
     p += Protocol(steps=["Step 5"], footnotes={1: "Footnote 1"})
     assert p.steps == ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"]
     assert p.footnotes == {1: "Footnote 1"}
+    assert p.s == p.step == "Step 5"
 
 @parametrize_via_toml('test_protocol.toml')
 def test_protocol_renumber_footnotes(new_ids, steps_before, footnotes_before, steps_after, footnotes_after):

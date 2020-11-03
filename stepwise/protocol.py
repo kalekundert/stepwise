@@ -49,6 +49,16 @@ class Protocol:
     def __getitem__(self, i):
         return self.steps[i]
 
+    @property
+    def s(self):
+        """Shorthand for the last step."""
+        return self.steps[-1]
+
+    @property
+    def step(self):
+        """Shorthand for the last step."""
+        return self.steps[-1]
+
     @classmethod
     def parse(cls, x):
         from io import IOBase
