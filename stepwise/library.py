@@ -800,15 +800,33 @@ def _run_python_script(path, args):
     :
         try:
             run_path(str(path), run_name='__main__')
+
         except Exception as err:
             print_exc(file=sys.stderr)
             p.returncode = 1
+
         except SystemExit as err:
-            # The SystemExit code is sometimes None, but we want to 
-            # consistently return an integer.
-            p.returncode = err.code or 0
+            # We need to handle SystemExit as if we were the python 
+            # interpreter.  From the python documentation:
+            #
+            #    If [err.code] is an integer, it specifies the system exit 
+            #    status (passed to C's exit() function); if it is None, the 
+            #    exit status is zero; if it has another type (such as a 
+            #    string), the object's value is printed and the exit status is 
+            #    one.
+            #
+            # https://docs.python.org/3/library/exceptions.html?highlight=systemexit#SystemExit
+
+            if isinstance(err.code, int):
+                p.returncode = err.code
+            elif err.code is None:
+                p.returncode = 0
+            else:
+                print(err.code, file=sys.stderr)
+                p.returncode = 1
 
     p.stdout = stdout.getvalue()
+    assert isinstance(p.returncode, int), repr(p.returncode)
     return p
 
 @contextmanager

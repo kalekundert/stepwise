@@ -155,8 +155,8 @@ pickle.dump(p, sys.stdout.buffer)
     print(p1.stdout)
     print(p1.stderr, file=sys.stderr)
 
-    assert p2.stdout.decode() == stdout
     assert p2.returncode == return_code
+    assert p2.stdout.decode() == stdout
     assert stderr in p1.stderr.decode()
 
 def test_capture_stdout_python():
