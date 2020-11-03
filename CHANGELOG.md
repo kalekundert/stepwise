@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.8.0 (2020-11-03)
+### Feature
+* Add function to print protocols as pickles ([`587792c`](https://github.com/kalekundert/stepwise/commit/587792c5835bf614afda2fddc7336389359bec46))
+
+### Fix
+* Allow MasterMix objects to be pickled ([`3d9dd35`](https://github.com/kalekundert/stepwise/commit/3d9dd355eabce997060896489845e588787104a5))
+
 ## v0.7.3 (2020-11-03)
 ### Fix
 * Handle SystemExit return codes that are strings ([`9ab5357`](https://github.com/kalekundert/stepwise/commit/9ab53571b66857d5cf6fc5572d999e4b1e04cedc))
