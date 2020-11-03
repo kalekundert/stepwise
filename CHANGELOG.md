@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.9.0 (2020-11-03)
+### Feature
+* Add an accessor for the current step of a protocol ([`72c7d19`](https://github.com/kalekundert/stepwise/commit/72c7d19c2c5052005c093d295695607dc9dcefb9))
+
 ## v0.8.0 (2020-11-03)
 ### Feature
 * Add function to print protocols as pickles ([`587792c`](https://github.com/kalekundert/stepwise/commit/587792c5835bf614afda2fddc7336389359bec46))
