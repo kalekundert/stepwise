@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.7.3 (2020-11-03)
+### Fix
+* Handle SystemExit return codes that are strings ([`9ab5357`](https://github.com/kalekundert/stepwise/commit/9ab53571b66857d5cf6fc5572d999e4b1e04cedc))
+
 ## v0.7.2 (2020-11-02)
 ### Fix
 * Support the range syntax when pruning footnotes ([`790b6f2`](https://github.com/kalekundert/stepwise/commit/790b6f217908f89bc329f5526dc8c3c0923d2203))
