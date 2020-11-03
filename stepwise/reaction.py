@@ -84,6 +84,12 @@ class MasterMix:
 
         return super().__setattr__(attr, value)
 
+    def __getstate__(self):
+        return vars(self)
+
+    def __setstate__(self, state):
+        vars(self).update(state)
+
     @classmethod
     def from_text(cls, text):
         return cls(Reaction.from_text(text))

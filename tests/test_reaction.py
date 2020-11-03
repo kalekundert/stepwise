@@ -937,6 +937,12 @@ def test_master_mix_setattr():
     mm.solvent = 'w'
     assert mm.reaction.solvent == 'w'
 
+def test_master_mix_pickle():
+    from pickle import loads, dumps
+
+    # Just checking that this doesn't raise.
+    loads(dumps(MasterMix()))
+
 def test_master_mix_dunder():
     # Just quickly call all the dunders to make sure they're doing something.  
     # The `test_reaction_...()` tests make sure these methods actually work.
