@@ -4,7 +4,7 @@
 Indicate the conditions to test in the following steps.
 
 Usage:
-    reactions <table>
+    reactions <table> [-k <definition>]...
 
 Arguments:
     <table>
@@ -13,6 +13,10 @@ Arguments:
         reaction.  The first column should list the names of the conditions.  
         The remaining columns should indicate whether or not the corresponding 
         condition applies to the corresponding reaction.
+
+Options:
+    -k --key <definition>
+        The definition of a shorthand symbol used in the above table.
 """
 
 from docopt import docopt
@@ -23,6 +27,8 @@ import pandas as pd
 
 args = docopt(__doc__)
 path = Path(args['<table>'])
+keys = args['--key']
+
 loaders = {
         '.xlsx': lambda p: pd.read_excel(p, header=None, dtype=str),
         '.csv':  lambda p: pd.read_csv(p, header=None, dtype=str),
@@ -48,12 +54,16 @@ for c in df.columns[1:]:
 
 table = df.values.tolist()
 align = ['<'] + (len(df.columns) - 1) * ['^']
+br = '\n'
 
 p = Protocol()
 p += f"""\
 In the following steps, setup these reactions:
 
 {tabulate(table, align=align)}
+
+{br.join(keys)}
 """
-print(p)
+
+p.print()
 
