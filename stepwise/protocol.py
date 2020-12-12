@@ -531,8 +531,11 @@ class Footnote:
         self.note = note
         self.wrap = wrap
 
+    def __hash__(self):
+        return hash((self.note, self.wrap))
+
     def __eq__(self, other):
-        return self.note == other.note
+        return self.note == other.note and self.wrap == other.wrap
 
     def format_text(self, width):
         return format_text(self.note, width, wrap_str=self.wrap)
