@@ -1,6 +1,39 @@
 #!/usr/bin/env python3
 
-"""\
+import appcli
+from inform import fatal, parse_range
+from stepwise import StepwiseCommand, ProtocolIO
+
+def parse_id(id):
+    if id is None:
+        return None
+    try:
+        return int(id)
+    except ValueError:
+        raise UsageError(f"Expected an integer id, not {id!r}.")
+
+def parse_ids(ids):
+    if ids is None:
+        return []
+
+    return parse_range(ids, cast=parse_id)
+        
+def parse_categories(categories):
+    if categories is None:
+        return []
+    return [x.strip() for x in categories.split(',')]
+  
+def parse_dependencies(dependencies):
+    return parse_range(dependencies) if dependencies else []
+
+def protocol_from_stdin():
+    io = ProtocolIO.from_stdin()
+    if io.errors:
+        fatal("protocol has errors, not stashing.")
+    return io.protocol
+
+class Stash(StepwiseCommand):
+    """\
 Save protocols for later use.
 
 Usage:
@@ -102,92 +135,116 @@ possible (although hopefully unlikely) that upgrading either stepwise or
 python could corrupt the stash.
 """
 
-import docopt
-from inform import fatal
-from stepwise import ProtocolIO
-from ..main import command
+    __config__ = [
+            appcli.DocoptConfig(),
+    ]
 
-@command
-def stash(quiet, force_text):
-    # Defer importing `sqlalchemy`.
-    from . import model
+    add = appcli.param(default=None)
+    ls = appcli.param(default=None)
+    edit = appcli.param(default=None)
+    peek = appcli.param(default=None)
+    pop = appcli.param(default=None)
+    drop = appcli.param(default=None)
+    restore = appcli.param(default=None)
+    clear = appcli.param(default=None)
+    reset = appcli.param(default=None)
 
-    args = docopt.docopt(__doc__)
-    id = model.parse_id(args['<id>'])
-    ids = model.parse_ids(args['<ids>'])
-    message = args['--message']
-    categories = model.parse_categories(args['--categories'])
-    dependencies = model.parse_dependencies(args['--dependencies'])
+    id = appcli.param(
+            '<id>',
+            default=None,
+            cast=parse_id,
+    )
+    ids = appcli.param(
+            '<ids>',
+            default=[],
+            cast=parse_ids,
+    )
+    message = appcli.param(
+            '--message',
+            default=None,
+    )
+    categories = appcli.param(
+            '--categories',
+            default=[],
+            cast=parse_categories,
+    )
+    dependencies = appcli.param(
+            '--dependencies',
+            default=[],
+            cast=parse_dependencies,
+    )
+    show_dependents = appcli.param('--show-dependents')
+    show_all = appcli.param('--all')
+    explicit = appcli.param('--explicit')
 
-    with model.open_db() as db:
-        if args['ls']:
-            model.list_protocols(
-                    db,
-                    categories=categories,
-                    dependencies=dependencies,
-                    include_dependents=args['--show-dependents'],
-                    include_complete=args['--all'],
-            )
+    def main(self):
+        appcli.load(self)
 
-        elif args['edit']:
-            model.edit_protocol(
-                    db, id,
-                    protocol=_protocol_from_stdin(),
-                    message=message,
-                    categories=categories,
-                    dependencies=dependencies,
-                    explicit=args['--explicit'],
-            )
+        # Defer importing `sqlalchemy`.
+        from . import model
 
-        elif args['peek']:
-            model.peek_protocol(
-                    db, id,
-                    quiet=quiet,
-                    force_text=force_text,
-            )
-
-        elif args['pop']:
-            model.pop_protocol(
-                    db, id,
-                    quiet=quiet,
-                    force_text=force_text,
-            )
-
-        elif args['drop']:
-            model.drop_protocols(db, ids)
-
-        elif args['restore']:
-            model.restore_protocols(db, ids)
-
-        elif args['clear']:
-            model.clear_protocols(db)
-
-        elif args['reset']:
-            model.reset_protocols(db)
-
-        else:
-            protocol = _protocol_from_stdin()
-
-            if not protocol:
-                if args['add']: fatal("no protocol specified.")
+        with model.open_db() as db:
+            if self.ls:
                 model.list_protocols(
                         db,
-                        categories=categories,
-                        dependencies=dependencies,
-                        include_dependents=args['--show-dependents'],
-                        include_complete=args['--all'],
+                        categories=self.categories,
+                        dependencies=self.dependencies,
+                        include_dependents=self.show_dependents,
+                        include_complete=self.show_all,
                 )
+
+            elif self.edit:
+                model.edit_protocol(
+                        db, self.id,
+                        protocol=protocol_from_stdin(),
+                        message=self.message,
+                        categories=self.categories,
+                        dependencies=self.dependencies,
+                        explicit=self.explicit,
+                )
+
+            elif self.peek:
+                model.peek_protocol(
+                        db, self.id,
+                        quiet=self.quiet,
+                        force_text=self.force_text,
+                )
+
+            elif self.pop:
+                model.pop_protocol(
+                        db, self.id,
+                        quiet=self.quiet,
+                        force_text=self.force_text,
+                )
+
+            elif self.drop:
+                model.drop_protocols(db, self.ids)
+
+            elif self.restore:
+                model.restore_protocols(db, self.ids)
+
+            elif self.clear:
+                model.clear_protocols(db)
+
+            elif self.reset:
+                model.reset_protocols(db)
+
             else:
-                model.add_protocol(
-                        db, protocol,
-                        message=message,
-                        categories=categories,
-                        dependencies=dependencies,
-                )
+                protocol = protocol_from_stdin()
 
-def _protocol_from_stdin():
-    io = ProtocolIO.from_stdin()
-    if io.errors:
-        fatal("protocol has errors, not stashing.")
-    return io.protocol
-
+                if not protocol:
+                    if self.add: fatal("no protocol specified.")
+                    model.list_protocols(
+                            db,
+                            categories=self.categories,
+                            dependencies=self.dependencies,
+                            include_dependents=self.show_dependents,
+                            include_complete=self.show_all,
+                    )
+                else:
+                    model.add_protocol(
+                            db, protocol,
+                            message=self.message,
+                            categories=self.categories,
+                            dependencies=self.dependencies,
+                    )

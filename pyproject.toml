@@ -55,6 +55,15 @@ sw = "stepwise.cli.main:main"
 [tool.flit.entrypoints."stepwise.protocols"]
 builtins = "stepwise:Builtins"
 
+[tool.flit.entrypoints."stepwise.commands"]
+ls = "stepwise.cli.ls:List"
+which = "stepwise.cli.which:Which"
+edit = "stepwise.cli.edit:Edit"
+note = "stepwise.cli.note:Note"
+go = "stepwise.cli.go:Go"
+stash = "stepwise.cli.stash:Stash"
+metric = "stepwise.cli.metric:Metric"
+
 [tool.semantic_release]
 version_variable = 'stepwise/__init__.py:__version__'
 build_command = 'python -m pip install flit && flit build'

@@ -429,12 +429,3 @@ stdout = '.*/dummy_home/protocols/a.txt$'
 stderr = '^$'
 return_code = 0
 
-[[test_main]]
-id = 'config'
-cmd = "stepwise config printer.default.page_height"
-env = {}
-stdout = 'page_height = 56'
-stderr = '^$'
-return_code = 0
-
-

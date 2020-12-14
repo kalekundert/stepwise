@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
 import sys, os, re, pickle, shlex, functools
+import appcli
 import inform
 from pathlib import Path
 from contextlib import contextmanager
+from fnmatch import fnmatch
+from voluptuous import Schema
 from more_itertools import one
 from inform import warn, error, set_culprit, get_culprit
 from .protocol import Protocol
-from .config import load_config
+from .config import StepwiseConfig
 from .errors import *
 
 class Library:
@@ -36,16 +39,36 @@ class Library:
     different means of accessing protocols (e.g. files, plugins, network 
     drives, websites, etc.) can be supported.
     """
+    __config__ = [StepwiseConfig()]
+
+    ignore_globs = appcli.param(
+            'search.ignore',
+            cast=Schema([str]),
+            default=[],
+    )
+    local_paths = appcli.param(
+            'search.find',
+            cast=Schema([str]),
+            default=['protocols'],
+    )
+    global_paths = appcli.param(
+            'search.path',
+            cast=Schema([str]),
+            default=[],
+    )
+
     _singleton = None
 
     def __init__(self):
         self.collections = []
-        config = load_config()
 
         def add(collection, i=None):
             is_available = collection.is_available()
             is_unique = collection.is_unique(self.collections)
-            is_ignored = collection.name in config.search.ignore
+            is_ignored = any(
+                    fnmatch(collection.name, x)
+                    for x in self.ignore_globs
+            )
 
             if is_available and is_unique and not is_ignored:
                 self.collections.insert(
@@ -56,11 +79,11 @@ class Library:
         # Add directories found above the current working directory.
         cwd = Path.cwd().resolve()
         for parent in (cwd, *cwd.parents):
-            for name in config.search.find:
+            for name in self.local_paths:
                 add(PathCollection(parent/name))
 
         # Add specific directories specified by the user.
-        for dir in config.search.path:
+        for dir in self.global_paths:
             add(PathCollection(dir))
 
         # Add directories specified by plugins.

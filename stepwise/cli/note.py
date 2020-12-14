@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 
-"""\
+import sys, re, textwrap
+import appcli
+from inform import fatal
+from stepwise import StepwiseCommand, ProtocolIO, Footnote
+
+class Note(StepwiseCommand):
+    """\
 Insert a footnote into a protocol.
 
 This command can be used to elaborate on a previous step in a protocol.  The 
-footnote will be numbered automatically, and will be correct even if the 
-footnote is inserted before other footnotes.
+footnote will be numbered automatically, and any subsequent footnotes will be 
+renumbered accordingly.
 
 Usage:
     stepwise note <footnote> [<where>] [-W]
@@ -31,46 +37,43 @@ Options:
         wrap the message to fit within the width specified by the 
         `printer.default.content_width` configuration option.
 """
+    __config__ = [
+            appcli.DocoptConfig(),
+    ]
 
-import sys, re, textwrap
-import docopt
-from inform import fatal
-from stepwise import ProtocolIO, Footnote
-from .main import command
+    text = appcli.param('<footnote>')
+    where = appcli.param('<where>', default=None)
+    wrap = appcli.param('--no-wrap', cast=lambda x: not x)
 
-@command
-def note(force_text):
-    args = docopt.docopt(__doc__)
-    footnote = Footnote(
-            args['<footnote>'],
-            wrap=not args['--no-wrap'],
-    )
-    pattern = re.compile(args['<where>'] or '(?=[.:])')
+    def main(self):
+        appcli.load(self)
 
-    io = ProtocolIO.from_stdin()
-    if io.errors:
-        fatal("protocol has errors, not adding footnote.")
-    if not io.protocol:
-        fatal("no protocol specified.")
+        footnote = Footnote(self.text, wrap=self.wrap)
+        pattern = re.compile(self.where or '(?=[.:])')
 
-    p = io.protocol
+        io = ProtocolIO.from_stdin()
+        if io.errors:
+            fatal("protocol has errors, not adding footnote.")
+        if not io.protocol:
+            fatal("no protocol specified.")
 
-    # The protocol could have footnotes in any order, so number this footnote 
-    # based on `max() + 1` instead of `len() + 1` or similar.
-    ref = max(p.footnotes, default=0) + 1
-    ref_str = f'[{ref}]'
+        p = io.protocol
 
-    for i, step in reversed(list(enumerate(p.steps))):
-        if m := pattern.search(step):
-            j = m.end()
-            if step[j - 1] != ' ':
-                ref_str = ' ' + ref_str
+        # The protocol could have footnotes in any order, so number this 
+        # footnote based on `max() + 1` instead of `len() + 1` or similar.
+        ref = max(p.footnotes, default=0) + 1
+        ref_str = f'[{ref}]'
 
-            p.steps[i] = step[:j] + ref_str + step[j:]
-            p.footnotes[ref] = footnote
-            break
-    else:
-        fatal(f"pattern {pattern!r} not found in protocol.")
+        for i, step in reversed(list(enumerate(p.steps))):
+            if m := pattern.search(step):
+                j = m.end()
+                if step[j - 1] != ' ':
+                    ref_str = ' ' + ref_str
 
-    io.to_stdout(force_text)
+                p.steps[i] = step[:j] + ref_str + step[j:]
+                p.footnotes[ref] = footnote
+                break
+        else:
+            fatal(f"pattern {pattern!r} not found in protocol.")
 
+        io.to_stdout(self.force_text)

@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 
-"""\
+import appcli
+from stepwise import StepwiseCommand
+
+class Metric(StepwiseCommand):
+    """\
 Display a table of metric prefixes.
 
 Usage:
     stepwise metric
 """
-
-from .main import command
-
-@command
-def metric():
-    print("""\
+    __config__ = [
+            appcli.DocoptConfig(),
+    ]
+    
+    def main(self):
+        appcli.load(self)
+        print("""\
 yotta  Y  10²⁴
 zetta  Z  10²¹
 exa    E  10¹⁸

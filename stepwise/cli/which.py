@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
 
-"""\
+import appcli
+from stepwise import StepwiseCommand, Library
+
+class Which(StepwiseCommand):
+    """\
 Show the full path to the specified protocol.
 
 Usage:
     stepwise which <protocol>
 """
+    __config__ = [
+            appcli.DocoptConfig(),
+    ]
+    protocol = appcli.param('<protocol>')
 
-import docopt
-from stepwise import Library
-from .main import command
+    def main(self):
+        appcli.load(self)
 
-@command
-def which():
-    args = docopt.docopt(__doc__)
-    library = Library()
-    entries = library.find_entries(args['<protocol>'])
+        library = Library()
+        entries = library.find_entries(self.protocol)
 
-    for entry in entries:
-        print(entry.path)
+        for entry in entries:
+            print(entry.path)
 

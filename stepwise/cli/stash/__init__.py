@@ -1,3 +1,3 @@
 #!/usr/bin/env python3
 
-from .main import stash
+from .main import Stash

@@ -3,7 +3,7 @@
 from pathlib import Path
 from datetime import datetime
 from contextlib import contextmanager
-from inform import parse_range, format_range
+from inform import format_range
 from stepwise import ProtocolIO, UsageError, tabulate, config_dirs
 
 from sqlalchemy import func, Table, Column, ForeignKey, Integer, DateTime, String, Boolean, PickleType
@@ -277,28 +277,6 @@ def get_or_create_categories(db, names):
         db.add(category)
 
     return categories
-
-def parse_id(id):
-    if id is None:
-        return None
-    try:
-        return int(id)
-    except ValueError:
-        raise UsageError(f"Expected an integer id, not {id!r}.")
-
-def parse_ids(ids):
-    if ids is None:
-        return []
-
-    return parse_range(ids, cast=parse_id)
-        
-def parse_categories(categories):
-    if categories is None:
-        return []
-    return [x.strip() for x in categories.split(',')]
-  
-def parse_dependencies(dependencies):
-    return parse_range(dependencies) if dependencies else []
 
 def get_next_id(db):
     curr_id = db.query(func.max(Stash.id)).scalar()

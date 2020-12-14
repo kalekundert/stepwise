@@ -2,59 +2,73 @@
 
 import sys
 import shlex
+import appcli
 from inform import warn, format_range
-from .config import load_config
+from appcli import DefaultConfig
+from .config import StepwiseConfig, PresetConfig
 from .errors import *
 
-class PrinterOptions:
+class Printers:
+    __config__ = [
+            StepwiseConfig(),
+    ]
+    printers = appcli.param()
 
-    def __init__(self, printer, options):
-        self.printer = printer
-        self.options = options
+class Printer:
+    __config__ = [
+            PresetConfig('printers', 'printer'),
+            DefaultConfig(
+                page_height=56,
+                page_width=78,
+                content_width=53,
+                margin_width=10,
+                paps_flags='--font "FreeMono 12" --paper letter --left-margin 0 --right-margin 0 --top-margin 12 --bottom-margin 12',
+                lpr_flags='-o sides=one-sided',
+            ),
+    ]
 
-    def __repr__(self):
-        return f'{self.__class__.__qualname__}(printer={self.printer!r}, options={self.options!r})'
+    def __init__(self, printer=None):
+        self.printer = printer or get_default_printer()
+        self._printers = Printers()
 
-    def __getattr__(self, key):
-        return self.options[key]
+    @property
+    def printers(self):
+        return self._printers.printers
 
-    @classmethod
-    def from_config(cls, config, printer=None):
-        if printer is None:
-            printer = get_default_printer()
-
-        defaults = config.printer.data.get('default', {})
-        overrides = config.printer.data.get(printer, {})
-        options = {**defaults, **overrides}
-
-        return cls(printer, options)
+    page_height = appcli.param()
+    page_width = appcli.param()
+    content_width = appcli.param()
+    margin_width = appcli.param()
+    paps_flags = appcli.param()
+    lpr_flags = appcli.param()
 
 def print_protocol(protocol, printer=None):
-    options = load_printer_options(printer)
+    config = load_printer_config(printer)
 
     lines = str(protocol).splitlines()
-    lines = truncate_lines(lines, options)
+    lines = truncate_lines(lines, config)
 
     try:
-        check_for_long_lines(lines, options)
+        check_for_long_lines(lines, config)
     except PrinterWarning as err:
         err.report(informant=warn)
 
-    pages = make_pages(lines, options)
-    pages = add_margin(pages, options)
+    pages = make_pages(lines, config)
+    pages = add_margin(pages, config)
 
-    print_pages(pages, options)
-    print_files(protocol.attachments, options)
+    print_pages(pages, config)
+    print_files(protocol.attachments, config)
 
-    return options
+    return config
 
-def load_printer_options(printer=None):
-    config = load_config()
-    return PrinterOptions.from_config(config, printer)
+def load_printer_config(printer=None):
+    if printer is None:
+        printer = get_default_printer()
+    return PrinterConfig(printer)
 
-def truncate_lines(lines, options):
+def truncate_lines(lines, config):
     def do_truncate(line):
-        line_width = options.page_width - options.margin_width
+        line_width = config.page_width - config.margin_width
         if len(line) > line_width:
             return line[:line_width - 1] + '…'
         else:
@@ -62,12 +76,12 @@ def truncate_lines(lines, options):
 
     return [do_truncate(x) for x in lines]
 
-def check_for_long_lines(lines, options):
+def check_for_long_lines(lines, config):
     too_long_lines = []
 
     for lineno, line in enumerate(lines, 1):
         line = line.rstrip()
-        if len(line) > options.content_width:
+        if len(line) > config.content_width:
             too_long_lines.append(lineno)
 
     if len(too_long_lines) == 0:
@@ -79,11 +93,11 @@ def check_for_long_lines(lines, options):
 
     warning = warning.format(
             format_range(too_long_lines),
-            options.content_width,
+            config.content_width,
     )
     raise PrinterWarning(warning)
     
-def make_pages(lines, options):
+def make_pages(lines, config):
     """
     Split the given protocol into pages by trying to best take advantage of 
     natural paragraph breaks.
@@ -118,7 +132,7 @@ def make_pages(lines, options):
             else:
                 j = len(lines)
 
-            if len(current_page) + (j-i) > options.page_height or j == i+1:
+            if len(current_page) + (j-i) > config.page_height or j == i+1:
                 skip_next_line = (j == i+1)
                 pages.append(current_page)
                 current_page = []
@@ -128,14 +142,14 @@ def make_pages(lines, options):
     pages.append(current_page)
     return pages
 
-def add_margin(pages, options):
+def add_margin(pages, config):
     """
     Add a margin on the left to leave room for holes to be punched.
     """
-    left_margin = ' ' * options.margin_width + '│ '
+    left_margin = ' ' * config.margin_width + '│ '
     return [[left_margin + line for line in page] for page in pages]
 
-def print_pages(pages, options):
+def print_pages(pages, config):
     """
     Print the given pages.
     """
@@ -145,17 +159,17 @@ def print_pages(pages, options):
             ('\n'.join(x) for x in pages)
     ).encode()
     print_cmd = ' | '.join([
-            f'paps {options.paps_flags}',
-            f'lpr {options.lpr_flags}',
+            f'paps {config.paps_flags}',
+            f'lpr {config.lpr_flags}',
     ])
     lpr = Popen(print_cmd, shell=True, stdin=PIPE)
     lpr.communicate(input=document)
 
-def print_files(files, options):
+def print_files(files, config):
     from subprocess import run
 
     if files:
-        lpr = ['lpr', *shlex.split(options.lpr_flags), *files]
+        lpr = ['lpr', *shlex.split(config.lpr_flags), *files]
         run(lpr)
 
 def get_default_printer():

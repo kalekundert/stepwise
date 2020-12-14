@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
-"""\
+import appcli
+from itertools import groupby
+from stepwise import StepwiseCommand, Library
+
+class List(StepwiseCommand):
+    """\
 List protocols known to stepwise.
 
 Usage:
@@ -14,31 +19,30 @@ Options:
     -p --paths
         Don't organize paths by directory.
 """
+    __config__ = [
+            appcli.DocoptConfig(),
+    ]
 
-import docopt
-from itertools import groupby
-from operator import itemgetter
-from stepwise import Library, load_config
-from .main import command
+    protocol = appcli.param('<protocol>', default=None)
+    dirs_only = appcli.param('--dirs')
+    organize_by_dir = appcli.param('--paths', cast=lambda x: not x)
 
-@command
-def ls():
-    args = docopt.docopt(__doc__)
-    config = load_config()
+    def main(self):
+        appcli.load(self)
 
-    library = Library()
-    entries = library.find_entries(args['<protocol>'])
-    indent = '' if args['--paths'] else '  '
+        library = Library()
+        entries = library.find_entries(self.protocol)
+        indent = '  ' if self.organize_by_dir else ''
 
-    for collection, entry_group in groupby(entries, lambda x: x.collection):
-        if not args['--paths']:
-            print(collection.name)
-        if args['--dirs']:
-            continue
+        for collection, entry_group in groupby(entries, lambda x: x.collection):
+            if self.organize_by_dir:
+                print(collection.name)
+            if self.dirs_only:
+                continue
 
-        for entry in entry_group:
-            print(indent + entry.name)
+            for entry in entry_group:
+                print(indent + entry.name)
 
-        if not args['--paths']:
-            print()
+            if self.organize_by_dir:
+                print()
 

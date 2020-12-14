@@ -4,7 +4,7 @@ import sys, shlex, re, textwrap
 import arrow, inform
 from pathlib import Path
 from inform import plural, parse_range, format_range
-from .config import load_config
+from .printer import Printer
 from .errors import *
 
 import functools
@@ -242,7 +242,7 @@ class Protocol:
 
     def show_steps(self):
         indent = len(str(len(self.steps))) + 2
-        content_width = load_config().printer.default.content_width
+        content_width = Printer().content_width
 
         s = ''
         for i, step in enumerate(self.steps, start=1):
@@ -261,7 +261,7 @@ class Protocol:
 
         if self.footnotes:
             indent = len(str(max(self.footnotes))) + 3
-            content_width = load_config().printer.default.content_width
+            content_width = Printer().content_width
 
             s += f'{plural(self.footnotes):Note/s}:\n'
             for i in sorted(self.footnotes):

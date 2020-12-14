@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
-"""\
+import sys, inspect
+import appcli
+from stepwise import ProtocolIO, StepwiseError, __version__
+
+class Stepwise:
+    """\
 Generate and display scientific protocols.
 
 Usage:
@@ -14,7 +19,7 @@ Commands:
     not specified, a protocol will be read from stdin.  Any given <args> 
     will be passed to the protocol.
 
-    {commands}
+    {0.command_briefs}
 
 Options:
     -h --help
@@ -44,106 +49,86 @@ Examples:
 
         $ stepwise ls
 """
+    __config__ = [
+            appcli.DocoptConfig(version=__version__, options_first=True),
+    ]
 
-import sys, inspect
-import docopt
-from stepwise import ProtocolIO, StepwiseError, __version__
+    command = appcli.param('<command>', default=None)
+    args = appcli.param('<args>')
+    quiet = appcli.param('--quiet')
+    force_text = appcli.param('--force-text')
 
-COMMANDS = {}
+    def __init__(self):
+        from entrypoints import get_group_named
+        self.commands = {
+                k: v.load()()
+                for k, v in get_group_named('stepwise.commands').items()
+        }
+
+    def main(self):
+        appcli.load(self)
+
+        try:
+            
+            if self.command in self.commands:
+                app = self.commands[self.command]
+                app.quiet = self.quiet
+                app.force_text = self.force_text
+
+                # Remove top-level options (e.g. --quiet) from the command 
+                # line, so the subcommand doesn't have to deal with them.
+                sys.argv = [sys.argv[0], self.command, *self.args]
+
+                app.main()
+
+            else:
+                io_cli = ProtocolIO()
+                if self.command:
+                    io_cli = ProtocolIO.from_library(self.command, self.args)
+
+                if self.quiet and not io_cli.errors:
+                    io_cli.protocol.clear_footnotes()
+
+                # It's more performant to load the protocol specified on the CLI 
+                # before trying to read a protocol from stdin.  The reason is 
+                # subtle, and has to do with the way pipes work.  For example, 
+                # consider the following pipeline:
+                #
+                #   sw pcr ... | sw kld ...
+                #
+                # Although the output from `sw pcr` is input for `sw kld`, the two 
+                # commands are started by the shell at the same time and run 
+                # concurrently.  However, `sw kld` will be forced to wait if it 
+                # tries to read from stdin before `sw pcr` has written to stdout.  
+                # With this in mind, it make sense for `sw kld` to do as much work 
+                # as possible before reading from stdin.
+
+                io_stdin = ProtocolIO.from_stdin()
+                io_stdout = ProtocolIO.merge(io_stdin, io_cli)
+                io_stdout.to_stdout(self.force_text)
+                sys.exit(io_stdout.errors)
+
+        except KeyboardInterrupt:
+            print()
+        except StepwiseError as err:
+            err.terminate()
+
+    @property
+    def command_briefs(self):
+        """
+        Return a nicely formatted list of all the subcommands installed on this 
+        system, to incorporate into the usage text.
+        """
+        from stepwise import tabulate
+        from inform import indent
+
+        rows = [
+                [f'{name}:', getattr(app, 'brief', 'No summary.')]
+                for name, app in self.commands.items()
+        ]
+        table = tabulate(rows, truncate='x-', max_width=-4)
+        return indent(table, leader='    ', first=-1)
 
 def main():
-    try:
-        load_commands()
-        args = docopt.docopt(
-                __doc__.format(commands=list_commands()),
-                version=__version__,
-                options_first=True,
-        )
-
-        if args['<command>'] in COMMANDS:
-            command = COMMANDS[args['<command>']]
-            sig = inspect.signature(command)
-            possible_kwargs = [
-                    ('quiet', '--quiet'),
-                    ('force_text', '--force-text'),
-            ]
-            kwargs = {
-                    k1: args[k2]
-                    for k1, k2 in possible_kwargs
-                    if k1 in sig.parameters
-            }
-            sys.argv = [sys.argv[0], args['<command>'], *args['<args>']]
-            command(**kwargs)
-
-        else:
-            io_cli = ProtocolIO()
-            if args['<command>']:
-                io_cli = ProtocolIO.from_library(
-                        args['<command>'],
-                        args['<args>'],
-                )
-            if args['--quiet'] and not io_cli.errors:
-                io_cli.protocol.clear_footnotes()
-
-            # It's more performant to load the protocol specified on the CLI 
-            # before trying to read a protocol from stdin.  The reason is 
-            # subtle, and has to do with the way pipes work.  For example, 
-            # consider the following pipeline:
-            #
-            #   sw pcr ... | sw kld ...
-            #
-            # Although the output from `sw pcr` is input for `sw kld`, the two 
-            # commands are started by the shell at the same time and run 
-            # concurrently.  However, `sw kld` will be forced to wait if it 
-            # tries to read from stdin before `sw pcr` has written to stdout.  
-            # With this in mind, it make sense for `sw kld` to do as much work 
-            # as possible before reading from stdin.
-
-            io_stdin = ProtocolIO.from_stdin()
-            io_stdout = ProtocolIO.merge(io_stdin, io_cli)
-            io_stdout.to_stdout(args['--force-text'])
-            sys.exit(io_stdout.errors)
-
-    except KeyboardInterrupt:
-        print()
-    except StepwiseError as err:
-        err.terminate()
-
-def command(f):
-    COMMANDS[f.__name__] = f
-    return f
-
-def load_commands():
-    # The order these modules are imported in defines the order that the 
-    # associated subcommands will appear in the help text.
-    from . import ls
-    from . import which
-    from . import edit
-    from . import note
-    from . import go
-    from . import stash
-    from . import metric
-    from . import config
-
-def list_commands():
-    """
-    Return a nicely formatted list of all the subcommands installed on this 
-    system, to incorporate into the usage text.
-    """
-    from stepwise import tabulate
-    from inform import indent
-
-    # Make the table.
-
-    def get_brief(func):
-        doc = func.__doc__ or inspect.getmodule(func).__doc__ or "No summary"
-        return doc.strip().split('\n')[0]
-
-    rows = [
-            [f'{name}:', get_brief(func)]
-            for name, func in COMMANDS.items()
-    ]
-    table = tabulate(rows, truncate='x-', max_width=-4)
-    return indent(table, leader='    ', first=-1)
-
-
+    app = Stepwise()
+    app.main()

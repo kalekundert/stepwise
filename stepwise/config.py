@@ -1,100 +1,43 @@
 #!/usr/bin/env python3
 
 import sys
-from pathlib import Path
-from appdirs import AppDirs
+import appcli
 
-config = None
-config_dirs = AppDirs("stepwise")
-user_config_path = Path(config_dirs.user_config_dir) / 'conf.toml'
-site_config_path = Path(config_dirs.site_config_dir) / 'conf.toml'
+class StepwiseCommand:
+    brief = appcli.config_attr()
+    dirs = appcli.config_attr()
+    usage_io = sys.stderr
 
-def load_config():
-    global config
-    if config: return config
+    def __init__(self):
+        self.quiet = False
+        self.force_text = False
 
-    from configurator import Config, default_mergers
-    from voluptuous import Schema, Invalid
-    from entrypoints import get_group_all
-    from collections.abc import Mapping
-    from inform import warn
+class StepwiseConfig(appcli.AppDirsConfig):
 
-    # Specify that list should be overridden, rather than appended to.
+    def __init__(self):
+        super().__init__('conf.toml', slug='stepwise')
 
-    def overwrite_list(context, source, target):
-        return source
+class PresetConfig(appcli.CallbackConfig):
 
-    mergers = default_mergers + {list: overwrite_list}
+    def __init__(self, presets='presets', name='preset', **kwargs):
 
-    # Load config data from plugins.
+        def getter(obj):
+            values = getattr(obj, presets) 
+            key = getattr(obj, name)
+            return values[key]
 
-    plugin_configs = {}
-    plugin_schemas = {}
+        def location(obj):
+            loc = f'{obj.__class__.__qualname__}.{presets}'
 
-    for entry in get_group_all('stepwise.protocols'):
-        plugin = entry.load()
-        defaults = getattr(plugin, 'config_defaults', {})
-        schema = getattr(plugin, 'config_schema', {})
+            try:
+                key = getattr(obj, name)
+                loc += f'[{key!r}]'
+            except AttributeError:
+                pass
 
-        if defaults:
-            plugin_configs[entry.name] = (
-                    defaults if isinstance(defaults, Mapping) else
-                    Config.from_path(defaults).data
-            )
-        if schema:
-            plugin_schemas[entry.name] = schema
+            return loc
 
-    # Load config data from the local system.
+        super().__init__(getter, AttributeError, location=location)
 
-    config = Config({
-        'search': {
-            'find': ['protocols'],
-            'path': [],
-            'ignore': [],
-        },
-        'printer': {
-            'default': {
-                'page_height': 56,
-                'page_width': 78,
-                'content_width': 53,
-                'margin_width': 10,
-                'paps_flags': '--font "FreeMono 12" --paper letter --left-margin 0 --right-margin 0 --top-margin 12 --bottom-margin 12',
-                'lpr_flags': '-o sides=one-sided',
-            },
-        },
-        **plugin_configs,
-    })
-    site = Config.from_path(site_config_path, optional=True)
-    user = Config.from_path(user_config_path, optional=True)
-
-    config.merge(site, mergers=mergers)
-    config.merge(user, mergers=mergers)
-
-    # Validate the config data.
-
-    schema = Schema({
-        'search': {
-            'find': [str],
-            'path': [str],
-            'ignore': [str],
-        },
-        'printer': {
-            'default': {
-                'page_height': int,
-                'page_width': int,
-                'content_width': int,
-                'margin_width': int,
-                'paps_flags': str,
-                'lpr_flags': str,
-            },
-        },
-        **plugin_schemas,
-    })
-
-    try:
-        schema(config.data)
-    except Invalid as err:
-        warn(err)
-
-    return config
+config_dirs = StepwiseConfig().get_dirs(None)
 
