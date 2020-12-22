@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v0.10.0 (2020-12-22)
+### Feature
+* Migrate configuration to appcli ([`403eece`](https://github.com/kalekundert/stepwise/commit/403eeceda0645cd638d58258aae79e8e5a8ff6ed))
+* Add sorthand symbols to the reaction command ([`0bc08a0`](https://github.com/kalekundert/stepwise/commit/0bc08a08106e77a7c817b721aa99bb4fce70de8b))
+
+### Fix
+* Don't require `lpstat` to be installed ([`66b3c62`](https://github.com/kalekundert/stepwise/commit/66b3c6248373dc79a0d05a65b83e139375cb4612))
+* Handle unexpected `lpstat -d` output ([`47fcbc0`](https://github.com/kalekundert/stepwise/commit/47fcbc02bae4b32d4234bd4bbec170c348cdf085))
+* Improve the Footnote comparison operators ([`4dc188a`](https://github.com/kalekundert/stepwise/commit/4dc188a5530527d793f2ae14a31f404fe151f7c4))
+
 ## v0.9.0 (2020-11-03)
 ### Feature
 * Add an accessor for the current step of a protocol ([`72c7d19`](https://github.com/kalekundert/stepwise/commit/72c7d19c2c5052005c093d295695607dc9dcefb9))
