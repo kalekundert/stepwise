@@ -10,10 +10,9 @@ home-page = 'https://github.com/kalekundert/stepwise'
 description-file = 'README.rst'
 requires-python = "~=3.8"
 requires = [
-  'appdirs',
+  'appcli',
   'arrow',
   'autoprop',
-  'configurator',
   'docopt',
   'entrypoints',
   'inform',
