@@ -177,7 +177,10 @@ def get_default_printer():
     from subprocess import run
 
     lpstat = shlex.split('lpstat -d')
-    p = run(lpstat, capture_output=True, text=True)
+    try:
+        p = run(lpstat, capture_output=True, text=True)
+    except FileNotFoundError:
+        return None
 
     if p.returncode == 0:
         m = re.match(r'system default destination: (.*)$', p.stdout)
