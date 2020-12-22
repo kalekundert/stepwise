@@ -28,6 +28,10 @@ requires = [
   #   tests to pass.
   # - Once pandas=1.2 is released, I can replace the xlrd dependency with 
   #   openpyxl.
+  #
+  # See:
+  # https://github.com/pandas-dev/pandas/issues/38424
+  # https://pandas.pydata.org/pandas-docs/dev/whatsnew/v1.2.0.html
   'xlrd<2.0',
 ]
 classifiers = [
