@@ -173,13 +173,15 @@ def print_files(files, config):
         run(lpr)
 
 def get_default_printer():
+    import re
     from subprocess import run
 
     lpstat = shlex.split('lpstat -d')
     p = run(lpstat, capture_output=True, text=True)
 
     if p.returncode == 0:
-        return p.stdout.split(':')[1].strip()
+        m = re.match(r'system default destination: (.*)$', p.stdout)
+        return m.group(1).strip() if m else None
     else:
         return None
 
