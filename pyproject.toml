@@ -20,7 +20,6 @@ requires = [
   'sqlalchemy',
   'voluptuous',
   'pandas',
-  'xlrd',
 ]
 classifiers = [
   'Programming Language :: Python :: 3',
