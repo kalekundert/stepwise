@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v0.11.0 (2021-01-11)
+### Feature
+* Migrate to appcli ([`ac5f6f9`](https://github.com/kalekundert/stepwise/commit/ac5f6f9d1efbb61ad4e7d4b523204e350d47a207))
+
+### Fix
+* Ignore extraneous openpyxl and pandas warnings ([`bbb7f55`](https://github.com/kalekundert/stepwise/commit/bbb7f55ab2b0711113fa7750285d334a2758a213))
+* Check the header before attempting to unpickle a byte stream ([`8bb1cf9`](https://github.com/kalekundert/stepwise/commit/8bb1cf99cb6e8f2f89a1344890c23d89205d5fb4))
+
 ## v0.10.0 (2020-12-22)
 ### Feature
 * Migrate configuration to appcli ([`403eece`](https://github.com/kalekundert/stepwise/commit/403eeceda0645cd638d58258aae79e8e5a8ff6ed))
