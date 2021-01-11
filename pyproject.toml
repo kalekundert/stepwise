@@ -19,20 +19,8 @@ requires = [
   'more_itertools',
   'sqlalchemy',
   'voluptuous',
-  'pandas',
-
-  # - xlrd~=2.0 can no longer read *.xlsx files.
-  # - xlrd<2.0 is considered to have security vulnerabilities.
-  # - pandas~=1.2 will use openpyxl instead of xlrd.
-  # - Until pandas=1.2 is released, I need to pin xlrd<2.0 in order for the 
-  #   tests to pass.
-  # - Once pandas=1.2 is released, I can replace the xlrd dependency with 
-  #   openpyxl.
-  #
-  # See:
-  # https://github.com/pandas-dev/pandas/issues/38424
-  # https://pandas.pydata.org/pandas-docs/dev/whatsnew/v1.2.0.html
-  'xlrd<2.0',
+  'pandas>=1.2',
+  'openpyxl',
 ]
 classifiers = [
   'Programming Language :: Python :: 3',
