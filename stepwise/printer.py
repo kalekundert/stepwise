@@ -12,7 +12,7 @@ class Printers:
     __config__ = [
             StepwiseConfig(),
     ]
-    printers = appcli.param()
+    printers = appcli.param(default={})
 
 class Printer:
     __config__ = [

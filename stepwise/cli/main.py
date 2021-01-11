@@ -54,9 +54,9 @@ Examples:
     ]
 
     command = appcli.param('<command>', default=None)
-    args = appcli.param('<args>')
-    quiet = appcli.param('--quiet')
-    force_text = appcli.param('--force-text')
+    args = appcli.param('<args>', default_factory=list)
+    quiet = appcli.param('--quiet', default=False)
+    force_text = appcli.param('--force-text', default=False)
 
     def __init__(self):
         from entrypoints import get_group_named

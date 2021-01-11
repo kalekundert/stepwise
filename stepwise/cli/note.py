@@ -3,6 +3,7 @@
 import sys, re, textwrap
 import appcli
 from inform import fatal
+from operator import not_
 from stepwise import StepwiseCommand, ProtocolIO, Footnote
 
 class Note(StepwiseCommand):
@@ -43,7 +44,7 @@ Options:
 
     text = appcli.param('<footnote>')
     where = appcli.param('<where>', default=None)
-    wrap = appcli.param('--no-wrap', cast=lambda x: not x)
+    wrap = appcli.param('--no-wrap', cast=not_, default=True)
 
     def main(self):
         appcli.load(self)

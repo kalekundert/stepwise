@@ -2,6 +2,7 @@
 
 import appcli
 from itertools import groupby
+from operator import not_
 from stepwise import StepwiseCommand, Library
 
 class List(StepwiseCommand):
@@ -24,8 +25,8 @@ Options:
     ]
 
     protocol = appcli.param('<protocol>', default=None)
-    dirs_only = appcli.param('--dirs')
-    organize_by_dir = appcli.param('--paths', cast=lambda x: not x)
+    dirs_only = appcli.param('--dirs', default=False)
+    organize_by_dir = appcli.param('--paths', cast=not_, default=True)
 
     def main(self):
         appcli.load(self)

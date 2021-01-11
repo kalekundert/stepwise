@@ -173,9 +173,9 @@ python could corrupt the stash.
             default=[],
             cast=parse_dependencies,
     )
-    show_dependents = appcli.param('--show-dependents')
-    show_all = appcli.param('--all')
-    explicit = appcli.param('--explicit')
+    show_dependents = appcli.param('--show-dependents', default=False)
+    show_all = appcli.param('--all', default=False)
+    explicit = appcli.param('--explicit', default=False)
 
     def main(self):
         appcli.load(self)
