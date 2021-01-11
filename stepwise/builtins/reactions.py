@@ -23,7 +23,11 @@ from docopt import docopt
 from stepwise import Protocol, tabulate
 from pathlib import Path
 from inform import fatal
+from warnings import filterwarnings
 import pandas as pd
+
+filterwarnings('ignore', "Workbook contains no default style, apply openpyxl's default", UserWarning)
+filterwarnings('ignore', "The default value of regex will change from True to False in a future version.", FutureWarning)
 
 args = docopt(__doc__)
 path = Path(args['<table>'])
