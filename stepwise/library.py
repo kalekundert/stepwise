@@ -13,6 +13,8 @@ from .protocol import Protocol
 from .config import StepwiseConfig
 from .errors import *
 
+PICKLE_HEADER = pickle.dumps(None)[0]
+
 class Library:
     """
     Provide access to every protocol available to the user.
@@ -525,31 +527,27 @@ class ProtocolIO:
         # this case, the outer process will read stdin, and the inner process 
         # will have nothing to read.
 
-        def from_pickle(buffer):
-            """
-            Unpickle the given buffer with the guarantee that `UnpicklingError` will 
-            be raised if it can't be unpickled for any reason.
-            """
-            try:
-                io = pickle.load(buffer)
-            except UnpicklingError as err:
-                raise err
-            except Exception as err:
-                raise UnpicklingError(str(err))
-
-            # Also make sure the right kind of object was unpickled.
-            if not isinstance(io, cls):
-                raise LoadError(f"unpickled {io.__class__.__name__!r}, expected {cls.__name__!r}")
-
-            return io
-
         while unread_bytes:
             unread_buffer = BytesIO(unread_bytes)
+            header_byte = unread_buffer.getbuffer()[0]
 
-            try:
-                io = from_pickle(unread_buffer)
+            # Check the pickle header to decide whether or not this is a 
+            # pickle.  Note that pickle itself can't do this robustly, because 
+            # protocol=0 doesn't have a header.  We know that we're using a 
+            # binary pickle protocols, though, so we can make this check.
+
+            if header_byte == PICKLE_HEADER:
+                try:
+                    io = pickle.load(unread_buffer)
+                except Exception as err:
+                    raise LoadError(str(err)) from err
+
+                if not isinstance(io, cls):
+                    raise LoadError(f"unpickled {io.__class__.__name__!r}, expected {cls.__name__!r}")
+
                 ios.append(io)
-            except UnpicklingError:
+
+            else:
                 io = cls.from_text(unread_bytes.decode())
                 ios.append(io)
                 break

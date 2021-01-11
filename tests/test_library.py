@@ -256,6 +256,24 @@ def test_check_version_control(tmp_path):
     with raises(VersionControlWarning, match="uncommitted changes"):
         _check_version_control(protocol)
 
+def test_from_pickle_january():
+    # I ran into a wild bug where the python interpreter would crash when 
+    # attempting to load a protocol generated in January from a byte stream.  
+    # The issue is that stepwise needs to decide whether or not to use pickle 
+    # to decode a byte stream, and it used to do this by just trying to 
+    # unpickle the stream and checking for errors.  The problem is that 
+    # attempting to unpickle byte streams beginning with "January" causes huge 
+    # amounts of memory (>16 GB) to be allocated, which ultimately causes the 
+    # interpreter to crash.  To fix this, I rewrote the code to manually check 
+    # for the pickle header.  The purpose of this test is to document this bug 
+    # and to prevent regressions.
+    p = stepwise.ProtocolIO.from_bytes(
+            b'January 11, 2021\n'
+            b'\n'
+            b'1. A'
+    )
+    assert p.protocol.steps == ['A']
+
 
 def path(x):
     from os.path import sep
