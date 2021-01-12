@@ -6,7 +6,7 @@ from pathlib import Path
 from inform import fatal
 from stepwise import ProtocolIO, print_protocol, get_default_printer
 from stepwise.config import StepwiseCommand, StepwiseConfig
-from appcli import DocoptConfig, DefaultConfig
+from appcli import Key, DocoptConfig
 from operator import not_
 
 class Go(StepwiseCommand):
@@ -32,6 +32,8 @@ Options:
 
     -p --printer NAME
         Print to the specified printer.  The default is: {0.printer}
+        You can get a list of the printer names recognized on your system by 
+        running `lpstat -p -d`.
 
 Configuration:
     The settings described below can be set in the following files:
@@ -41,7 +43,8 @@ Configuration:
 
     go.printer:
         The printer to use if --printer is not specified.  If this setting is 
-        not specified either, the default is taken from `lpstat -d`.
+        not specified either, the default is taken from `lpstat -d`.  You can 
+        set this default by running `lpoptions -d <printer name>`.
 
     printer.<name>.page_height
     printer.<name>.page_width
@@ -60,26 +63,29 @@ Configuration:
     __config__ = [
             DocoptConfig(),
             StepwiseConfig(),
-            DefaultConfig(
-                printer=get_default_printer(),
-            ),
     ]
 
     output_path = appcli.param(
-            key={DocoptConfig: '--output'},
+            Key(DocoptConfig, '--output'),
+            default=None,
     )
     send_to_file = appcli.param(
-            key={DocoptConfig: '--no-file'},
-            cast=not_,
+            Key(DocoptConfig, '--no-file', cast=not_),
+            default=True,
     )
     send_to_printer = appcli.param(
-            key={DocoptConfig: '--no-print'},
-            cast=not_,
+            Key(DocoptConfig, '--no-print', cast=not_),
+            default=True,
     )
     overwrite_file = appcli.param(
-            key={DocoptConfig: '--force'},
+            Key(DocoptConfig, '--force'),
+            default=False,
     )
-    printer = appcli.param('--printer', 'go.printer', 'printer')
+    printer = appcli.param(
+            Key(DocoptConfig, '--printer'),
+            Key(StepwiseConfig, 'go.printer'),
+            default_factory=get_default_printer,
+    )
 
     def main(self):
         appcli.load(self)
@@ -91,16 +97,17 @@ Configuration:
             fatal("No protocol specified.")
 
         # Write the protocol to a file.
-        if not self.protocol_to_file:
+        if self.send_to_file:
             path = Path(self.output_path or f'{io.protocol.pick_slug()}.txt')
             if path.exists() and not self.overwrite_file:
                 print(f"'{path}' already exists, use '-f' to overwrite.")
+                print(f"Aborting; protocol NOT sent to printer.")
                 sys.exit(1)
                 
             path.write_text(str(io.protocol))
             print(f"Protocol saved to '{path}'")
 
         # Send to protocol to the printer.
-        if not self.protocol_to_printer:
+        if self.send_to_printer:
             options = print_protocol(io.protocol, self.printer)
             print(f"Protocol sent to '{options.printer}'")

@@ -64,7 +64,7 @@ def print_protocol(protocol, printer=None):
 def load_printer_config(printer=None):
     if printer is None:
         printer = get_default_printer()
-    return PrinterConfig(printer)
+    return Printer(printer)
 
 def truncate_lines(lines, config):
     def do_truncate(line):
