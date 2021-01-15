@@ -217,16 +217,7 @@ class Reaction:
         return f'{self.__class__.__name__}({reagents})'
 
     def __iter__(self):
-        # Yield the solvent before any of the other reagents, unless the 
-        # solvent has been explicitly added to the reaction.
-        if self._solvent is not None:
-            if self._solvent not in self._reagents:
-                yield Solvent(self)
-
-        yield from sorted(
-                self._reagents.values(),
-                key=lambda x: math.inf if x.order is None else x.order
-        )
+        yield from self.iter_reagents()
 
     def __contains__(self, key):
         if key in self._reagents:
@@ -430,6 +421,18 @@ class Reaction:
 
         return rxn
 
+    def iter_reagents(self):
+        # Yield the solvent before any of the other reagents, unless the 
+        # solvent has been explicitly added to the reaction.
+        if self._solvent is not None:
+            if self._solvent not in self._reagents:
+                yield Solvent(self)
+
+        yield from sorted(
+                self._reagents.values(),
+                key=lambda x: math.inf if x.order is None else x.order
+        )
+
     def iter_non_solvent_reagents(self):
         for reagent in self:
             if reagent.key != self._solvent:
@@ -456,6 +459,17 @@ class Reaction:
         for reagent in self.iter_non_solvent_reagents():
             reagent.require_volume()
             v -= reagent.volume
+
+        return v
+
+    def get_free_volume_excluding(self, *keys):
+        self.require_volume()
+        v = self.volume
+
+        for reagent in self.iter_non_solvent_reagents():
+            if reagent.key not in keys:
+                reagent.require_volume()
+                v -= reagent.volume
 
         return v
 

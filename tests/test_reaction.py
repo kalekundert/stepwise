@@ -539,6 +539,25 @@ def test_reaction_volume_no_solvent():
     with pytest.raises(ValueError, match="no solvent specified"):
         rxn.volume = '4 µL'
 
+def test_reaction_free_volume():
+    rxn = Reaction()
+    rxn.solvent = 'w'
+    rxn.volume = '4 µL'
+    assert rxn.free_volume == '4 µL'
+
+    rxn['x'].volume = '1 µL'
+    assert rxn.free_volume == '3 µL'
+    assert rxn.get_free_volume_excluding('x') == '4 µL'
+
+    rxn['y'].volume = '2 µL'
+    assert rxn.free_volume == '1 µL'
+    assert rxn.get_free_volume_excluding('x') == '2 µL'
+    assert rxn.get_free_volume_excluding('y') == '3 µL'
+    assert rxn.get_free_volume_excluding('x', 'y') == '4 µL'
+
+    rxn['z'].volume = '1 µL'
+    assert rxn.free_volume == '0 µL'
+
 def test_reaction_solvent():
     rxn = Reaction()
     rxn.solvent = 'w'
