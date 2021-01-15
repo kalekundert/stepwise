@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.11.1 (2021-01-12)
+### Fix
+* Debug the printing feature of the `sw go` ([`888fb78`](https://github.com/kalekundert/stepwise/commit/888fb7836330b2d9b15adab27f7122327734816d))
+
 ## v0.11.0 (2021-01-11)
 ### Feature
 * Migrate to appcli ([`ac5f6f9`](https://github.com/kalekundert/stepwise/commit/ac5f6f9d1efbb61ad4e7d4b523204e350d47a207))
