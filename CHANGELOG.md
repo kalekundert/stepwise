@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.12.0 (2021-01-15)
+### Feature
+* Implement Reaction.get_free_volume_excluding() ([`7d55fab`](https://github.com/kalekundert/stepwise/commit/7d55fab87de4774a807f20477e5e6dab854d630c))
+
+### Fix
+* Format subcommands briefs correctly ([`1dc4ca3`](https://github.com/kalekundert/stepwise/commit/1dc4ca3e2c9021942e933340e3b290fa58255a53))
+
 ## v0.11.1 (2021-01-12)
 ### Fix
 * Debug the printing feature of the `sw go` ([`888fb78`](https://github.com/kalekundert/stepwise/commit/888fb7836330b2d9b15adab27f7122327734816d))
