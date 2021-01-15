@@ -63,6 +63,10 @@ go = "stepwise.cli.go:Go"
 stash = "stepwise.cli.stash:Stash"
 metric = "stepwise.cli.metric:Metric"
 
+[tool.pytest.ini_options]
+markers = """slow: marks tests as slow (deselect with '-m "not slow"')"""
+filterwarnings = "ignore::PendingDeprecationWarning:Bio.Alphabet"
+
 [tool.semantic_release]
 version_variable = 'stepwise/__init__.py:__version__'
 build_command = 'python -m pip install flit && flit build'
