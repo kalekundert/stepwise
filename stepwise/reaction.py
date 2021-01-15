@@ -453,14 +453,7 @@ class Reaction:
         self._volume = Quantity.from_anything(volume)
 
     def get_free_volume(self):
-        self.require_volume()
-        v = self.volume
-
-        for reagent in self.iter_non_solvent_reagents():
-            reagent.require_volume()
-            v -= reagent.volume
-
-        return v
+        return self.get_free_volume_excluding()
 
     def get_free_volume_excluding(self, *keys):
         self.require_volume()
