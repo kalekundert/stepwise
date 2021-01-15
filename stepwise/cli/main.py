@@ -19,7 +19,7 @@ Commands:
     not specified, a protocol will be read from stdin.  Any given <args> 
     will be passed to the protocol.
 
-    {0.command_briefs}
+    ${app.command_briefs}
 
 Options:
     -h --help
@@ -126,7 +126,7 @@ Examples:
                 [f'{name}:', getattr(app, 'brief', 'No summary.')]
                 for name, app in self.commands.items()
         ]
-        table = tabulate(rows, truncate='x-', max_width=-4)
+        table = tabulate(rows, truncate='-x', max_width=-4)
         return indent(table, leader='    ', first=-1)
 
 def main():
