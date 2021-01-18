@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.14.0 (2021-01-18)
+### Feature
+* Rename 'reactions' built-in command to 'conditions' ([`4f9ad51`](https://github.com/kalekundert/stepwise/commit/4f9ad512759226aaca767c3b51e7518be3c2941d))
+
 ## v0.13.0 (2021-01-18)
 ### Feature
 * Add the 'reaction' built-in command ([`e107d78`](https://github.com/kalekundert/stepwise/commit/e107d78e02213c2eb0d7d8a70a8861052c5cc216))
