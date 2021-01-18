@@ -107,15 +107,15 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-reactions'
-cmd = "stepwise reactions reactions.csv"
+id = 'builtin-conditions'
+cmd = "stepwise conditions conditions.csv"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise reactions reactions\.csv
+\$ stepwise conditions conditions\.csv
 
-1\. In the following steps, setup these reactions:
+1\. In the following steps, setup these conditions:
 
    Condition A:  −  −  \+  \+
    Condition B:  −  \+  −  \+
@@ -124,15 +124,15 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-reactions'
-cmd = "stepwise reactions reactions.xlsx"
+id = 'builtin-conditions'
+cmd = "stepwise conditions conditions.xlsx"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise reactions reactions\.xlsx
+\$ stepwise conditions conditions\.xlsx
 
-1\. In the following steps, setup these reactions:
+1\. In the following steps, setup these conditions:
 
    Condition A:  −  −  \+  \+
    Condition B:  −  \+  −  \+
@@ -141,8 +141,8 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-reactions'
-cmd = "stepwise reactions does_not_exist.csv"
+id = 'builtin-conditions'
+cmd = "stepwise conditions does_not_exist.csv"
 env = {}
 stdout = '^$'
 stderr = '.*stepwise error.*does_not_exist.csv.*no such file'
@@ -353,9 +353,9 @@ stdout = '''
   b
 .*\
 stepwise\.builtins
+  conditions
   echo
   reaction
-  reactions
   step
 '''
 stderr = '^$'
@@ -381,9 +381,9 @@ stdout = '''
 a
 b
 .*\
+conditions
 echo
 reaction
-reactions
 step
 '''
 stderr = '^$'

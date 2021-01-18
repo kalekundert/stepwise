@@ -62,7 +62,7 @@ br = '\n'
 
 p = Protocol()
 p += f"""\
-In the following steps, setup these reactions:
+In the following steps, setup these conditions:
 
 {tabulate(table, align=align)}
 
