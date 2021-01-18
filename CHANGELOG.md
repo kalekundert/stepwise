@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.13.0 (2021-01-18)
+### Feature
+* Add the 'reaction' built-in command ([`e107d78`](https://github.com/kalekundert/stepwise/commit/e107d78e02213c2eb0d7d8a70a8861052c5cc216))
+
 ## v0.12.0 (2021-01-15)
 ### Feature
 * Implement Reaction.get_free_volume_excluding() ([`7d55fab`](https://github.com/kalekundert/stepwise/commit/7d55fab87de4774a807f20477e5e6dab854d630c))
