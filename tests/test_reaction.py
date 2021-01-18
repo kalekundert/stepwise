@@ -698,8 +698,8 @@ def test_reaction_hold_ratios_no_solvent():
                 'volume': ['to 8 µL', '3 µL'],
             },
             '8 µL', {
-                'w': ('5 µL',  ..., False),
-                'x': ('3 µL', '2x', False),
+                'w': ('5 µL',  ..., True),
+                'x': ('3 µL', '2x', True),
             }
         ), (
 

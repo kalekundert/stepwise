@@ -380,7 +380,7 @@ class Reaction:
             if key not in cols:
                 cols[key] = num_rows * [default]
         
-        optional_column('master_mix', False)
+        optional_column('master_mix', True)
 
         if not all(cols['reagent']):
             raise UsageError("some reagents are missing names.")

@@ -148,6 +148,70 @@ stdout = '^$'
 stderr = '.*stepwise error.*does_not_exist.csv.*no such file'
 return_code = 1
 
+[[test_main]]
+id = 'builtin-reaction'
+cmd = "stepwise reaction 'A;;to 10 µL' 'B;10x;1 µL'"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ stepwise reaction 'A;;to 10 µL' 'B;10x;1 µL'
+
+1. Setup 1 reaction:
+
+   Reagent  Stock    Volume
+   ────────────────────────
+   A                9.00 µL
+   B          10x   1.00 µL
+   ────────────────────────
+                   10.00 µL
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'builtin-reaction-title'
+cmd = "stepwise reaction 'A;;to 10 µL' 'B;10x;1 µL' -t AB"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ stepwise reaction 'A;;to 10 µL' 'B;10x;1 µL' -t AB
+
+1. Setup 1 AB reaction:
+
+   Reagent  Stock    Volume
+   ────────────────────────
+   A                9.00 µL
+   B          10x   1.00 µL
+   ────────────────────────
+                   10.00 µL
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'builtin-reaction-mm'
+cmd = "stepwise reaction 'A;;to 10 µL;y' 'B;10x;1 µL' -n2"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ stepwise reaction 'A;;to 10 µL;y' 'B;10x;1 µL' -n2
+
+1. Setup 2 reactions:
+
+   Reagent  Stock    Volume      2.2x
+   ──────────────────────────────────
+   A                9.00 µL  19.80 µL
+   B          10x   1.00 µL
+   ──────────────────────────────────
+                   10.00 µL   9.00 µL/rxn
+'''
+stderr = '^$'
+return_code = 0
+
+
 ###############################################################################
 ### Pipes
 ###############################################################################
@@ -290,6 +354,7 @@ stdout = '''
 .*\
 stepwise\.builtins
   echo
+  reaction
   reactions
   step
 '''
@@ -317,6 +382,7 @@ a
 b
 .*\
 echo
+reaction
 reactions
 step
 '''
