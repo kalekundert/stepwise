@@ -15,7 +15,18 @@ def check_command(cmd, stdout='^$', stderr='^$', return_code=0, env={}, home=Non
     if home is None:
         home = Path(__file__).parent / 'dummy_home'
 
-    env = {**os.environ, 'COLUMNS': '80', 'HOME': str(home), **env}
+    env = {
+            **os.environ,
+            'TERM': 'dumb',
+            'COLUMNS': '80',
+            'HOME': str(home),
+            **env,
+    }
+
+    # Avoid using a pager for the tests; see source code for `pydoc.getpager()` 
+    # in python standard library.
+    env.pop('MANPAGER', None)
+    env.pop('PAGER', None)
 
     # Stepwise only produces text output if (i) it detects that it is attached 
     # to a TTY or (ii) it is given the `-x` flag.  If neither condition is met, 

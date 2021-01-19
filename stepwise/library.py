@@ -625,7 +625,8 @@ class ProtocolIO:
         This behavior can also be forced with the `force_text` argument.
         """
         if sys.stdout.isatty() or force_text:
-            print(self.protocol)
+            from pydoc import pager
+            pager(str(self.protocol))
 
         else:
             # Raise if there's a broken pipe error.
