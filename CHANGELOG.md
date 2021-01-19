@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.15.0 (2021-01-19)
+### Feature
+* Use a pager to display long protocols ([`b420f95`](https://github.com/kalekundert/stepwise/commit/b420f959ac41c0dd8057e6d6e8d84c64c6709415))
+
 ## v0.14.0 (2021-01-18)
 ### Feature
 * Rename 'reactions' built-in command to 'conditions' ([`4f9ad51`](https://github.com/kalekundert/stepwise/commit/4f9ad512759226aaca767c3b51e7518be3c2941d))
