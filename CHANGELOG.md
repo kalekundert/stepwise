@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.16.0 (2021-01-20)
+### Feature
+* Make reaction tables less whitespace-sensitive ([`7f10b67`](https://github.com/kalekundert/stepwise/commit/7f10b6705e9ef4be11f0aff9bb79a4cfb5bc2011))
+
 ## v0.15.0 (2021-01-19)
 ### Feature
 * Use a pager to display long protocols ([`b420f95`](https://github.com/kalekundert/stepwise/commit/b420f959ac41c0dd8057e6d6e8d84c64c6709415))
