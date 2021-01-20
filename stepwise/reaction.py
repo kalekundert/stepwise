@@ -349,6 +349,16 @@ class Reaction:
             if k_given:
                 cols[k_std] = cols.pop(k_given)
 
+        # Strip whitespace:
+
+        def strip_if_str(x):
+            return x.strip() if isinstance(x, str) else x
+
+        cols = {
+                k: [strip_if_str(x) for x in v]
+                for k, v in cols.items()
+        }
+
         # Make sure the table makes sense:
 
         # - Make sure all the required columns are present.
@@ -393,9 +403,9 @@ class Reaction:
         del rxn.solvent
 
         def parse_bool(x):
-            if x in ('yes', 'y', 'x', 1):
+            if x in ('yes', 'y', 'x', '+', 1):
                 return True
-            if x in ('no', 'n', '', 0):
+            if x in ('no', 'n', '', '-', '−', 0):
                 return False
             raise UsageError(f"expected 'yes' or 'no', got '{x}'")
 

@@ -90,6 +90,9 @@ def test_require_matching_unit():
             (   '1 ng', Quantity(1, 'ng')),
             (   '1 µL', Quantity(1, 'µL')),
             (     '1%', Quantity(1, '%')),
+
+            # Misc
+            ( ' 1 ng ', Quantity(1, 'ng')),
 ])
 def test_from_string(given, expected):
     assert Quantity.from_string(given) == expected

@@ -725,6 +725,20 @@ def test_reaction_hold_ratios_no_solvent():
                 'w': ('5 µL',  ..., False),
                 'x': ('3 µL', '2x', False),
             }
+        ), (
+
+        # Whitespace:
+            {
+                'reagent': [' w ', ' x '],
+                'stock_conc': ['  ', ' 2x '],
+                'volume': [' to 8 µL ', ' 3 µL '],
+                'master_mix': [' y ', ' n '],
+            },
+            '8 µL', {
+                'w': ('5 µL',  ..., True),
+                'x': ('3 µL', '2x', False),
+            },
+
         )]
 )
 def test_reaction_from_cols(cols, volume, reagents):

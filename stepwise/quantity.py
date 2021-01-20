@@ -19,7 +19,7 @@ class Quantity:
     """
     FLOAT_REGEX = r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)'
     UNIT_REGEX = r'[^\s\d]+'
-    QUANTITY_REGEX = fr'^\s*({FLOAT_REGEX})\s*({UNIT_REGEX})$'
+    QUANTITY_REGEX = fr'^\s*({FLOAT_REGEX})\s*({UNIT_REGEX})\s*$'
     NO_PADDING = '%', 'x'
 
     @classmethod
