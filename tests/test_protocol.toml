@@ -286,6 +286,30 @@ steps_before = ['"Step [1]:"']
 steps_after  = ['"Step:"']
 footnotes_before = {1 = 'Footnote("Footnote 1")'}
 
+[[test_protocol_add_footnotes]]
+footnotes_new = []
+footnotes_before = {}
+footnotes_after = {}
+formatted_ids = ''
+
+[[test_protocol_add_footnotes]]
+footnotes_new = ['Footnote 1']
+footnotes_before = {}
+footnotes_after = {1 = 'Footnote("Footnote 1")'}
+formatted_ids = ' [1]'
+
+[[test_protocol_add_footnotes]]
+footnotes_new = ['Footnote 1', 'Footnote 2']
+footnotes_before = {}
+footnotes_after = {1 = 'Footnote("Footnote 1")', 2 = 'Footnote("Footnote 2")'}
+formatted_ids = ' [1,2]'
+
+[[test_protocol_add_footnotes]]
+footnotes_new = ['Footnote 3']
+footnotes_before = {2 = '"Footnote 2"'}
+footnotes_after = {2 = '"Footnote 2"', 3 = 'Footnote("Footnote 3")'}
+formatted_ids = ' [3]'
+
 [[test_protocol_pick_slug]]
 date = false
 commands = []

@@ -430,6 +430,17 @@ class Protocol:
         ]
         self.footnotes = {}
 
+    def add_footnotes(self, *footnotes):
+        i0 = max(self.footnotes, default=0) + 1
+        ii = []
+
+        for i, footnote in enumerate(footnotes, i0):
+            if footnote:
+                self.footnotes[i] = Footnote(footnote)
+                ii.append(i)
+
+        return f' [{format_range(ii)}]' if ii else ''
+
     def pick_slug(self):
         """
         Return a identifier for this protocol, e.g. that could be used as a 

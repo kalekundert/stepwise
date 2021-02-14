@@ -632,6 +632,14 @@ def test_protocol_clear_footnotes(steps_before, steps_after, footnotes_before):
     assert p.footnotes == {}
 
 @parametrize_via_toml('test_protocol.toml')
+def test_protocol_add_footnotes(footnotes_new, footnotes_before, footnotes_after, formatted_ids):
+    p = Protocol()
+    p.footnotes = eval_footnotes(footnotes_before)
+
+    assert p.add_footnotes(*footnotes_new) == formatted_ids
+    assert p.footnotes == eval_footnotes(footnotes_after)
+
+@parametrize_via_toml('test_protocol.toml')
 def test_protocol_pick_slug(date, commands, expected):
     date = None if date is False else arrow.get(date)
     p = Protocol(date=date, commands=commands)
