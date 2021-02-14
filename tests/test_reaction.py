@@ -914,6 +914,28 @@ def test_reaction_from_text_raises(text, err):
     with pytest.raises(UsageError, match=err):
         Reaction.from_text(text)
 
+def test_reaction_from_text_flags():
+    rxn = Reaction.from_text("""\
+            Reagent  Stock   Volume  MM?  Flags
+            =======  =====  =======  ===  =====
+            w               to 8 µL  yes  a
+            x           2x     3 µL   no  a,b
+    """)
+
+    assert rxn['w'].flags == {'a'}
+    assert rxn['x'].flags == {'a', 'b'}
+
+def test_reaction_from_text_catalog_num():
+    rxn = Reaction.from_text("""\
+            Reagent  Stock   Volume  MM?  Cat
+            =======  =====  =======  ===  ===
+            w               to 8 µL  yes
+            x           2x     3 µL   no  101
+    """)
+
+    assert rxn['w'].catalog_num == ''
+    assert rxn['x'].catalog_num == '101'
+
 @parametrize('solvent', ['water', 'acceptor', 'donor'])
 @parametrize_via_toml('test_reaction.toml')
 def test_fix_volumes(solvent, donor_before, acceptor_before, donor_after, acceptor_after):

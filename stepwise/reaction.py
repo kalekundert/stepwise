@@ -251,8 +251,8 @@ class Reaction:
 
         Here is an example table for a ligation reaction::
 
-            Reagent           Stock Conc    Volume  Master Mix
-            ================  ==========  ========  ==========
+            Reagent           Stock Conc    Volume  Master Mix  Flags
+            ================  ==========  ========  ==========  =====
             water                          6.75 μL         yes
             T4 ligase buffer         10x   1.00 μL         yes
             T4 PNK               10 U/μL   0.25 μL         yes
@@ -260,13 +260,15 @@ class Reaction:
             DpnI                 20 U/μL   0.25 μL         yes
             PCR product         50 ng/μL   1.50 μL
 
-        The first three columns are required, the fourth is optional.  The 
+        The first three columns are required, the rest are optional.  The 
         column headers must exactly match the following:
 
         - "Reagent"
         - "Stock" or "Stock Conc"
         - "Volume"
         - "Master Mix" or "MM?"
+        - "Flags"
+        - "Catalog #" or "Cat"
 
         Extra columns will be ignored.  The columns are delineated by looking 
         for breaks of at least 2 spaces in the underline below the header.  
@@ -284,7 +286,7 @@ class Reaction:
 
         column_slices = [
                 slice(x.start(), x.end())
-                for x in re.finditer('[-=]+', lines[1])
+                for x in re.finditer(r'[-=]+', lines[1])
         ]
         def split_columns(line):
             return tuple(line[x].strip() for x in column_slices)
@@ -309,39 +311,46 @@ class Reaction:
         - "Stock" or "Stock Conc"
         - "Volume"
         - "Master Mix" or "MM?"
+        - "Catalog #" or "Cat"
+        - "Flags"
 
-        The values in the "Reagent" column must be strings.  The values in the 
-        "Stock Conc" and "Volume" columns must be strings containing a number 
-        and a unit, i.e. compatible with `Quantity.from_string()`.  The values 
-        in the "Master Mix" column can be either booleans or the strings "yes", 
-        "y", "no", or "n".
+        The values in the "Reagent" and "Catalog #" columns must be strings.  
+        The values in the "Stock Conc" and "Volume" columns must be strings 
+        containing a number and a unit, i.e. compatible with 
+        `Quantity.from_string()`.  The values in the "Master Mix" column can be 
+        either booleans or the strings "yes", "y", "no", or "n".  The values in 
+        the "Flags" column should be a comma-separated list of keywords.
         """
 
         # Use consistent column names:
 
         column_aliases = {
                 'volume': {
-                    'volume',
                     'Volume',
                 },
                 'reagent': {
-                    'reagent',
                     'Reagent',
                 },
                 'stock_conc': {
-                    'stock_conc',
                     'Stock Conc',
                     'Stock',
                 },
                 'master_mix': {
-                    'master_mix',
                     'Master Mix',
                     'MM?',
+                },
+                'catalog_num': {
+                    'Catalog #',
+                    'Cat',
+                },
+                'flags': {
+                    'Flags',
                 },
         }
         given_keys = set(cols.keys())
 
         for k_std, aliases in column_aliases.items():
+            aliases.add(k_std)
             k_given = only(
                     (k_match := aliases & given_keys),
                     too_long=UsageError(f"multiple {k_std!r} columns found: {', '.join(repr(x) for x in sorted(k_match))}"),
@@ -386,11 +395,13 @@ class Reaction:
         if num_rows == 0:
             raise UsageError("reaction must have at least one reagent.")
 
-        def optional_column(key, default):
+        def optional_column(key, default=''):
             if key not in cols:
                 cols[key] = num_rows * [default]
         
-        optional_column('master_mix', True)
+        optional_column('master_mix', 'y')
+        optional_column('catalog_num')
+        optional_column('flags')
 
         if not all(cols['reagent']):
             raise UsageError("some reagents are missing names.")
@@ -409,6 +420,9 @@ class Reaction:
                 return False
             raise UsageError(f"expected 'yes' or 'no', got '{x}'")
 
+        def parse_comma_set(x):
+            return set(x.split(','))
+
         for i in range(num_rows):
             is_solvent = cols['volume'][i].startswith('to')
 
@@ -423,6 +437,8 @@ class Reaction:
 
             reagent = rxn.add_reagent(cols['reagent'][i])
             reagent.master_mix = parse_bool(cols['master_mix'][i])
+            reagent.catalog_num = cols['catalog_num'][i]
+            reagent.flags = parse_comma_set(cols['flags'][i])
 
             if (x := cols['stock_conc'][i]):
                 reagent.stock_conc = x
@@ -600,6 +616,8 @@ class Reagent:
 
         self.master_mix = False
         self.order = None
+        self.flags = set()
+        self.catalog_num = None
 
     def __repr__(self):
         reaction_id = str(id(self._reaction))[-4:]
