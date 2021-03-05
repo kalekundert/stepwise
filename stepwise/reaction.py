@@ -464,6 +464,11 @@ class Reaction:
             if reagent.key != self._solvent:
                 yield reagent
 
+    def iter_reagents_by_flag(self, flag):
+        for reagent in self:
+            if flag in reagent.flags:
+                yield reagent
+
     def get_volume(self):
         if self._solvent:
             return self._volume
@@ -866,6 +871,8 @@ class Solvent:
         self._stock_conc = None
         self.master_mix = True
         self.order = None
+        self.flags = set()
+        self.catalog_num = None
 
     def __repr__(self):
         reaction_id = str(id(self._reaction))[-4:]

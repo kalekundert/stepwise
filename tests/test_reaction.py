@@ -452,6 +452,41 @@ def test_reaction_iter_sorting_solvent():
     rxn['x'].order = 1
     assert as_list(rxn) == ['x', 'w']
 
+def test_reaction_iter_non_solvent():
+    as_list = lambda rxn: [x.name for x in rxn]
+
+    rxn = Reaction()
+    rxn.solvent = None
+    assert as_list(rxn.iter_non_solvent_reagents()) == []
+
+    rxn.solvent = 'w'
+    assert as_list(rxn.iter_non_solvent_reagents()) == []
+
+    rxn['x']
+    assert as_list(rxn.iter_non_solvent_reagents()) == ['x']
+
+def test_reaction_iter_by_flag():
+    as_list = lambda rxn: [x.name for x in rxn]
+
+    rxn = Reaction()
+    rxn.solvent = None
+    assert as_list(rxn.iter_reagents_by_flag('a')) == []
+
+    rxn.solvent = 'w'
+    assert as_list(rxn.iter_reagents_by_flag('a')) == []
+    rxn['w'].flags.add('a')
+    assert as_list(rxn.iter_reagents_by_flag('a')) == ['w']
+    rxn['w'].flags.remove('a')
+    assert as_list(rxn.iter_reagents_by_flag('a')) == []
+
+    rxn['x']
+    assert as_list(rxn.iter_reagents_by_flag('a')) == []
+    rxn['x'].flags.add('a')
+    assert as_list(rxn.iter_reagents_by_flag('a')) == ['x']
+    rxn['x'].flags.remove('a')
+    assert as_list(rxn.iter_reagents_by_flag('a')) == []
+
+
 def test_reaction_len_contains():
     rxn = Reaction()
     rxn.solvent = None
