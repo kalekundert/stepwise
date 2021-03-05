@@ -49,11 +49,11 @@ Options:
     -n --num-reactions <int>        [default: 1]
         The number of reactions to setup.
 
-    -v --volume <float>
+    -v --volume <expr>
         Scale the reaction to the given volume.  This volume is taken to be in 
         the same unit as all of the reagents.
 
-    -V --volume-factor <float>
+    -V --volume-factor <expr>
         Multiply the volume of the reaction by the given factor.  This option 
         is applied after the '--volume' flag.
 
@@ -116,9 +116,9 @@ rxn = stepwise.MasterMix.from_cols(cols)
 rxn.num_reactions = int(args['--num-reactions'])
 
 if x := args['--volume']:
-    rxn.hold_ratios.volume = float(x), rxn.volume.unit
+    rxn.hold_ratios.volume = eval(x), rxn.volume.unit
 if x := args['--volume-factor']:
-    rxn.hold_ratios.volume *= float(x)
+    rxn.hold_ratios.volume *= eval(x)
 if x := args['--extra-percent']:
     rxn.extra_percent = float(x)
 if x := args['--extra-reactions']:
