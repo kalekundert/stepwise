@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v0.17.0 (2021-03-07)
+### Feature
+* Add better text formatting tools ([`bc8cb01`](https://github.com/kalekundert/stepwise/commit/bc8cb01f3a166d675022e155a241cb5db623fadf))
+* Implement Reaction.iter_reagents_by_flag() ([`8261088`](https://github.com/kalekundert/stepwise/commit/8261088343962dfcc6155624cf105149303f7905))
+* Allow `sw reaction` to eval volume arguments ([`33776cc`](https://github.com/kalekundert/stepwise/commit/33776cc8e577f5da174eeba89d18a43be14a1c31))
+* Add options to the 'reaction' command ([`2638b5c`](https://github.com/kalekundert/stepwise/commit/2638b5cfbbbf2d7907de2e0777c56cd9406e4664))
+* Provide method to simultaneously add and format footnotes ([`bbbd11a`](https://github.com/kalekundert/stepwise/commit/bbbd11a730629d10384d6d3621bc535a7234783d))
+* Parse catalog numbers and flags for reaction tables ([`5c6dab3`](https://github.com/kalekundert/stepwise/commit/5c6dab357518b20750d6f1c74c982e41aec6268a))
+
 ## v0.16.0 (2021-01-20)
 ### Feature
 * Make reaction tables less whitespace-sensitive ([`7f10b67`](https://github.com/kalekundert/stepwise/commit/7f10b6705e9ef4be11f0aff9bb79a4cfb5bc2011))
