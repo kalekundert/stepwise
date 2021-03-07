@@ -1,0 +1,551 @@
+[[test_preformatted_format_text]]
+obj = '"a b"'
+width = 1
+expected = "a b"
+
+[[test_preformatted_format_text]]
+obj = '"a\nb"'
+width = 1
+expected = "a\nb"
+
+[[test_preformatted_format_text]]
+obj = 'pl("a b")'
+width = 1
+expected = "a b"
+
+[[test_preformatted_replace_text]]
+obj = '"[1]"'
+pattern = '\d'
+repl = "2"
+expected = '"[2]"'
+
+[[test_preformatted_replace_text]]
+obj = 'pl("[1]")'
+pattern = '\d'
+repl = "2"
+expected = 'pl("[2]")'
+
+
+[[test_unordered_list_format_text]]
+items = []
+prefix = "- "
+br = "\n"
+width = 5
+expected = ""
+
+[[test_unordered_list_format_text]]
+items = ['"a"']
+prefix = "- "
+br = "\n"
+width = 5
+expected = "- a"
+
+[[test_unordered_list_format_text]]
+items = ['pl("a", "b")']
+prefix = "- "
+br = "\n"
+width = 5
+expected = """
+- a
+
+  b"""
+
+[[test_unordered_list_format_text]]
+items = ['"a"', '"b"']
+prefix = "- "
+br = "\n"
+width = 5
+expected = """
+- a
+- b"""
+
+[[test_unordered_list_format_text]]
+items = ['"a"', '""']
+prefix = "- "
+br = "\n"
+width = 5
+expected = """
+- a"""
+
+[[test_unordered_list_format_text]]
+items = ['"a"', 'ul()']
+prefix = "- "
+br = "\n"
+width = 5
+expected = """
+- a"""
+
+[[test_unordered_list_format_text]]
+items = ['"a b"']
+prefix = "- "
+br = "\n"
+width = 5
+expected = """
+- a b"""
+
+[[test_unordered_list_format_text]]
+items = ['"a b c"']
+prefix = "- "
+br = "\n"
+width = 5
+expected = """
+- a b
+  c"""
+
+[[test_unordered_list_format_text]]
+items = ['"a b"']
+prefix = "-- "
+br = "\n"
+width = 5
+expected = """
+-- a
+   b"""
+
+[[test_unordered_list_format_text]]
+items = ['"a"', '"b"']
+prefix = "[ ] "
+br = "\n"
+width = 5
+expected = """
+[ ] a
+[ ] b"""
+
+[[test_unordered_list_format_text]]
+items = ['"a"', '"b"']
+prefix = "- "
+br = "\n\n"
+width = 5
+expected = """
+- a
+
+- b"""
+
+
+[[test_ordered_list_format_text]]
+items = []
+start = 1
+indices = []
+prefix = '{}. '
+br = "\n"
+width = 6
+expected = ""
+
+[[test_ordered_list_format_text]]
+items = ['"a"']
+start = 1
+indices = []
+prefix = '{}. '
+br = "\n"
+width = 6
+expected = "1. a"
+
+[[test_ordered_list_format_text]]
+items = ['pl("a", "b")']
+start = 1
+indices = []
+prefix = '{}. '
+br = "\n"
+width = 6
+expected = """
+1. a
+
+   b"""
+
+[[test_ordered_list_format_text]]
+items = ['"a"', '"b"']
+start = 1
+indices = []
+prefix = '{}. '
+br = "\n"
+width = 6
+expected = """
+1. a
+2. b"""
+
+[[test_ordered_list_format_text]]
+items = ['"a"', '""']
+start = 1
+indices = []
+prefix = '{}. '
+br = "\n"
+width = 6
+expected = """
+1. a"""
+
+[[test_ordered_list_format_text]]
+items = ['"a"', 'ol()']
+start = 1
+indices = []
+prefix = '{}. '
+br = "\n"
+width = 6
+expected = """
+1. a"""
+
+[[test_ordered_list_format_text]]
+items = ['"a b"']
+start = 1
+indices = []
+prefix = '{}. '
+br = "\n"
+width = 6
+expected = """
+1. a b"""
+
+[[test_ordered_list_format_text]]
+items = ['"a b c"']
+start = 1
+indices = []
+prefix = '{}. '
+br = "\n"
+width = 6
+expected = """
+1. a b
+   c"""
+
+[[test_ordered_list_format_text]]
+items = ['"a"', '"b"']
+start = 9
+indices = []
+prefix = '{}. '
+br = "\n"
+width = 6
+expected = """
+ 9. a
+10. b"""
+
+[[test_ordered_list_format_text]]
+items = ['"a b"']
+start = 10
+indices = []
+prefix = '{}. '
+br = "\n"
+width = 6
+expected = """
+10. a
+    b"""
+
+[[test_ordered_list_format_text]]
+items = ['"a"', '"b"']
+start = 1
+indices = [10, 9]
+prefix = '{}. '
+br = "\n"
+width = 6
+expected = """
+10. a
+ 9. b"""
+
+[[test_ordered_list_format_text]]
+items = ['"a"', '"b c"']
+start = 1
+indices = []
+prefix = '[{}] '
+br = "\n"
+width = 6
+expected = """
+[1] a
+[2] b
+    c"""
+
+[[test_ordered_list_format_text]]
+items = ['"a"', '"b"']
+start = 1
+indices = []
+prefix = '{}. '
+br = "\n\n"
+width = 6
+expected = """
+1. a
+
+2. b"""
+
+
+[[test_paragraph_list_format_text]]
+items = []
+width = 3
+expected = ""
+
+[[test_paragraph_list_format_text]]
+items = ['"a"']
+width = 3
+expected = "a"
+
+[[test_paragraph_list_format_text]]
+items = ['ul("a", "b")']
+width = 3
+expected = """
+- a
+- b"""
+
+[[test_paragraph_list_format_text]]
+items = ['"a"', '"b"']
+width = 3
+expected = "a\n\nb"
+
+[[test_paragraph_list_format_text]]
+items = ['ul("a", "b")', 'ul("c", "d")']
+width = 3
+expected = """
+- a
+- b
+
+- c
+- d"""
+
+[[test_paragraph_list_format_text]]
+items = ['"a"', '""']
+width = 3
+expected = "a"
+
+[[test_paragraph_list_format_text]]
+items = ['"a"', 'pl()']
+width = 3
+expected = "a"
+
+[[test_paragraph_list_format_text]]
+items = ['"a b"']
+width = 3
+expected = "a b"
+
+[[test_paragraph_list_format_text]]
+items = ['"a b c"']
+width = 3
+expected = "a b\nc"
+
+
+[[test_list_replace_text]]
+items = []
+pattern = '\d'
+repl = "2"
+expected = []
+
+[[test_list_replace_text]]
+items = ["a"]
+pattern = '\d'
+repl = "2"
+expected = ["a"]
+
+[[test_list_replace_text]]
+items = ["[1]"]
+pattern = '\d'
+repl = "2"
+expected = ["[2]"]
+
+[[test_list_replace_text]]
+items = ["a", "[1]"]
+pattern = '\d'
+repl = "2"
+expected = ["a", "[2]"]
+
+[[test_list_replace_text]]
+items = ["[1]", "b"]
+pattern = '\d'
+repl = "2"
+expected = ["[2]", "b"]
+
+
+[[test_format_text]]
+obj = '""'
+width = 5
+expected = '""'
+
+[[test_format_text]]
+obj = '"a b c"'
+width = 2
+expected = '"a\nb\nc"'
+
+[[test_format_text]]
+obj = '"a b c"'
+width = "NO_WRAP"
+expected = '"a b c"'
+
+[[test_format_text]]
+obj = '"a b c"'
+width = "inf"
+expected = '"a b c"'
+
+[[test_format_text]]
+obj = '"a \nb \nc"'
+width = 2
+expected = '"a\nb\nc"'
+
+[[test_format_text]]
+obj = '"a b c"'
+width = 3
+expected = '"a b\nc"'
+
+[[test_format_text]]
+obj = '"a \nb \nc"'
+width = 3
+expected = '"a b\nc"'
+
+[[test_format_text]]
+obj = 'pre("a b c")'
+width = 3
+expected = '"a b c"'
+
+[[test_format_text]]
+obj = '"a b c"'
+width = 5
+expected = '"a b c"'
+
+[[test_format_text]]
+obj = '"a \nb \nc"'
+width = 5
+expected = '"a b c"'
+
+[[test_format_text]]
+obj = 'pl("a", ul("b", "c"))'
+width = 5
+expected = '"a\n\n- b\n- c"'
+
+[[test_format_text]]
+# Preserve paragraph breaks.
+obj = '"a b\n\nc"'
+width = 5
+expected = '"a b\n\nc"'
+
+[[test_format_text]]
+# Remove extra space between paragraphs.
+obj = '"a b\n\n\nc"'
+width = 5
+expected = '"a b\n\nc"'
+
+[[test_format_text]]
+# Drop leading whitespace
+obj = '" a b c"'
+width = 3
+expected = '"a b\nc"'
+
+[[test_format_text]]
+# Don't break references.
+obj = '"[1]"'
+width = 1
+expected = '"[1]"'
+
+
+[[test_format_list_item]]
+obj = '""'
+prefix = "- "
+width = 5
+expected = '"- "'
+
+[[test_format_list_item]]
+obj = '"a"'
+prefix = "- "
+width = 5
+expected = '"- a"'
+
+[[test_format_list_item]]
+obj = '"a b c"'
+prefix = "- "
+width = 5
+expected = '"- a b\n  c"'
+
+[[test_format_list_item]]
+obj = 'pl("a", "b")'
+prefix = "- "
+width = 5
+expected = '"- a\n\n  b"'
+
+[[test_format_list_item]]
+obj = 'pre("a b c")'
+prefix = "- "
+width = 5
+expected = '"- a b c"'
+
+[[test_format_list_item]]
+obj = '"a \nb"'
+prefix = "- "
+width = 5
+expected = '"- a b"'
+
+[[test_format_list_item]]
+obj = '"a\n\nb"'
+prefix = "- "
+width = 5
+expected = '"- a\n\n  b"'
+
+
+[[test_replace_text]]
+obj = '""'
+pattern = '\d'
+repl = '2'
+reverse = false
+count = 0
+expected = '""'
+n = 0
+
+[[test_replace_text]]
+obj = '"a"'
+pattern = '\d'
+repl = '2'
+reverse = false
+count = 0
+expected = '"a"'
+n = 0
+
+[[test_replace_text]]
+obj = '"[1]"'
+pattern = '\d'
+repl = '2'
+reverse = false
+count = 0
+expected = '"[2]"'
+n = 1
+
+[[test_replace_text]]
+obj = '"[1] [1]"'
+pattern = '\d'
+repl = '2'
+reverse = false
+count = 0
+expected = '"[2] [2]"'
+n = 2
+
+[[test_replace_text]]
+obj = '"[1] [1]"'
+pattern = '\d'
+repl = '2'
+reverse = false
+count = 1
+expected = '"[2] [1]"'
+n = 1
+
+[[test_replace_text]]
+obj = '"[1] [1]"'
+pattern = '\d'
+repl = '2'
+reverse = true
+count = 1
+expected = '"[1] [2]"'
+n = 1
+
+[[test_replace_text]]
+id = 'nested'
+obj = 'pl("[1]", ul("[1]"))'
+pattern = '\d'
+repl = '2'
+reverse = false
+count = 0
+expected = 'pl("[2]", ul("[2]"))'
+n = 2
+
+[[test_replace_text]]
+obj = 'pl("[1]", "[1]")'
+pattern = '\d'
+repl = '2'
+reverse = false
+count = 1
+expected = 'pl("[2]", "[1]")'
+n = 1
+
+[[test_replace_text]]
+obj = 'pl("[1]", "[1]")'
+pattern = '\d'
+repl = '2'
+reverse = true
+count = 1
+expected = 'pl("[1]", "[2]")'
+n = 1

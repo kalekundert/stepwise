@@ -1023,24 +1023,24 @@ def test_api_get_next_id(empty_db):
 
 @pytest.fixture
 def empty_stash():
-    check_command('stepwise stash clear')
-    check_command('stepwise stash reset')
+    check_command('sw stash clear')
+    check_command('sw stash reset')
 
 @pytest.fixture
 def full_stash(empty_stash):
-    check_command('stepwise step X | stepwise stash -m M')
-    check_command('stepwise step Y | stepwise stash -c A')
-    check_command('stepwise step Z | stepwise stash -d 1')
+    check_command('sw step X | sw stash -m M')
+    check_command('sw step Y | sw stash -c A')
+    check_command('sw step Z | sw stash -d 1')
 
 
 @pytest.mark.slow
 def test_cli_ls_empty(empty_stash):
-    check_command('stepwise stash ls', '^No stashed protocols.$')
-    check_command('stepwise stash', '^No stashed protocols.$')
+    check_command('sw stash ls', '^No stashed protocols.$')
+    check_command('sw stash', '^No stashed protocols.$')
 
 @pytest.mark.slow
 def test_cli_ls_full(full_stash):
-    check_command('stepwise stash ls -D', '''\
+    check_command('sw stash ls -D', '''\
 #  Dep  Name  Category  Message
 ───────────────────────────────
 1       step            M
@@ -1050,41 +1050,41 @@ def test_cli_ls_full(full_stash):
 
 @pytest.mark.slow
 def test_cli_ls_categories(empty_stash):
-    check_command('stepwise step X | stepwise stash -c A')
-    check_command('stepwise step Y | stepwise stash -c A,B')
+    check_command('sw step X | sw stash -c A')
+    check_command('sw step Y | sw stash -c A,B')
 
-    check_command('stepwise stash ls', '''\
+    check_command('sw stash ls', '''\
 #  Name  Category  Message
 ──────────────────────────
 1  step  A
 2  step  A,B
 ''')
 
-    check_command('stepwise stash ls -c A', '''\
+    check_command('sw stash ls -c A', '''\
 #  Name  Category  Message
 ──────────────────────────
 1  step  A
 2  step  A,B
 ''')
 
-    check_command('stepwise stash ls -c B', '''\
+    check_command('sw stash ls -c B', '''\
 #  Name  Category  Message
 ──────────────────────────
 2  step  A,B
 ''')
 
-    check_command('stepwise stash ls -c C', '''\
+    check_command('sw stash ls -c C', '''\
 No matching protocols found.
 ''')
 
 @pytest.mark.slow
 def test_cli_ls_dependencies(empty_stash):
-    check_command('stepwise step 1 | stepwise stash')
-    check_command('stepwise step 2 | stepwise stash -d 1')
-    check_command('stepwise step 3 | stepwise stash -d 1')
-    check_command('stepwise step 4 | stepwise stash -d 2,3')
+    check_command('sw step 1 | sw stash')
+    check_command('sw step 2 | sw stash -d 1')
+    check_command('sw step 3 | sw stash -d 1')
+    check_command('sw step 4 | sw stash -d 2,3')
 
-    check_command('stepwise stash -D', '''\
+    check_command('sw stash -D', '''\
 #  Dep  Name  Message
 ─────────────────────
 1       step
@@ -1093,39 +1093,39 @@ def test_cli_ls_dependencies(empty_stash):
 4  2,3  step
 ''')
 
-    check_command('stepwise stash', '''\
+    check_command('sw stash', '''\
 #  Name  Message
 ────────────────
 1  step
 ''')
 
-    check_command('stepwise stash -d 1', '''\
+    check_command('sw stash -d 1', '''\
 #  Dep  Name  Message
 ─────────────────────
 2    1  step
 3    1  step
 ''')
 
-    check_command('stepwise stash -d 2', '''\
+    check_command('sw stash -d 2', '''\
 #  Dep  Name  Message
 ─────────────────────
 4  2,3  step
 ''')
 
-    check_command('stepwise stash -d 3', '''\
+    check_command('sw stash -d 3', '''\
 #  Dep  Name  Message
 ─────────────────────
 4  2,3  step
 ''')
 
-    check_command('stepwise stash -d 4', '''\
+    check_command('sw stash -d 4', '''\
 No matching protocols found.
 ''')
 
     # Complete a dependency:
-    check_command('stepwise stash drop 1')
+    check_command('sw stash drop 1')
 
-    check_command('stepwise stash -D', '''\
+    check_command('sw stash -D', '''\
 #  Dep  Name  Message
 ─────────────────────
 2       step
@@ -1133,7 +1133,7 @@ No matching protocols found.
 4  2,3  step
 ''')
 
-    check_command('stepwise stash', '''\
+    check_command('sw stash', '''\
 #  Name  Message
 ────────────────
 2  step
@@ -1142,17 +1142,17 @@ No matching protocols found.
 
 @pytest.mark.slow
 def test_cli_ls_completed(empty_stash):
-    check_command('stepwise step 1 | stepwise stash')
-    check_command('stepwise step 2 | stepwise stash')
-    check_command('stepwise stash drop 2')
+    check_command('sw step 1 | sw stash')
+    check_command('sw step 2 | sw stash')
+    check_command('sw stash drop 2')
 
-    check_command('stepwise stash ls', '''\
+    check_command('sw stash ls', '''\
 #  Name  Message
 ────────────────
 1  step
 ''')
 
-    check_command('stepwise stash ls -a', '''\
+    check_command('sw stash ls -a', '''\
 #  Name  Message
 ────────────────
 1  step
@@ -1166,79 +1166,79 @@ def test_cli_add(empty_stash):
 
 @pytest.mark.slow
 def test_cli_edit(empty_stash):
-    check_command('stepwise step X | stepwise stash')
-    check_command('stepwise step Y | stepwise stash')
-    check_command('stepwise stash -a', '''\
+    check_command('sw step X | sw stash')
+    check_command('sw step Y | sw stash')
+    check_command('sw stash -a', '''\
 #  Name  Message
 ────────────────
 1  step
 2  step
 ''')
-    check_command('stepwise stash peek 1', '''\
+    check_command('sw stash peek 1', '''\
 {DATE}
 
-\\$ stepwise step X
+\\$ sw step X
 
 1\\. X
 ''')
     
-    check_command('stepwise stash edit 1 -m M')
-    check_command('stepwise stash -a', '''\
+    check_command('sw stash edit 1 -m M')
+    check_command('sw stash -a', '''\
 #  Name  Message
 ────────────────
 1  step  M
 2  step
 ''')
 
-    check_command('stepwise stash edit 1 -c A')
-    check_command('stepwise stash -a', '''\
+    check_command('sw stash edit 1 -c A')
+    check_command('sw stash -a', '''\
 #  Name  Category  Message
 ──────────────────────────
 1  step  A         M
 2  step
 ''')
 
-    check_command('stepwise stash edit 1 -d 2')
-    check_command('stepwise stash -a', '''\
+    check_command('sw stash edit 1 -d 2')
+    check_command('sw stash -a', '''\
 #  Dep  Name  Category  Message
 ───────────────────────────────
 1    2  step  A         M
 2       step
 ''')
 
-    check_command('stepwise step Z | stepwise stash edit 1')
-    check_command('stepwise stash -a', '''\
+    check_command('sw step Z | sw stash edit 1')
+    check_command('sw stash -a', '''\
 #  Dep  Name  Category  Message
 ───────────────────────────────
 1    2  step  A         M
 2       step
 ''')
-    check_command('stepwise stash peek 1', '''\
+    check_command('sw stash peek 1', '''\
 {DATE}
 
-\\$ stepwise step Z
+\\$ sw step Z
 
 1\\. Z
 ''')
 
-    check_command('stepwise stash edit 1 -x -m N')
-    check_command('stepwise stash -a', '''\
+    check_command('sw stash edit 1 -x -m N')
+    check_command('sw stash -a', '''\
 #  Name  Message
 ────────────────
 1  step  N
 2  step
 ''')
 
-    check_command('stepwise stash edit 1 -x -c B')
-    check_command('stepwise stash -a', '''\
+    check_command('sw stash edit 1 -x -c B')
+    check_command('sw stash -a', '''\
 #  Name  Category  Message
 ──────────────────────────
 1  step  B
 2  step
 ''')
 
-    check_command('stepwise stash edit 1 -x -d 2')
-    check_command('stepwise stash -a', '''\
+    check_command('sw stash edit 1 -x -d 2')
+    check_command('sw stash -a', '''\
 #  Dep  Name  Message
 ─────────────────────
 1    2  step
@@ -1247,14 +1247,14 @@ def test_cli_edit(empty_stash):
 
 @pytest.mark.slow
 def test_cli_peek(full_stash):
-    check_command('stepwise stash peek 1', '''\
+    check_command('sw stash peek 1', '''\
 {DATE}
 
-\\$ stepwise step X
+\\$ sw step X
 
 1\\. X
 ''')
-    check_command('stepwise stash -D', '''\
+    check_command('sw stash -D', '''\
 #  Dep  Name  Category  Message
 ───────────────────────────────
 1       step            M
@@ -1264,14 +1264,14 @@ def test_cli_peek(full_stash):
 
 @pytest.mark.slow
 def test_cli_pop(full_stash):
-    check_command('stepwise stash pop 1', '''\
+    check_command('sw stash pop 1', '''\
 {DATE}
 
-\\$ stepwise step X
+\\$ sw step X
 
 1\\. X
 ''')
-    check_command('stepwise stash', '''\
+    check_command('sw stash', '''\
 #  Name  Category  Message
 ──────────────────────────
 2  step  A
@@ -1279,24 +1279,24 @@ def test_cli_pop(full_stash):
 ''')
 
     # Can still view a popped protocol, even though it's not listed anymore.
-    check_command('stepwise stash pop 1', '''\
+    check_command('sw stash pop 1', '''\
 {DATE}
 
-\\$ stepwise step X
+\\$ sw step X
 
 1\\. X
 ''')
 
 @pytest.mark.slow
 def test_cli_drop_restore(full_stash):
-    check_command('stepwise stash drop 1')
-    check_command('stepwise stash', '''\
+    check_command('sw stash drop 1')
+    check_command('sw stash', '''\
 #  Name  Category  Message
 ──────────────────────────
 2  step  A
 3  step
 ''')
-    check_command('stepwise stash -a', '''\
+    check_command('sw stash -a', '''\
 #  Name  Category  Message
 ──────────────────────────
 1  step            M
@@ -1304,8 +1304,8 @@ def test_cli_drop_restore(full_stash):
 3  step
 ''')
 
-    check_command('stepwise stash restore 1')
-    check_command('stepwise stash -D', '''\
+    check_command('sw stash restore 1')
+    check_command('sw stash -D', '''\
 #  Dep  Name  Category  Message
 ───────────────────────────────
 1       step            M
@@ -1315,9 +1315,9 @@ def test_cli_drop_restore(full_stash):
 
 @pytest.mark.slow
 def test_cli_clear(full_stash):
-    check_command('stepwise stash clear')
-    check_command('stepwise stash', '^No stashed protocols.$')
-    check_command('stepwise stash -a', '''\
+    check_command('sw stash clear')
+    check_command('sw stash', '^No stashed protocols.$')
+    check_command('sw stash -a', '''\
 #  Name  Category  Message
 ──────────────────────────
 1  step            M
@@ -1327,9 +1327,9 @@ def test_cli_clear(full_stash):
 
 @pytest.mark.slow
 def test_cli_reset(empty_stash):
-    check_command('stepwise step 1 | stepwise stash')
-    check_command('stepwise step 2 | stepwise stash -c A -d 1')
-    check_command('stepwise stash -D', '''\
+    check_command('sw step 1 | sw stash')
+    check_command('sw step 2 | sw stash -c A -d 1')
+    check_command('sw stash -D', '''\
 #  Dep  Name  Category  Message
 ───────────────────────────────
 1       step
@@ -1339,24 +1339,24 @@ def test_cli_reset(empty_stash):
 
     # - ID numbers update
     # - Categories and dependencies not confused by changing id numbers.
-    check_command('stepwise stash drop 1')
-    check_command('stepwise stash reset')
-    check_command('stepwise stash -D', '''\
+    check_command('sw stash drop 1')
+    check_command('sw stash reset')
+    check_command('sw stash -D', '''\
 #  Name  Category  Message
 ──────────────────────────
 1  step  A
 ''')
 
-    check_command('stepwise stash drop 1')
-    check_command('stepwise stash reset')
-    check_command('stepwise stash -a', '''\
+    check_command('sw stash drop 1')
+    check_command('sw stash reset')
+    check_command('sw stash -a', '''\
 No stashed protocols.
 ''')
 
     # - Categories and dependencies don't persist across resets.
-    check_command('stepwise step 1 | stepwise stash')
-    check_command('stepwise step 2 | stepwise stash')
-    check_command('stepwise stash -D', '''\
+    check_command('sw step 1 | sw stash')
+    check_command('sw step 2 | sw stash')
+    check_command('sw stash -D', '''\
 #  Name  Message
 ────────────────
 1  step

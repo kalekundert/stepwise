@@ -4,15 +4,15 @@ import sys, shlex, re, textwrap
 import arrow, inform
 from pathlib import Path
 from inform import plural, parse_range, format_range
-from .printer import Printer
+from .format import Block, paragraph_list, ordered_list, unordered_list, preformatted
+from .format import format_text, replace_text, NO_WRAP
 from .errors import *
 
 import functools
 
 class Protocol:
-    # Steps can either be strings or Step objects.  Strings are used verbatim, 
-    # i.e. there's no attempt to be smart with them.  Steps try to be smart 
-    # about line wrapping and such.
+    # Steps can either be strings or formatting objects.  Strings will be 
+    # automatically wrapped; use `format.preformatted` to prevent this.
 
     BLANK_REGEX = r'^\s*$|^#.*'
     DATE_FORMAT = 'MMMM D, YYYY'
@@ -33,9 +33,6 @@ class Protocol:
     def __repr__(self):
         return f'Protocol(date={self.date!r}, commands={self.commands!r}, steps={self.steps!r}, footnotes={self.footnotes!r})'
 
-    def __str__(self):
-        return self.show()
-    
     def __bool__(self):
         return bool(self.steps)
 
@@ -49,40 +46,36 @@ class Protocol:
     def __getitem__(self, i):
         return self.steps[i]
 
-    @property
-    def s(self):
-        """Shorthand for the last step."""
-        return self.steps[-1]
-
-    @property
-    def step(self):
-        """Shorthand for the last step."""
-        return self.steps[-1]
-
     @classmethod
     def parse(cls, x):
+        """
+        Construct a protocol from a stream (i.e. an open file object), a 
+        string, of a list of lines.
+
+        No line-wrapping will be applied to the content parsed by this method.
+        """
         from io import IOBase
         from collections.abc import Sequence
 
         if isinstance(x, IOBase):
-            return cls.parse_stream(x)
+            return cls._parse_stream(x)
         if isinstance(x, str):
-            return cls.parse_str(x)
+            return cls._parse_str(x)
         if isinstance(x, Sequence):
-            return cls.parse_lines(x)
+            return cls._parse_lines(x)
 
         raise ParseError(f"expected stream or string or list-like, not {type(x)}")
 
     @classmethod
-    def parse_stream(cls, stream):
-        return cls.parse_str(stream.read())
+    def _parse_stream(cls, stream):
+        return cls._parse_str(stream.read())
 
     @classmethod
-    def parse_str(cls, text):
-        return cls.parse_lines(text.splitlines())
+    def _parse_str(cls, text):
+        return cls._parse_lines(text.splitlines())
 
     @classmethod
-    def parse_lines(cls, lines):
+    def _parse_lines(cls, lines):
         protocol = cls()
 
         class Transition:
@@ -203,9 +196,15 @@ class Protocol:
                     current_parser = transition.next_parser
                     current_state = transition.next_state
 
-            # Clean up blank lines.
-            protocol.steps = [x.strip() for x in protocol.steps]
-            protocol.footnotes = {k: v.strip() for k,v in protocol.footnotes.items()}
+            # Clean up blank lines.  
+            protocol.steps = [
+                    preformatted(x.strip())
+                    for x in protocol.steps
+            ]
+            protocol.footnotes = {
+                    k: preformatted(v.strip())
+                    for k, v in protocol.footnotes.items()
+            }
 
             # Clean up footnotes.
             check_footnotes(protocol.footnotes)
@@ -216,68 +215,39 @@ class Protocol:
         except ParseError as err:
             err.reraise(content='\n'.join(lines))
         
-    def show(self):
-        s = ''.join([
-                self.show_date(),
-                self.show_commands(),
-                self.show_steps(),
-                self.show_footnotes(),
-        ])
-        return s.rstrip()
+    def format_text(self, width):
+        pl = paragraph_list(
+                self._format_date(),
+                self._format_commands(),
+                self._format_steps(),
+                self._format_footnotes(),
+        )
+        return pl.format_text(width)
 
-    def show_date(self):
-        s = ''
+    def _format_date(self):
         if self.date:
-            s += self.date.format(self.DATE_FORMAT)
-            s += '\n\n'
-        return s
+            return self.date.format(self.DATE_FORMAT)
 
-    def show_commands(self):
-        s = ''
-        if self.commands:
-            for cmd in self.commands:
-                s += f'$ {cmd}\n'
-            s += '\n'
-        return s
+    def _format_commands(self):
+        return unordered_list(*map(preformatted, self.commands), prefix='$ ')
 
-    def show_steps(self):
-        indent = len(str(len(self.steps))) + 2
-        content_width = Printer().content_width
+    def _format_steps(self):
+        return ordered_list(*self.steps)
 
-        s = ''
-        for i, step in enumerate(self.steps, start=1):
-            step_str = format_text(
-                     step,
-                     content_width - indent,
-                     wrap_str=False,
-            )
-            s += f'{f"{i}. ":>{indent}}'
-            s += textwrap.indent(step_str, ' ' * indent).strip()
-            s += '\n\n'
-        return s
-
-    def show_footnotes(self):
-        s = ''
+    def _format_footnotes(self):
+        pl = paragraph_list(br='\n')
 
         if self.footnotes:
-            indent = len(str(max(self.footnotes))) + 3
-            content_width = Printer().content_width
+            pl += f'{plural(self.footnotes):Note/s}:'
+            pl += ordered_list(
+                    *self.footnotes.values(),
+                    indices=self.footnotes.keys(),
+                    prefix='[{}] ',
+            )
 
-            s += f'{plural(self.footnotes):Note/s}:\n'
-            for i in sorted(self.footnotes):
-                note_str = format_text(
-                        self.footnotes[i],
-                        content_width - indent,
-                        wrap_str=False,
-                )
-                s += f'{f"[{i}] ":>{indent}}'
-                s += textwrap.indent(note_str, ' ' * indent).strip()
-                s += '\n\n'
-
-        return s
+        return pl
 
     def print(self):
-        #print(self)
         from .library import ProtocolIO
         io = ProtocolIO(self)
         io.to_stdout()
@@ -308,7 +278,7 @@ class Protocol:
                 if obj.errors: continue
                 protocol = obj.protocol
 
-            elif isinstance(obj, (str, Step)):
+            elif isinstance(obj, (str, Block)):
                 protocol = cls(steps=[obj])
 
             elif isinstance(obj, Iterable):
@@ -361,27 +331,50 @@ class Protocol:
 
         return target
 
-    def prune_footnotes(self):
+    def add_footnotes(self, *footnotes):
+        i0 = max(self.footnotes, default=0) + 1
+        ii = []
+
+        for i, footnote in enumerate(footnotes, i0):
+            if footnote:
+                self.footnotes[i] = footnote
+                ii.append(i)
+
+        return f' [{format_range(ii)}]' if ii else ''
+
+    def insert_footnotes(self, *footnotes, pattern=r'(?=[.:])'):
         """
-        Remove footnotes that aren't referenced in the protocol.
-
-        This can happen if a particular footnote applies to a part of a 
-        protocol that wasn't included.
+        Insert the given footnotes into the protocol immediately after the 
+        given pattern.
         """
 
-        def union(it):
-            return set.union(set(), *it)
+        if not footnotes:
+            return
 
-        referenced_ids = union(
-                parse_range(m.group(1))
-                for m in re.finditer(self.FOOTNOTE_REGEX, self.show_steps())
-        )
-        self.footnotes = {
-                k: v
-                for k, v in self.footnotes.items()
-                if k in referenced_ids
-        }
-        self.renumber_footnotes()
+        # The protocol could have footnotes in any order, so number these  
+        # footnotes based on `max() + 1` instead of `len() + 1` or similar.
+        ref0 = max(self.footnotes, default=0) + 1
+        refs = range(ref0, ref0 + len(footnotes))
+        ref_str = f'[{format_range(refs)}]'
+
+        def sub(m):
+            sep = '' if m.string[m.end() - 1] == ' ' else ' '
+            return m.group() + sep + ref_str
+
+        for i, step in reversed(list(enumerate(self.steps))):
+            info = {}
+            self.steps[i] = replace_text(
+                    step, pattern, sub,
+                    info=info,
+                    count=1,
+            )
+            if info.get('n'):
+                break
+        else:
+            raise ValueError(f"pattern {pattern!r} not found in protocol.")
+
+        for ref, footnote in zip(refs, footnotes):
+            self.footnotes[ref] = footnote
 
     def renumber_footnotes(self, new_ids=1):
         """
@@ -415,7 +408,7 @@ class Protocol:
             return f'[{format_range(jj)}]'
 
         self.steps = [
-                replace_text(self.FOOTNOTE_REGEX, renumber_footnote, x)
+                replace_text(x, self.FOOTNOTE_REGEX, renumber_footnote)
                 for x in self.steps
         ]
         self.footnotes = {
@@ -423,23 +416,55 @@ class Protocol:
                 for k,v in self.footnotes.items()
         }
 
+    def merge_footnotes(self):
+        """
+        Look for footnotes that appear back to back (e.g. possibly due to 
+        `add_footnotes()` or `insert_footnotes()`) and combine them.
+        """
+
+        def merge_footnotes(m):
+            ref_ids = set()
+            for ref_str in re.findall(self.FOOTNOTE_REGEX, m.group()):
+                ref_ids |= parse_range(ref_str)
+            return f'[{format_range(ref_ids)}]'
+
+        self.steps = [
+                replace_text(
+                    x, rf'{self.FOOTNOTE_REGEX}(\s*{self.FOOTNOTE_REGEX})+',
+                    merge_footnotes,
+                )
+                for x in self.steps
+        ]
+
+    def prune_footnotes(self):
+        """
+        Remove footnotes that aren't referenced in the protocol.
+
+        This can happen if a particular footnote applies to a part of a 
+        protocol that wasn't included.
+        """
+
+        def union(it):
+            return set.union(set(), *it)
+
+        formatted_steps = self._format_steps().format_text(NO_WRAP)
+        referenced_ids = union(
+                parse_range(m.group(1))
+                for m in re.finditer(self.FOOTNOTE_REGEX, formatted_steps)
+        )
+        self.footnotes = {
+                k: v
+                for k, v in self.footnotes.items()
+                if k in referenced_ids
+        }
+        self.renumber_footnotes()
+
     def clear_footnotes(self):
         self.steps = [
-                replace_text(rf'\s*{self.FOOTNOTE_REGEX}', '', x)
+                replace_text(x, rf'\s*{self.FOOTNOTE_REGEX}', '')
                 for x in self.steps
         ]
         self.footnotes = {}
-
-    def add_footnotes(self, *footnotes):
-        i0 = max(self.footnotes, default=0) + 1
-        ii = []
-
-        for i, footnote in enumerate(footnotes, i0):
-            if footnote:
-                self.footnotes[i] = Footnote(footnote)
-                ii.append(i)
-
-        return f' [{format_range(ii)}]' if ii else ''
 
     def pick_slug(self):
         """
@@ -456,7 +481,7 @@ class Protocol:
         for cmd in self.commands:
             argv = shlex.split(cmd)
             for arg0 in argv:
-                if arg0 == 'stepwise': continue
+                if arg0 in ('sw', 'stepwise'): continue
                 if arg0.startswith('-'): continue
                 break
             slug.append(Path(arg0).stem)
@@ -485,103 +510,7 @@ class Protocol:
         if args is None:
             args = sys.argv[2:]
 
-        argv = 'stepwise', cmd, *args
+        argv = 'sw', cmd, *args
         command = shlex.join(argv).translate(nonprintable)
         self.commands = [command]
-
-
-class Step:
-
-    class Body:
-
-        def __init__(self, step):
-            self.step = step
-
-        def __iadd__(self, paragraph):
-            self.step.paragraphs.append(paragraph)
-            return self
-
-    def __init__(self, *paragraphs, substeps=None, wrap=True):
-        self.body = Step.Body(self)
-        self.paragraphs = list(paragraphs)
-        self.substeps = list(substeps or [])
-        self.wrap = wrap
-
-    def __iadd__(self, substep):
-        self.substeps.append(substep)
-        return self
-
-    def __eq__(self, other):
-        return self.paragraphs == other.paragraphs and \
-               self.substeps == other.substeps
-
-    def format_text(self, width):
-        paragraph_strs = [
-                format_text(x, width, wrap_str=self.wrap)
-                for x in self.paragraphs
-        ]
-        substep_strs = [
-                format_list_item(x, width, wrap_str=self.wrap)
-                for x in self.substeps
-        ]
-        return '\n\n'.join(paragraph_strs + substep_strs)
-
-    def replace_text(self, pattern, repl):
-        self.paragraphs = [
-                replace_text(pattern, repl, x)
-                for x in self.paragraphs
-        ]
-        self.substeps = [
-                replace_text(pattern, repl, x)
-                for x in self.substeps
-        ]
-
-class Footnote:
-
-    def __init__(self, note, wrap=True):
-        self.note = note
-        self.wrap = wrap
-
-    def __hash__(self):
-        return hash((self.note, self.wrap))
-
-    def __eq__(self, other):
-        return self.note == other.note and self.wrap == other.wrap
-
-    def format_text(self, width):
-        return format_text(self.note, width, wrap_str=self.wrap)
-
-def format_text(obj, width, *, wrap_str=True):
-    if not isinstance(obj, str):
-        return obj.format_text(width)
-
-    if not wrap_str:
-        return obj
-
-    text = re.sub(r'(?m) $', '', obj)
-    text = textwrap.dedent(text)
-
-    paragraphs = re.split('\n\\s*\n', text)
-    paragraphs = [
-            textwrap.fill(x, width, drop_whitespace=True)
-            for x in paragraphs if x
-    ]
-    return '\n\n'.join(paragraphs)
-    
-def format_list_item(obj, width, *, list_prefix='- ', wrap_str=True):
-    m = len(list_prefix)
-    w = max(1, width - m)
-
-    li = format_text(obj, w, wrap_str=wrap_str)
-    li = textwrap.indent(li, m * ' ')
-    li = list_prefix + li[m:]
-
-    return li
-
-def replace_text(pattern, repl, obj):
-    if isinstance(obj, str):
-        return re.sub(pattern, repl, obj)
-    else:
-        obj.replace_text(pattern, repl)
-        return obj
 

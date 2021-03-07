@@ -1,34 +1,34 @@
 #!/usr/bin/env python3
 
 """\
-Create impromptu protocols by using delimiters to separate steps specified on 
-the command line.
+Add custom steps to a protocol directly from the command line.
 
 Usage:
-    custom <protocol> [-d CHAR] [-D char] [-W]
+    step <text> [-d CHAR] [-D char] [-W]
 
 Options:
-    -d --delimiter CHAR                                     [default: ;]
-        The character (or characters) used to break the protocol into steps.
-
-    -D --sub-delimiter CHAR                                 [default: ~]
+    -d --delimiter CHAR                                 [default: ~]
         The character (or characters) used to break steps into "substeps".  
         Each substep will be prefixed with a hyphen and printed on its own 
-        line.
+        line.  You can also create sub-substeps by repeating the delimiter 
+        twice (e.g. '~~'), sub-sub-substeps by repeating it three times, etc.
 
     -W --no-wrap
-        Do not automatically wrap each step to fit within the width specified 
+        Do not automatically wrap the text to fit within the width specified 
         by the `printer.default.content_width` configuration option.
 """
 
 from docopt import docopt
-from stepwise import Protocol, Step
+from stepwise import Protocol, pl, ul, pre
 
 args = docopt(__doc__)
 p = Protocol()
 
-for step in args['<protocol>'].split(args['--delimiter']):
-    body, *substeps = step.split(args['--sub-delimiter'])
-    p += Step(body, substeps=substeps, wrap=not args['--no-wrap'])
+wrap = pre if args['--no-wrap'] else str
+body, *substeps = args['<text>'].split(args['--delimiter'])
+body = wrap(body)
+substeps = map(wrap, substeps)
 
-print(p)
+p += pl(body, ul(*substeps))
+
+p.print()

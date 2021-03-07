@@ -81,6 +81,7 @@ Options:
 
 import docopt
 import stepwise
+from stepwise import paragraph_list, unordered_list
 from inform import plural
 
 args = docopt.docopt(__doc__)
@@ -134,9 +135,9 @@ else:
     title = 'reaction/s'
 
 p = stepwise.Protocol()
-p += stepwise.Step(
+p += paragraph_list(
         f"Setup {plural(rxn.num_reactions):# {title}}:",
         rxn,
-        substeps=args['--instruction'],
+        unordered_list(*args['--instruction']),
 )
 p.print()

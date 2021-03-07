@@ -103,13 +103,13 @@ def test_path_entry_load_protocol(disable_capture, relpath, args, steps, attachm
         with disable_capture:
             io = entry.load_protocol(args)
 
-        assert io.protocol.steps == steps
+        assert format_steps(io.protocol) == steps
         assert io.protocol.attachments == [
                 COLLECT3_DIR / x
                 for x in attachments
         ]
     finally:
-        DummyLibrary._singleton = None
+        stepwise.Library._singleton = None
 
 
 @parametrize_via_toml('test_library.toml')
@@ -262,17 +262,17 @@ def test_from_pickle_january():
     # The issue is that stepwise needs to decide whether or not to use pickle 
     # to decode a byte stream, and it used to do this by just trying to 
     # unpickle the stream and checking for errors.  The problem is that 
-    # attempting to unpickle byte streams beginning with "January" causes huge 
-    # amounts of memory (>16 GB) to be allocated, which ultimately causes the 
-    # interpreter to crash.  To fix this, I rewrote the code to manually check 
-    # for the pickle header.  The purpose of this test is to document this bug 
-    # and to prevent regressions.
-    p = stepwise.ProtocolIO.from_bytes(
+    # attempting to unpickle byte streams beginning with "January" doesn't 
+    # cause an exception.  It causes huge amounts of memory (>16 GB) to be 
+    # allocated, which ultimately causes the interpreter to crash.  To fix 
+    # this, I rewrote the code to manually check for the pickle header.  The 
+    # purpose of this test is to document this bug and to prevent regressions.
+    io = stepwise.ProtocolIO.from_bytes(
             b'January 11, 2021\n'
             b'\n'
             b'1. A'
     )
-    assert p.protocol.steps == ['A']
+    assert format_steps(io.protocol) == ['A']
 
 
 def path(x):
@@ -281,6 +281,12 @@ def path(x):
 
 def paths(xs):
     return [path(x) for x in xs]
+
+def format_steps(p):
+    from stepwise import format_text
+    from math import inf
+
+    return [format_text(x, inf) for x in p.steps]
 
 @pytest.fixture
 def disable_capture(pytestconfig):

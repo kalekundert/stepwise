@@ -4,7 +4,7 @@ import sys, re, textwrap
 import appcli
 from inform import fatal
 from operator import not_
-from stepwise import StepwiseCommand, ProtocolIO, Footnote
+from stepwise import StepwiseCommand, ProtocolIO, pre
 
 class Note(StepwiseCommand):
     """\
@@ -49,9 +49,6 @@ Options:
     def main(self):
         appcli.load(self)
 
-        footnote = Footnote(self.text, wrap=self.wrap)
-        pattern = re.compile(self.where or '(?=[.:])')
-
         io = ProtocolIO.from_stdin()
         if io.errors:
             fatal("protocol has errors, not adding footnote.")
@@ -59,22 +56,14 @@ Options:
             fatal("no protocol specified.")
 
         p = io.protocol
+        footnote = self.text if self.wrap else pre(self.text)
+        pattern = re.compile(self.where or '(?=[.:])')
 
-        # The protocol could have footnotes in any order, so number this 
-        # footnote based on `max() + 1` instead of `len() + 1` or similar.
-        ref = max(p.footnotes, default=0) + 1
-        ref_str = f'[{ref}]'
-
-        for i, step in reversed(list(enumerate(p.steps))):
-            if m := pattern.search(step):
-                j = m.end()
-                if step[j - 1] != ' ':
-                    ref_str = ' ' + ref_str
-
-                p.steps[i] = step[:j] + ref_str + step[j:]
-                p.footnotes[ref] = footnote
-                break
-        else:
+        try:
+            p.insert_footnotes(footnote, pattern=pattern)
+        except ValueError:
             fatal(f"pattern {pattern!r} not found in protocol.")
+
+        p.merge_footnotes()
 
         io.to_stdout(self.force_text)

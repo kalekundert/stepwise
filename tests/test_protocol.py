@@ -3,8 +3,9 @@
 import pytest, arrow, stepwise
 import subprocess as subp
 from pytest import raises
-from unittest.mock import Mock
-from stepwise import Protocol, Step, Footnote, ProtocolIO, ParseError
+from stepwise import Protocol, ProtocolIO, ParseError
+from stepwise import pl, ul, ol, pre, NO_WRAP
+from math import inf
 from utils import *
 
 parse = Protocol.parse
@@ -131,6 +132,14 @@ class MergeParams(Params):
             ],
                 Protocol(
                     steps=['Step 1'],
+                ),
+            ),
+            ####################################
+            ([
+                pl('Step 1')
+            ],
+                Protocol(
+                    steps=[pl('Step 1')],
                 ),
             ),
             ####################################
@@ -579,27 +588,66 @@ def test_protocol_add():
     assert p3.steps == ["Step 1", "Step 2"]
 
 def test_protocol_iadd():
+    # The core functionality is tested by `test_protocol_merge()`; this just 
+    # needs to make sure the `+=` syntax works.
+
     p = Protocol()
     assert p.steps == []
 
-    p += "Step 1"
-    assert p.steps == ["Step 1"]
-    assert p.s == p.step == "Step 1"
+    p += "A"
+    assert p.steps == ["A"]
+    assert p[-1] == "A"
 
     # Do it again just to make sure the first addition didn't put the protocol 
     # into some kind of broken state.
-    p += "Step 2"
-    assert p.steps == ["Step 1", "Step 2"]
-    assert p.s == p.step == "Step 2"
+    p += "B"
+    assert p.steps == ["A", "B"]
+    assert p[-1] == "B"
 
-    p += ["Step 3", "Step 4"]
-    assert p.steps == ["Step 1", "Step 2", "Step 3", "Step 4"]
-    assert p.s == p.step == "Step 4"
+    p += ["C", "D"]
+    assert p.steps == ["A", "B", "C", "D"]
+    assert p[-1] == "D"
 
-    p += Protocol(steps=["Step 5"], footnotes={1: "Footnote 1"})
-    assert p.steps == ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"]
-    assert p.footnotes == {1: "Footnote 1"}
-    assert p.s == p.step == "Step 5"
+    p += pl("E")
+    assert p.steps == ["A", "B", "C", "D", pl("E")]
+    assert p[-1] == pl("E")
+
+    p += [pl("F"), pl("G")]
+    assert p.steps == ["A", "B", "C", "D", pl("E"), pl("F"), pl("G")]
+    assert p[-1] == pl("G")
+
+    p += Protocol(steps=["H"], footnotes={1: "h"})
+    assert p.steps == ["A", "B", "C", "D", pl("E"), pl("F"), pl("G"), "H"]
+    assert p.footnotes == {1: "h"}
+    assert p[-1] == "H"
+
+@parametrize_via_toml('test_protocol.toml')
+def test_protocol_add_footnotes(footnotes_new, footnotes_before, footnotes_after, formatted_ids):
+    p = Protocol()
+    p.footnotes = int_keys(footnotes_before)
+
+    assert p.add_footnotes(*footnotes_new) == formatted_ids
+    assert p.footnotes == int_keys(footnotes_after)
+
+@parametrize_via_toml('test_protocol.toml')
+def test_protocol_insert_footnotes(steps_before, footnotes_before, footnotes_new, pattern, steps_after, footnotes_after):
+    p = Protocol()
+    p.steps = eval_steps(steps_before)
+    p.footnotes = int_keys(footnotes_before)
+
+    p.insert_footnotes(*footnotes_new, pattern=pattern)
+
+    assert p.steps == eval_steps(steps_after)
+    assert p.footnotes == int_keys(footnotes_after)
+
+@parametrize_via_toml('test_protocol.toml')
+def test_protocol_insert_footnotes_err(steps_before, footnotes_before, footnotes_new, pattern, error_message):
+    p = Protocol()
+    p.steps = eval_steps(steps_before)
+    p.footnotes = int_keys(footnotes_before)
+
+    with pytest.raises(ValueError, match=error_message):
+        p.insert_footnotes(*footnotes_new, pattern=pattern)
 
 @parametrize_via_toml('test_protocol.toml')
 def test_protocol_renumber_footnotes(new_ids, steps_before, footnotes_before, steps_after, footnotes_after):
@@ -610,6 +658,13 @@ def test_protocol_renumber_footnotes(new_ids, steps_before, footnotes_before, st
 
     assert p.steps == eval_steps(steps_after)
     assert p.footnotes == eval_footnotes(footnotes_after)
+
+@parametrize_via_toml('test_protocol.toml')
+def test_protocol_merge_footnotes(steps_before, steps_after):
+    p = Protocol()
+    p.steps = eval_steps(steps_before)
+    p.merge_footnotes()
+    assert p.steps == eval_steps(steps_after)
 
 @parametrize_via_toml('test_protocol.toml')
 def test_protocol_prune_footnotes(steps_before, footnotes_before, steps_after, footnotes_after):
@@ -632,49 +687,41 @@ def test_protocol_clear_footnotes(steps_before, steps_after, footnotes_before):
     assert p.footnotes == {}
 
 @parametrize_via_toml('test_protocol.toml')
-def test_protocol_add_footnotes(footnotes_new, footnotes_before, footnotes_after, formatted_ids):
-    p = Protocol()
-    p.footnotes = eval_footnotes(footnotes_before)
-
-    assert p.add_footnotes(*footnotes_new) == formatted_ids
-    assert p.footnotes == eval_footnotes(footnotes_after)
-
-@parametrize_via_toml('test_protocol.toml')
 def test_protocol_pick_slug(date, commands, expected):
     date = None if date is False else arrow.get(date)
     p = Protocol(date=date, commands=commands)
     assert p.pick_slug() == expected
 
 
-def test_protocol_show_empty():
+def test_protocol_format_text_empty():
     p = Protocol()
-    assert p.show() == ''
+    assert p.format_text(inf) == ''
 
 @parametrize_via_toml('test_protocol.toml')
-def test_protocol_show_date(date, expected):
+def test_protocol_format_date(date, expected):
     p = Protocol()
     p.date = arrow.get(date)
-    assert p.show() == expected.rstrip()
+    assert p.format_text(inf) == expected.rstrip()
 
 @parametrize_via_toml('test_protocol.toml')
-def test_protocol_show_commands(commands, expected):
+def test_protocol_format_commands(commands, expected):
     p = Protocol()
     p.commands = commands
-    assert p.show() == expected.rstrip()
+    assert p.format_text(inf) == expected.rstrip()
 
 @parametrize_via_toml('test_protocol.toml')
-def test_protocol_show_steps(steps, expected):
+def test_protocol_format_steps(steps, expected):
     p = Protocol()
     p.steps = eval_steps(steps)
-    assert p.show() == expected.rstrip()
+    assert p.format_text(inf) == expected.rstrip()
 
 @parametrize_via_toml('test_protocol.toml')
-def test_protocol_show_footnotes(footnotes, expected):
+def test_protocol_format_footnotes(footnotes, expected):
     p = Protocol()
     p.footnotes = eval_footnotes(footnotes)
-    assert p.show() == expected.rstrip()
+    assert p.format_text(inf) == expected.rstrip()
 
-def test_protocol_show_everything():
+def test_protocol_format_everything():
     """
     Just make sure the spacing between all the elements looks right.
     """
@@ -683,8 +730,7 @@ def test_protocol_show_everything():
     p.commands = ['sw cmd-1', 'sw cmd-2']
     p.steps = ['Step 1', 'Step 2']
     p.footnotes = {1: 'Footnote 1', 2: 'Footnote 2'}
-    assert p.show() == str(p)
-    assert p.show() == """\
+    assert p.format_text(inf) == """\
 November 8, 1988
 
 $ sw cmd-1
@@ -726,7 +772,7 @@ def test_protocol_parse_commands_err(text, err):
 @parametrize_via_toml('test_protocol.toml')
 def test_protocol_parse_steps(text, steps):
     p = parse(text)
-    assert p.steps == steps
+    assert p.steps == [pre(x) for x in steps]
 
 @parametrize_via_toml('test_protocol.toml')
 def test_protocol_parse_steps_err(err, text):
@@ -736,7 +782,7 @@ def test_protocol_parse_steps_err(err, text):
 @parametrize_via_toml('test_protocol.toml')
 def test_protocol_parse_footnotes(text, footnotes):
     p = parse(text)
-    assert p.footnotes == int_keys(footnotes)
+    assert p.footnotes == {int(k): pre(v) for k, v in footnotes.items()}
 
 @parametrize_via_toml('test_protocol.toml')
 def test_protocol_parse_footnotes_err(err, text):
@@ -770,112 +816,12 @@ Notes:
         p = parse(input)
         assert p.date == arrow.get(1988, 11, 8)
         assert p.commands == ['sw pcr', 'sw kld' ]
-        assert p.steps == ['Step 1', 'Step 2']
-        assert p.footnotes == {1: 'Footnote 1', 2: 'Footnote 2'}
+        assert p.steps == [pre('Step 1'), pre('Step 2')]
+        assert p.footnotes == {1: pre('Footnote 1'), 2: pre('Footnote 2')}
 
 def test_protocol_parse_err():
     with raises(ParseError, match="not <class 'int'>"):
         parse(1)
-
-
-def test_step_iadd():
-    s = Step("Paragraph 1")
-    assert s.paragraphs == ["Paragraph 1"]
-    assert s.substeps == []
-
-    s.body += "Paragraph 2"
-    assert s.paragraphs == ["Paragraph 1", "Paragraph 2"]
-    assert s.substeps == []
-
-    s += "Substep 1"
-    assert s.paragraphs == ["Paragraph 1", "Paragraph 2"]
-    assert s.substeps == ["Substep 1"]
-
-    s += "Substep 2"
-    assert s.paragraphs == ["Paragraph 1", "Paragraph 2"]
-    assert s.substeps == ["Substep 1", "Substep 2"]
-
-@parametrize_via_toml('test_protocol.toml')
-def test_step_format_text(paragraphs, substeps, width, wrap, expected):
-    s = Step()
-    s.paragraphs = [eval(x) for x in paragraphs]
-    s.substeps = [eval(x) for x in substeps]
-    s.wrap = wrap
-    assert s.format_text(width) == expected
-
-@parametrize_via_toml('test_protocol.toml')
-def test_step_replace_text(paragraphs, substeps, pattern, repl, expected):
-    from math import inf
-
-    s = Step()
-    s.paragraphs = [eval(x) for x in paragraphs]
-    s.substeps = [eval(x) for x in substeps]
-
-    s.replace_text(pattern, repl)
-
-    assert s.format_text(inf) == expected
-
-
-@parametrize_via_toml('test_protocol.toml')
-def test_footnote_format_text(note, width, expected):
-    assert Footnote(note).format_text(width) == expected
-
-
-@parametrize_via_toml('test_protocol.toml')
-def test_format_text_str(str, width, wrap_str, expected):
-    assert expected == stepwise.format_text(
-            str,
-            width,
-            wrap_str=wrap_str,
-    )
-
-def test_format_text_obj():
-
-    class Interface:
-        def format_text(self, width):
-            pass
-
-    obj = Mock(spec_set=Interface)
-    wrapped = obj.format_text.return_value = Mock()
-    width = 10
-
-    assert stepwise.format_text(obj, width) is wrapped
-    assert obj.format_text.called == 1
-    assert obj.format_text.call_args == ((width,), {})
-
-@parametrize_via_toml('test_protocol.toml')
-def test_format_list_item_str(str, width, wrap_str, expected):
-    assert stepwise.format_list_item(str, width, wrap_str=wrap_str) == expected
-
-def test_format_list_item_obj():
-
-    class Interface:
-        def format_text(self, width):
-            pass
-
-    obj = Mock(spec_set=Interface)
-    wrapped = obj.format_text.return_value = "lorem ipsum"
-    width = 10
-
-    assert stepwise.format_list_item(obj, width) == "- lorem ipsum"
-    assert obj.format_text.called == 1
-    assert obj.format_text.call_args == ((width - 2,), {})
-
-@parametrize_via_toml('test_protocol.toml')
-def test_replace_text_str(str, pattern, repl, expected):
-    assert stepwise.replace_text(pattern, repl, str) == expected
-
-def test_replace_text_obj():
-
-    class Interface:
-        def replace_text(self, pattern, repl):
-            pass
-
-    obj = Mock(spec_set=Interface)
-
-    assert stepwise.replace_text('pattern', 'repl', obj) is obj
-    assert obj.replace_text.called == 1
-    assert obj.replace_text.call_args == (('pattern', 'repl'), {})
 
 
 def eval_steps(steps):

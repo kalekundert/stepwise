@@ -4,7 +4,7 @@ import sys
 import appcli
 from pathlib import Path
 from inform import fatal
-from stepwise import ProtocolIO, print_protocol, get_default_printer
+from stepwise import ProtocolIO, Printer, get_default_printer_name
 from stepwise.config import StepwiseCommand, StepwiseConfig
 from appcli import Key, DocoptConfig
 from operator import not_
@@ -22,7 +22,7 @@ Options:
         this name will follow the pattern: `YYYYMMDD_all_protocol_names.txt`
 
     -f --force
-        Overwrite existing files.  Default
+        Overwrite existing files.
 
     -F --no-file
         Only print the protocol and don't write it to a file.
@@ -30,8 +30,8 @@ Options:
     -P --no-print
         Only write the protocol to a file and don't attempt to print it.
 
-    -p --printer NAME
-        Print to the specified printer.  The default is: {0.printer}
+    -p --printer NAME       
+        Print to the specified printer.  The default is: ${app.printer_name}
         You can get a list of the printer names recognized on your system by 
         running `lpstat -p -d`.
 
@@ -58,7 +58,8 @@ Configuration:
         postscript.  These flags can control things like font, paper size, etc.
 
     printer.<name>.lpr_flags
-        Flags to pass to `lpr`, the program 
+        Flags to pass to `lpr`, the program used to send the print job to a 
+        printer.
 """
     __config__ = [
             DocoptConfig(),
@@ -81,10 +82,10 @@ Configuration:
             Key(DocoptConfig, '--force'),
             default=False,
     )
-    printer = appcli.param(
+    printer_name = appcli.param(
             Key(DocoptConfig, '--printer'),
             Key(StepwiseConfig, 'go.printer'),
-            default_factory=get_default_printer,
+            default_factory=get_default_printer_name,
     )
 
     def main(self):
@@ -96,6 +97,8 @@ Configuration:
         if not io.protocol:
             fatal("No protocol specified.")
 
+        printer = Printer(self.printer_name)
+
         # Write the protocol to a file.
         if self.send_to_file:
             path = Path(self.output_path or f'{io.protocol.pick_slug()}.txt')
@@ -104,10 +107,10 @@ Configuration:
                 print(f"Aborting; protocol NOT sent to printer.")
                 sys.exit(1)
                 
-            path.write_text(str(io.protocol))
+            path.write_text(printer.format_protocol(io.protocol))
             print(f"Protocol saved to '{path}'")
 
         # Send to protocol to the printer.
         if self.send_to_printer:
-            options = print_protocol(io.protocol, self.printer)
-            print(f"Protocol sent to '{options.printer}'")
+            printer.print_protocol(io.protocol)
+            print(f"Protocol sent to '{printer.name}'")

@@ -8,4 +8,4 @@ p += stepwise.load("main")
 p += stepwise.load("argv 1 2")
 p += stepwise.load("import")
 
-print(p)
+p.print()

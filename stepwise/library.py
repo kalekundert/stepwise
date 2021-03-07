@@ -10,6 +10,8 @@ from voluptuous import Schema
 from more_itertools import one
 from inform import warn, error, set_culprit, get_culprit
 from .protocol import Protocol
+from .printer import Printer
+from .format import preformatted
 from .config import StepwiseConfig
 from .errors import *
 
@@ -226,6 +228,9 @@ class PathCollection(Collection):
         self.root = Path(root).expanduser().resolve()
         super().__init__(name or str(self.root))
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.root!r})'
+
     def is_available(self):
         return self.root.exists()
 
@@ -299,6 +304,9 @@ class Entry:
     def __init__(self, collection, name):
         self.collection = collection
         self.name = str(name)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.collection!r}, {self.name!r})'
 
     @property
     def full_name(self):
@@ -488,7 +496,9 @@ class ProtocolIO:
             # Otherwise, attach the file to a new protocol:
             except OSError:
                 io = cls()
-                io.protocol = Protocol(steps=[f"<{name or path.name}>"])
+                io.protocol = Protocol(
+                        steps=[preformatted(f"<{name or path.name}>")],
+                )
                 io.protocol.attachments = [path]
                 return io
 
@@ -599,7 +609,16 @@ class ProtocolIO:
             # When merging with the empty protocol created by default if stdin 
             # is empty, an extraneous newline will be added to the front of the 
             # protocol.  The strip() call deals with this.
-            io.protocol = '\n'.join((str(x.protocol) for x in others)).strip()
+
+            w = Printer().content_width
+            def str_from_protocol_or_error(x):
+                return x if isinstance(x, str) else x.format_text(w)
+
+            protocol_strs = [
+                    str_from_protocol_or_error(x.protocol)
+                    for x in others
+            ]
+            io.protocol = '\n'.join(protocol_strs).strip()
 
         return io
 
@@ -626,7 +645,11 @@ class ProtocolIO:
         """
         if sys.stdout.isatty() or force_text:
             from pydoc import pager
-            pager(str(self.protocol))
+
+            w = Printer().content_width
+            out = self.protocol.format_text(w) \
+                    if not self.errors else self.protocol
+            pager(out)
 
         else:
             # Raise if there's a broken pipe error.

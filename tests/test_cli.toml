@@ -4,12 +4,12 @@
 
 [[test_main]]
 id = 'builtin-echo'
-cmd = "stepwise echo '- A\\n- B'"
+cmd = "sw echo '- A\\n- B'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise echo '- A\\n- B'
+\$ sw echo '- A\\n- B'
 
 1\. A
 
@@ -20,30 +20,43 @@ return_code = 0
 
 [[test_main]]
 id = 'builtin-step'
-cmd = "stepwise step 'A;B~b'"
+cmd = "sw step A"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise step 'A;B~b'
+\$ sw step A
+
+1\. A
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'builtin-step'
+cmd = "sw step 'A~b~c'"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ sw step 'A~b~c'
 
 1\. A
 
-2\. B
-
    - b
+   - c
 '''
 stderr = '^$'
 return_code = 0
 
 [[test_main]]
 id = 'builtin-step-wrap'
-cmd = "stepwise step '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'"
+cmd = "sw step '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise step '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
+\$ sw step '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
 
 1\. 123456789 123456789 123456789 123456789 123456789
    123456789
@@ -56,12 +69,12 @@ return_code = 0
 
 [[test_main]]
 id = 'builtin-step-no-wrap'
-cmd = "stepwise step -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'"
+cmd = "sw step -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise step -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
+\$ sw step -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
 
 1\. 123456789 123456789 123456789 123456789 123456789 123456789
 
@@ -72,48 +85,28 @@ return_code = 0
 
 [[test_main]]
 id = 'builtin-step-delimiter'
-cmd = "stepwise step -dx 'AxB~b'"
+cmd = "sw step -dx 'Axb~c'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise step -dx 'AxB~b'
+\$ sw step -dx 'Axb~c'
 
 1\. A
 
-2\. B
-
-   - b
-'''
-stderr = '^$'
-return_code = 0
-
-[[test_main]]
-id = 'builtin-step-subdelimiter'
-cmd = "stepwise step -Dx 'A;Bxb'"
-env = {}
-stdout = '''
-^{DATE}
-
-\$ stepwise step -Dx 'A;Bxb'
-
-1\. A
-
-2\. B
-
-   - b
+   - b~c
 '''
 stderr = '^$'
 return_code = 0
 
 [[test_main]]
 id = 'builtin-conditions'
-cmd = "stepwise conditions conditions.csv"
+cmd = "sw conditions conditions.csv"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise conditions conditions\.csv
+\$ sw conditions conditions\.csv
 
 1\. In the following steps, setup these conditions:
 
@@ -125,12 +118,12 @@ return_code = 0
 
 [[test_main]]
 id = 'builtin-conditions'
-cmd = "stepwise conditions conditions.xlsx"
+cmd = "sw conditions conditions.xlsx"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise conditions conditions\.xlsx
+\$ sw conditions conditions\.xlsx
 
 1\. In the following steps, setup these conditions:
 
@@ -142,20 +135,20 @@ return_code = 0
 
 [[test_main]]
 id = 'builtin-conditions'
-cmd = "stepwise conditions does_not_exist.csv"
+cmd = "sw conditions does_not_exist.csv"
 env = {}
 stdout = '^$'
-stderr = '.*stepwise error.*does_not_exist.csv.*no such file'
+stderr = '.*sw error.*does_not_exist.csv.*no such file'
 return_code = 1
 
 [[test_main]]
 id = 'builtin-reaction'
-cmd = "stepwise reaction 'A;;to 10 µL' 'B;10x;1 µL'"
+cmd = "sw reaction 'A;;to 10 µL' 'B;10x;1 µL'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise reaction 'A;;to 10 µL' 'B;10x;1 µL'
+\$ sw reaction 'A;;to 10 µL' 'B;10x;1 µL'
 
 1. Setup 1 reaction:
 
@@ -171,12 +164,12 @@ return_code = 0
 
 [[test_main]]
 id = 'builtin-reaction-title'
-cmd = "stepwise reaction 'A;;to 10 µL' 'B;10x;1 µL' -t AB"
+cmd = "sw reaction 'A;;to 10 µL' 'B;10x;1 µL' -t AB"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise reaction 'A;;to 10 µL' 'B;10x;1 µL' -t AB
+\$ sw reaction 'A;;to 10 µL' 'B;10x;1 µL' -t AB
 
 1. Setup 1 AB reaction:
 
@@ -192,12 +185,12 @@ return_code = 0
 
 [[test_main]]
 id = 'builtin-reaction-mm'
-cmd = "stepwise reaction 'A;;to 10 µL;y' 'B;10x;1 µL' -n2"
+cmd = "sw reaction 'A;;to 10 µL;y' 'B;10x;1 µL' -n2"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise reaction 'A;;to 10 µL;y' 'B;10x;1 µL' -n2
+\$ sw reaction 'A;;to 10 µL;y' 'B;10x;1 µL' -n2
 
 1. Setup 2 reactions:
 
@@ -218,13 +211,13 @@ return_code = 0
 
 [[test_main]]
 id = 'pipeline-2'
-cmd = "stepwise step A | stepwise step B"
+cmd = "sw step A | sw step B"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise step A
-\$ stepwise step B
+\$ sw step A
+\$ sw step B
 
 1\. A
 
@@ -235,14 +228,14 @@ return_code = 0
 
 [[test_main]]
 id = 'pipeline-3'
-cmd = "stepwise step A | stepwise step B | stepwise step C"
+cmd = "sw step A | sw step B | sw step C"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise step A
-\$ stepwise step B
-\$ stepwise step C
+\$ sw step A
+\$ sw step B
+\$ sw step C
 
 1\. A
 
@@ -255,14 +248,14 @@ return_code = 0
 
 [[test_main]]
 id = 'pipeline-nested'
-cmd = "stepwise nested A | stepwise nested B | stepwise nested C"
+cmd = "sw nested A | sw nested B | sw nested C"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise nested A
-\$ stepwise nested B
-\$ stepwise nested C
+\$ sw nested A
+\$ sw nested B
+\$ sw nested C
 
 1\. A
 
@@ -276,7 +269,7 @@ return_code = 0
 [[test_main]]
 id = 'heredoc'
 cmd = '''
-stepwise <<EOF
+sw <<EOF
 - A
 - B
 EOF
@@ -299,42 +292,41 @@ return_code = 0
 
 [[test_main]]
 id = 'err-empty-protocol'
-cmd = "stepwise echo ''"
+cmd = "sw echo ''"
 env = {}
 # The expected output is "... echo ''" (two quotes, not one), but there's a bug 
 # in the `toml` regarding how '' is parsed in ''' strings.  See #284.
 stdout = '''
 ^{DATE}
 
-\$ stepwise echo '
+\$ sw echo '
 '''
 stderr = '''
-.*stepwise warning.*echo.* protocol is empty.
+.*sw warning.*echo.* protocol is empty.
 '''
 return_code = 0
 
 [[test_main]]
 id = 'err-unknown-protocol'
-cmd = "stepwise unknown-protocol"
+cmd = "sw unknown-protocol"
 env = {}
 stdout = '^$'
 stderr = '''
-.*stepwise error.*
+.*sw error.*
     no protocols matching 'unknown-protocol' in:
 '''
 return_code = 1
 
 [[test_main]]
 id = 'err-formatting'
-cmd = "stepwise echo 'Formatting error'"
+cmd = "sw echo 'Formatting error'"
 env = {}
 stdout = '''
 ^Formatting error$
 '''
 stderr = '''
-.*stepwise warning.*the protocol could not be properly rendered due to error\(s\):
-.*stepwise warning.*echo, 1.*
-    expected a step \(e.g. '- …' or '1. …'\), not 'Formatting error'
+.*sw warning.*the protocol could not be properly rendered due to error\(s\):
+.*sw warning.*echo, 1.*expected a step \(e.g. '- …' or '1. …'\), not 'Formatting error'
 '''
 return_code = 1
 
@@ -345,7 +337,7 @@ return_code = 1
 
 [[test_main]]
 id = 'ls'
-cmd = "stepwise ls"
+cmd = "sw ls"
 env = {}
 stdout = '''
 .*/dummy_home/protocols
@@ -363,7 +355,7 @@ return_code = 0
 
 [[test_main]]
 id = 'ls-d'
-cmd = "stepwise ls -d"
+cmd = "sw ls -d"
 env = {}
 stdout = """
 .*/dummy_home/protocols\
@@ -375,7 +367,7 @@ return_code = 0
 
 [[test_main]]
 id = 'ls-p'
-cmd = "stepwise ls -p"
+cmd = "sw ls -p"
 env = {}
 stdout = '''
 a
@@ -391,7 +383,7 @@ return_code = 0
 
 [[test_main]]
 id = 'edit'
-cmd = "stepwise edit echo"
+cmd = "sw edit echo"
 env = {EDITOR = 'echo'}
 stdout = '.*/builtins/echo.py$'
 stderr = '^$'
@@ -399,12 +391,12 @@ return_code = 0
 
 [[test_main]]
 id = 'note-defaults-1'
-cmd = "stepwise step A: | stepwise note Z"
+cmd = "sw step A: | sw note Z"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise step A:
+\$ sw step A:
 
 1\. A \[1\]:
 
@@ -416,12 +408,13 @@ return_code = 0
 
 [[test_main]]
 id = 'note-defaults-2'
-cmd = "stepwise step 'A:;B:' | stepwise note Z"
+cmd = "sw step A: | sw step B: | sw note Z"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise step 'A:;B:'
+\$ sw step A:
+\$ sw step B:
 
 1\. A:
 
@@ -435,12 +428,13 @@ return_code = 0
 
 [[test_main]]
 id = 'note-where'
-cmd = "stepwise step 'A:;B:' | stepwise note Z A"
+cmd = "sw step A: | sw step B: | sw note Z A"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise step 'A:;B:'
+\$ sw step A:
+\$ sw step B:
 
 1\. A \[1\]:
 
@@ -454,12 +448,12 @@ return_code = 0
 
 [[test_main]]
 id = 'note-wrap'
-cmd = "stepwise step A: | stepwise note '123456789 123456789 123456789 123456789 123456789 123456789'"
+cmd = "sw step A: | sw note '123456789 123456789 123456789 123456789 123456789 123456789'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise step A:
+\$ sw step A:
 
 1\. A \[1\]:
 
@@ -472,12 +466,12 @@ return_code = 0
 
 [[test_main]]
 id = 'note-no-wrap'
-cmd = "stepwise step A: | stepwise note -W '123456789 123456789 123456789 123456789 123456789 123456789'"
+cmd = "sw step A: | sw note -W '123456789 123456789 123456789 123456789 123456789 123456789'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ stepwise step A:
+\$ sw step A:
 
 1\. A \[1\]:
 
@@ -488,8 +482,27 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
+id = 'note-merge'
+cmd = "sw step 'A:' | sw note X | sw note Y"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ sw step A:
+
+1\. A \[1,2\]:
+
+Notes:
+\[1\] X
+
+\[2\] Y
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
 id = 'which'
-cmd = "stepwise which a"
+cmd = "sw which a"
 env = {}
 stdout = '.*/dummy_home/protocols/a.txt$'
 stderr = '^$'

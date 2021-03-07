@@ -21,6 +21,7 @@ Options:
 
 from docopt import docopt
 from stepwise import Protocol, tabulate
+from stepwise import paragraph_list, unordered_list, preformatted
 from pathlib import Path
 from inform import fatal
 from warnings import filterwarnings
@@ -61,13 +62,11 @@ align = ['<'] + (len(df.columns) - 1) * ['^']
 br = '\n'
 
 p = Protocol()
-p += f"""\
-In the following steps, setup these conditions:
-
-{tabulate(table, align=align)}
-
-{br.join(keys)}
-"""
+p += paragraph_list(
+    "In the following steps, setup these conditions:",
+    preformatted(tabulate(table, align=align)),
+    unordered_list(*keys),
+)
 
 p.print()
 
