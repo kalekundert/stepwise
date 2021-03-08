@@ -61,14 +61,22 @@ def test_list_operators():
     assert list(x) == ["a"]
     assert list(reversed(x)) == ["a"]
     assert x == stepwise.List("a")
+    assert x[-1] == "a"
 
     x += "b"
     assert len(x) == 2
     assert list(x) == ["a", "b"]
     assert list(reversed(x)) == ["b", "a"]
     assert x == stepwise.List("a", "b")
+    assert x[-1] == "b"
 
-
+    x += None
+    assert len(x) == 2
+    assert list(x) == ["a", "b"]
+    assert list(reversed(x)) == ["b", "a"]
+    assert x == stepwise.List("a", "b")
+    assert x == stepwise.List("a", None, "b")
+    assert x[-1] == None
 
 @parametrize_via_toml('test_format.toml')
 def test_list_replace_text(items, pattern, repl, expected):

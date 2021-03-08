@@ -7,6 +7,7 @@ from more_itertools import last
 
 # When I make a table class, here are some places I can use it:
 # - builtins/conditions.py
+# - ~swmb/laser_scanner.py
 
 NO_WRAP = object()
 
@@ -38,6 +39,12 @@ class preformatted(Block):
 
 
 class List(Block):
+    """
+    Format a list of values.
+
+    Falsey values can be added to the list, but will be ignored for all 
+    formatting purposes.
+    """
     default_br = '\n'
 
     def __init__(self, *items, br=None):
@@ -48,16 +55,29 @@ class List(Block):
         return f'{self.__class__.__name__}({", ".join(repr(x) for x in self.items)})'
 
     def __eq__(self, other):
-        return type(self) == type(other) and self.items == other.items
+        from itertools import zip_longest
+
+        if type(self) != type(other):
+            return False
+
+        sentinel = object()
+        for a, b in zip_longest(self, other, fillvalue=sentinel):
+            if a != b:
+                return False
+
+        return True
 
     def __iter__(self):
-        yield from self.items
+        yield from (x for x in self.items if x)
 
     def __reversed__(self):
-        yield from reversed(self.items)
+        yield from (x for x in self.items[::-1] if x)
 
     def __len__(self):
-        return len(self.items)
+        return sum(1 for _ in self)
+
+    def __getitem__(self, i):
+        return self.items[i]
 
     def __iadd__(self, item):
         self.items.append(item)
@@ -81,7 +101,7 @@ class unordered_list(List):
     def format_text(self, width):
         return self.br.join(
                 format_list_item(x, width, self.prefix)
-                for x in self if x
+                for x in self
         )
 
 class ordered_list(List):
@@ -110,7 +130,7 @@ class ordered_list(List):
                     x, width,
                     f'{self.prefix.format(i):>{max_prefix_len}}',
                 )
-                for i, x in zip(indices, self) if x
+                for i, x in zip(indices, self)
         )
 
 class paragraph_list(List):
@@ -122,7 +142,7 @@ class paragraph_list(List):
     def format_text(self, width):
         return self.br.join(
                 format_text(x, width)
-                for x in self if x
+                for x in self
         )
 
 ul = unordered_list

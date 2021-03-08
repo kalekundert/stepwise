@@ -312,6 +312,19 @@ class MergeParams(Params):
                                3: 'Footnote C', 4: 'Footnote D'},
                 ),
             ),
+            ####################################
+            ([
+                Protocol(),
+                Protocol(
+                    steps=['Step A [1]'],
+                    footnotes={1: pre('Footnote A')},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1]'],
+                    footnotes={1: pre('Footnote A')},
+                ),
+            ),
     ]
     params_footnotes_shared = [
             ####################################
@@ -476,6 +489,22 @@ class MergeParams(Params):
                 Protocol(
                     steps=['Step A [1] [2]', 'Step B [2] [3]', 'Step C [3] [1]'],
                     footnotes={1: 'Same footnote X', 2: 'Same footnote Y', 3: 'Same footnote Z'}
+                ),
+            ),
+            ####################################
+            ([
+                Protocol(
+                    steps=['Step A [1]'],
+                    footnotes={1: pre('Same footnote')},
+                ),
+                Protocol(
+                    steps=['Step B [1]'],
+                    footnotes={1: pre('Same footnote')},
+                ),
+            ],
+                Protocol(
+                    steps=['Step A [1]', 'Step B [1]'],
+                    footnotes={1: pre('Same footnote')}
                 ),
             ),
             ####################################

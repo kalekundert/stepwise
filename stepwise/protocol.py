@@ -262,7 +262,9 @@ class Protocol:
     def merge(cls, *protocol_like, target=None):
         from copy import copy
         from collections.abc import Iterable
+        from math import inf
         from .library import ProtocolIO
+        from .format import format_text
 
         if target is None:
             target = cls()
@@ -306,12 +308,14 @@ class Protocol:
 
         for protocol in protocols:
             p = copy(protocol)
+            f = lambda x: format_text(x, inf)
 
             footnote_map = {}
-            footnote_keys = {v: k for k, v in target.footnotes.items()}
+            footnote_keys = {f(v): k for k, v in target.footnotes.items()}
             
             # Avoid duplicate footnotes.
             for i, note in p.footnotes.items():
+                note = f(note)
                 if note in footnote_keys:
                     footnote_map[i] = footnote_keys[note]
                 else:
