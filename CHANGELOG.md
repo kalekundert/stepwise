@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.17.1 (2021-03-08)
+### Fix
+* Address some formatting corner cases ([`9337bac`](https://github.com/kalekundert/stepwise/commit/9337bac7fd8e17cf1bc978a3e59fde1a6774a69d))
+
 ## v0.17.0 (2021-03-07)
 ### Feature
 * Add better text formatting tools ([`bc8cb01`](https://github.com/kalekundert/stepwise/commit/bc8cb01f3a166d675022e155a241cb5db623fadf))
