@@ -5,6 +5,7 @@ from datetime import datetime
 from contextlib import contextmanager
 from inform import format_range
 from stepwise import ProtocolIO, UsageError, tabulate, config_dirs
+from . import pickler
 
 from sqlalchemy import func, Table, Column, ForeignKey, Integer, DateTime, String, Boolean, PickleType
 from sqlalchemy.orm import relationship, aliased
@@ -32,7 +33,7 @@ class Stash(Base):
     date_added = Column(DateTime, default=datetime.now)
     is_complete = Column(Boolean, default=False)
     message = Column(String)
-    protocol = Column(PickleType)
+    protocol = Column(PickleType(pickler=pickler))
 
     categories = relationship(
             'Category',
@@ -100,13 +101,14 @@ def list_protocols(db, *, categories=None, dependencies=None, include_dependents
         return
 
     rows = []
-    header = ["#", "Dep", "Name", "Category", "Message"]
-    truncate = list('--x-x')
-    align = list('>><<<')
+    header = ["#", "Err", "Dep", "Name", "Category", "Message"]
+    truncate = list('---x-x')
+    align = list('>^><<<')
 
     for row in stash:
         rows.append([
             row.id,
+            '!' if isinstance(row.protocol, pickler.UnreadableProtocol) else '',
             format_range(
                 x.id
                 for x in row.upstream_deps
@@ -126,6 +128,7 @@ def list_protocols(db, *, categories=None, dependencies=None, include_dependents
             for row in rows:
                 del row[i]
 
+    remove_empty_col("Err")
     remove_empty_col("Dep")
     remove_empty_col("Category")
 

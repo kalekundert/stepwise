@@ -53,6 +53,11 @@ stash_dependency_rows = query_helper(
         stash_dependencies.c.downstream_pk,
 )
 
+class UnreadableProtocol(Protocol):
+
+    def __setstate__(self, state):
+        raise ZeroDivisionError
+
 def test_api_add(empty_db):
     db = empty_db
     rows = query_helper(
@@ -1019,6 +1024,35 @@ def test_api_get_next_id(empty_db):
 
     p.id = 10
     assert get_next_id(db) == 11
+
+def test_api_unreadable_protocol(empty_db, capsys):
+    db = empty_db
+
+    p = add_protocol(db, UnreadableProtocol())
+
+    # Force sqlalchemy to pickle and unpickle the protocol.
+    db.flush()
+    db.refresh(p)
+
+    list_protocols(db)
+    assert capsys.readouterr().out == """\
+#  Err  Name  Message
+─────────────────────
+1   !
+"""
+
+    with pytest.raises(SystemExit):
+        peek_protocol(db, 1, force_text=True)
+
+    # For some reason I can't get pytest to capture this output from inform.  
+    # I've left the expected output in case I can come back to this and figure 
+    # it out later, but for now I think the above check for SystemExit being 
+    # raised is good enough.
+
+    #stdout = capsys.readouterr()
+    #assert "stepwise error" in stdout
+    #assert "failed to unpickle stashed protocol" in stdout
+    #assert "ZeroDivisionError" in stdout
 
 
 @pytest.fixture
