@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.18.0 (2021-03-09)
+### Feature
+* Gracefully handle unreadable stashed protocols ([`001003f`](https://github.com/kalekundert/stepwise/commit/001003f2288a46e7bda69685c5c486858cabaaf7))
+
 ## v0.17.1 (2021-03-08)
 ### Fix
 * Address some formatting corner cases ([`9337bac`](https://github.com/kalekundert/stepwise/commit/9337bac7fd8e17cf1bc978a3e59fde1a6774a69d))
