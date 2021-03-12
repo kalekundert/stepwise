@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v0.19.0 (2021-03-12)
+### Feature
+* Teach `sw step` about subsubsteps ([`fabfdd7`](https://github.com/kalekundert/stepwise/commit/fabfdd78a2e8477d67546f19541c4840c4d5f6f3))
+* Add `dl` and `table` formatting objects ([`efb8a42`](https://github.com/kalekundert/stepwise/commit/efb8a42eda72fcf819ce04a9c1fb6c51830b3b06))
+
+### Fix
+* Remove more debugging code ([`e7533d1`](https://github.com/kalekundert/stepwise/commit/e7533d182f1f5b6856fd93db13c9cd7772674240))
+* Remove debugging code ([`9891b1c`](https://github.com/kalekundert/stepwise/commit/9891b1cbd1432274111aa055663307536168a152))
+
 ## v0.18.0 (2021-03-09)
 ### Feature
 * Gracefully handle unreadable stashed protocols ([`001003f`](https://github.com/kalekundert/stepwise/commit/001003f2288a46e7bda69685c5c486858cabaaf7))
