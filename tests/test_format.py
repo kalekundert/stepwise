@@ -1,54 +1,35 @@
 #!/usr/bin/env python3
 
 import stepwise
-
-from stepwise import ol, ul, pl, pre, NO_WRAP
-from math import inf
+from stepwise import ol, ul, pl, dl, pre, table, MasterMix
 from utils import *
 
-@parametrize('pre', [stepwise.preformatted, stepwise.pre])
 @parametrize_via_toml('test_format.toml')
-def test_preformatted_format_text(pre, obj, width, expected):
-    obj = eval(obj)
-    assert pre(obj).format_text(width) == expected
+def test_format_text(obj, width, expected):
+    assert stepwise.format_text(eval(obj), width) == expected
 
-@parametrize('pre', [stepwise.preformatted, stepwise.pre])
 @parametrize_via_toml('test_format.toml')
-def test_preformatted_replace_text(pre, obj, pattern, repl, expected):
+def test_format_text_indents(obj, width, expected, initial_indent, subsequent_indent):
+    str_formatted = stepwise.format_text(
+            eval(obj), width,
+            initial_indent=initial_indent,
+            subsequent_indent=subsequent_indent,
+    )
+    assert str_formatted == expected
+
+@parametrize_via_toml('test_format.toml')
+def test_replace_text(obj, pattern, repl, count, expected, n):
     obj = eval(obj)
     expected = eval(expected)
+    state = {}
 
-    x = pre(obj)
-    x.replace_text(pattern, repl)
-    assert x.content == expected
-
-@parametrize('ul', [stepwise.unordered_list, stepwise.ul])
-@parametrize_via_toml('test_format.toml')
-def test_unordered_list_format_text(ul, items, prefix, br, width, expected):
-    items = map(eval, items)
-
-    x = ul(*items, prefix=prefix, br=br)
-    assert x.format_text(width) == expected
-
-@parametrize('ol', [stepwise.ordered_list, stepwise.ol])
-@parametrize_via_toml('test_format.toml')
-def test_ordered_list_format_text(ol, items, start, indices, prefix, br, width, expected):
-    items = map(eval, items)
-
-    x = ol(
-            *items,
-            start=start,
-            indices=indices,
-            prefix=prefix,
-            br=br,
+    obj_repl = stepwise.replace_text(
+            obj, pattern, repl,
+            count=count,
+            state=state,
     )
-    assert x.format_text(width) == expected
-
-@parametrize('pl', [stepwise.paragraph_list, stepwise.pl])
-@parametrize_via_toml('test_format.toml')
-def test_paragraph_list_format_text(pl, items, width, expected):
-    items = map(eval, items)
-    assert pl(*items).format_text(width) == expected
+    assert obj_repl == expected
+    assert state['n'] == n
 
 def test_list_operators():
     x = stepwise.List()
@@ -56,65 +37,97 @@ def test_list_operators():
     assert list(x) == []
     assert list(reversed(x)) == []
 
-    x += "a"
+    x += 'a'
     assert len(x) == 1
-    assert list(x) == ["a"]
-    assert list(reversed(x)) == ["a"]
-    assert x == stepwise.List("a")
-    assert x[-1] == "a"
+    assert list(x) == ['a']
+    assert list(reversed(x)) == ['a']
+    assert x == stepwise.List('a')
+    assert x != stepwise.List('x')
+    assert x[-1] == 'a'
 
-    x += "b"
+    x += 'b'
     assert len(x) == 2
-    assert list(x) == ["a", "b"]
-    assert list(reversed(x)) == ["b", "a"]
-    assert x == stepwise.List("a", "b")
-    assert x[-1] == "b"
+    assert list(x) == ['a', 'b']
+    assert list(reversed(x)) == ['b', 'a']
+    assert x == stepwise.List('a', 'b')
+    assert x != stepwise.List('x', 'x')
+    assert x[-1] == 'b'
 
-    x += None
+    x[-1] = 'c'
     assert len(x) == 2
-    assert list(x) == ["a", "b"]
-    assert list(reversed(x)) == ["b", "a"]
-    assert x == stepwise.List("a", "b")
-    assert x == stepwise.List("a", None, "b")
-    assert x[-1] == None
+    assert list(x) == ['a', 'c']
+    assert list(reversed(x)) == ['c', 'a']
+    assert x == stepwise.List('a', 'c')
+    assert x != stepwise.List('x', 'x')
+    assert x[-1] == 'c'
 
-@parametrize_via_toml('test_format.toml')
-def test_list_replace_text(items, pattern, repl, expected):
-    l = stepwise.List(*items)
-    l.replace_text(pattern, repl)
-    assert l.items == expected
+def test_dl_operators():
+    x = dl()
+    assert len(x) == 0
+    assert list(x) == []
 
+    x += ('a', 'b')
+    assert len(x) == 1
+    assert list(x) == [('a', 'b')]
+    debug(x._keys, x._values)
+    assert x == dl(('a', 'b'))
+    assert x != dl(('a', 'x'))
+    assert x != dl(('x', 'b'))
+    assert x[-1] == ('a', 'b')
+    assert x['a'] == 'b'
 
-@parametrize_via_toml('test_format.toml')
-def test_format_text(obj, width, expected):
-    obj = eval(obj)
-    width = eval_width(width)
-    expected = eval(expected)
+    x['c'] = 'd'
+    assert len(x) == 2
+    assert list(x) == [('a', 'b'), ('c', 'd')]
+    assert x == dl(('a', 'b'), ('c', 'd'))
+    assert x != dl(('a', 'x'), ('c', 'd'))
+    assert x != dl(('x', 'b'), ('c', 'd'))
+    assert x != dl(('a', 'b'), ('x', 'd'))
+    assert x != dl(('a', 'b'), ('c', 'x'))
+    assert x[-1] == ('c', 'd')
+    assert x['a'] == 'b'
+    assert x['c'] == 'd'
 
-    assert stepwise.format_text(obj, width) == expected
+    x['c'] = 'e'
+    assert len(x) == 2
+    assert list(x) == [('a', 'b'), ('c', 'e')]
+    assert x == dl(('a', 'b'), ('c', 'e'))
+    assert x != dl(('a', 'x'), ('c', 'e'))
+    assert x != dl(('x', 'b'), ('c', 'e'))
+    assert x != dl(('a', 'b'), ('x', 'e'))
+    assert x != dl(('a', 'b'), ('c', 'x'))
+    assert x[-1] == ('c', 'e')
+    assert x['a'] == 'b'
+    assert x['c'] == 'e'
 
-@parametrize_via_toml('test_format.toml')
-def test_format_list_item(obj, width, prefix, expected):
-    obj = eval(obj)
-    expected = eval(expected)
+def test_table_operators():
+    x = stepwise.table([[]])
+    assert x == stepwise.table([[]])
+    assert x != stepwise.table([['x']])
+    assert x != stepwise.table([[]], header=['x'])
+    assert x != stepwise.table([[]], footer=['x'])
 
-    assert stepwise.format_list_item(obj, width, prefix) == expected
+    x.rows = [['a']]
+    assert x == stepwise.table([['a']])
+    assert x != stepwise.table([['x']])
+    assert x != stepwise.table([['a']], header=['x'])
+    assert x != stepwise.table([['a']], footer=['x'])
 
-@parametrize_via_toml('test_format.toml')
-def test_replace_text(obj, pattern, repl, reverse, count, expected, n):
-    obj = eval(obj)
-    expected = eval(expected)
-    info = {}
+    x.header = ['b']
+    assert x == stepwise.table([['a']], header=['b'])
+    assert x != stepwise.table([['x']], header=['b'])
+    assert x != stepwise.table([['a']], header=['x'])
+    assert x != stepwise.table([['a']], header=['b'], footer=['x'])
 
-    obj_repl = stepwise.replace_text(
-            obj, pattern, repl,
-            reverse=reverse,
-            count=count,
-            info=info,
-    )
-    assert obj_repl == expected
-    assert info['n'] == n
+    x.footer = ['c']
+    assert x == stepwise.table([['a']], header=['b'], footer=['c'])
+    assert x != stepwise.table([['x']], header=['b'], footer=['c'])
+    assert x != stepwise.table([['a']], header=['x'], footer=['c'])
+    assert x != stepwise.table([['a']], header=['b'], footer=['x'])
 
+def test_pre_operators():
+    x = stepwise.pre('a')
+    assert x == stepwise.pre('a')
+    assert x != stepwise.pre('x')
+    assert x != 'a'
 
-def eval_width(w):
-    return eval(w) if isinstance(w, str) else w

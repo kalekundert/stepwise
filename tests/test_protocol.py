@@ -4,7 +4,7 @@ import pytest, arrow, stepwise
 import subprocess as subp
 from pytest import raises
 from stepwise import Protocol, ProtocolIO, ParseError
-from stepwise import pl, ul, ol, pre, NO_WRAP
+from stepwise import pl, ul, ol, dl, pre, table
 from math import inf
 from utils import *
 

@@ -12,7 +12,7 @@ class UnreadableProtocol(Protocol):
         super().__init__(steps=['dummy'])
         self.err = err
 
-    def format_text(self, width):
+    def format_text(self, *args, **kwargs):
         fatal(f"failed to unpickle stashed protocol:\n{self.err.__class__.__name__}: {self.err}")
 
     def pick_slug(self):

@@ -8,7 +8,7 @@ from pathlib import Path
 from inform import plural, warn
 from more_itertools import one, only
 from .quantity import Quantity
-from .table import tabulate
+from .format import tabulate, preformatted
 from .errors import *
 
 # Solvent handling
@@ -193,9 +193,10 @@ class MasterMix:
 
         return table
 
-    def format_text(self, width):
+    def format_text(self, width, **kwargs):
         # Don't wrap the table, because that would make it unreadable.
-        return self.show()
+        text = self.show()
+        return preformatted(text).format_text(width, **kwargs)
 
     def replace_text(self, pattern, repl, **kwargs):
         from .format import replace_text

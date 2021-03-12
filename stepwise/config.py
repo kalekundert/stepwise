@@ -2,7 +2,7 @@
 
 import sys
 import appcli
-from .table import tabulate
+from .format import tabulate
 
 class StepwiseCommand:
     brief = appcli.config_attr()

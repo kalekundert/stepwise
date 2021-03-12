@@ -10,7 +10,7 @@ from voluptuous import Schema
 from more_itertools import one
 from inform import warn, error, set_culprit, get_culprit
 from .protocol import Protocol
-from .printer import Printer
+from .printer import format_protocol
 from .format import preformatted
 from .config import StepwiseConfig
 from .errors import *
@@ -609,10 +609,8 @@ class ProtocolIO:
             # When merging with the empty protocol created by default if stdin 
             # is empty, an extraneous newline will be added to the front of the 
             # protocol.  The strip() call deals with this.
-
-            w = Printer().content_width
-            def str_from_protocol_or_error(x):
-                return x if isinstance(x, str) else x.format_text(w)
+            def str_from_protocol_or_error(p):
+                return p if isinstance(p, str) else format_protocol(p)
 
             protocol_strs = [
                     str_from_protocol_or_error(x.protocol)
@@ -645,9 +643,9 @@ class ProtocolIO:
         """
         if sys.stdout.isatty() or force_text:
             from pydoc import pager
+            from .printer import format_protocol
 
-            w = Printer().content_width
-            out = self.protocol.format_text(w) \
+            out = format_protocol(self.protocol) \
                     if not self.errors else self.protocol
             pager(out)
 

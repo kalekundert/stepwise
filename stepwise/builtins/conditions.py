@@ -21,7 +21,7 @@ Options:
 
 from docopt import docopt
 from stepwise import Protocol, tabulate
-from stepwise import paragraph_list, unordered_list, preformatted
+from stepwise import paragraph_list, unordered_list, table
 from pathlib import Path
 from inform import fatal
 from warnings import filterwarnings
@@ -51,20 +51,20 @@ except FileNotFoundError:
     fatal("no such file", culprit=path)
 
 # Add colons to the condition names:
-df[0] = df[0].map('{}:'.format)
+df[0] = df[0].map(lambda x: x.rstrip(':') + ':')
 
 # Replace hyphens with true minus-signs:
 for c in df.columns[1:]:
     df[c] = df[c].str.replace(r'^-$', '−')
 
-table = df.values.tolist()
+rows = df.values.tolist()
 align = ['<'] + (len(df.columns) - 1) * ['^']
 br = '\n'
 
 p = Protocol()
 p += paragraph_list(
     "In the following steps, setup these conditions:",
-    preformatted(tabulate(table, align=align)),
+    table(rows, align=align),
     unordered_list(*keys),
 )
 

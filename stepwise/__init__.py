@@ -10,7 +10,6 @@ from .protocol import *
 from .reaction import *
 from .quantity import *
 from .format import *
-from .table import *
 from .library import *
 from .printer import *
 from .config import *

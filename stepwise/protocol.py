@@ -3,9 +3,10 @@
 import sys, shlex, re, textwrap
 import arrow, inform
 from pathlib import Path
+from math import inf
 from inform import plural, parse_range, format_range
-from .format import Block, paragraph_list, ordered_list, unordered_list, preformatted
-from .format import format_text, replace_text, NO_WRAP
+from .format import paragraph_list, ordered_list, unordered_list, preformatted
+from .format import format_text, replace_text
 from .errors import *
 
 import functools
@@ -280,7 +281,11 @@ class Protocol:
                 if obj.errors: continue
                 protocol = obj.protocol
 
-            elif isinstance(obj, (str, Block)):
+            elif isinstance(obj, str):
+                protocol = cls(steps=[obj])
+
+            # The interface specified by `format.Formatter()`:
+            elif hasattr(obj, 'format_text') and hasattr(obj, 'replace_text'):
                 protocol = cls(steps=[obj])
 
             elif isinstance(obj, Iterable):
@@ -366,13 +371,13 @@ class Protocol:
             return m.group() + sep + ref_str
 
         for i, step in reversed(list(enumerate(self.steps))):
-            info = {}
+            state = {}
             self.steps[i] = replace_text(
                     step, pattern, sub,
-                    info=info,
+                    state=state,
                     count=1,
             )
-            if info.get('n'):
+            if state.get('n'):
                 break
         else:
             raise ValueError(f"pattern {pattern!r} not found in protocol.")
@@ -451,7 +456,7 @@ class Protocol:
         def union(it):
             return set.union(set(), *it)
 
-        formatted_steps = self._format_steps().format_text(NO_WRAP)
+        formatted_steps = self._format_steps().format_text(inf)
         referenced_ids = union(
                 parse_range(m.group(1))
                 for m in re.finditer(self.FOOTNOTE_REGEX, formatted_steps)

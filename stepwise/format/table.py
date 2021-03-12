@@ -1,18 +1,86 @@
 #!/usr/bin/env python3
 
-from math import ceil
+from math import ceil, inf
 from textwrap import shorten
 from shutil import get_terminal_size
 from itertools import repeat, zip_longest
 from more_itertools import only
 from inform import plural
-from .quantity import Quantity
+from .format import Formatter
+from .lists import _replace_list
+from .misc import preformatted
 
 _style = {
         'pad': 2,
         'rule': '─',
         'placeholder': '…',
 }
+
+class table(Formatter):
+
+    def __init__(
+            self,
+            rows,
+            header=None,
+            footer=None,
+            *,
+            format=None,
+            align=None, 
+            truncate=None,
+            max_width=None,
+            style=_style,
+    ):
+        self.rows = rows
+        self.header = header
+        self.footer = footer
+        self.format = format
+        self.align = align
+        self.truncate = truncate
+        self.max_width = max_width
+        self.style = style
+
+    def __eq__(self, other):
+        return (
+            type(self) == type(other) and
+            self.rows == other.rows and
+            self.header == other.header and
+            self.footer == other.footer and
+            self.format == other.format and
+            self.align == other.align and
+            self.truncate == other.truncate and
+            self.max_width == other.max_width and
+            self.style == other.style
+        )
+
+    def format_text(self, width, **kwargs):
+        truncate_width = kwargs.get('truncate_width')
+
+        table = tabulate(
+                rows=self.rows,
+                header=self.header,
+                footer=self.footer,
+                format=self.format,
+                align=self.align,
+                truncate=self.truncate,
+                max_width=self.max_width,
+                page_width=kwargs.get('truncate_width'),
+                style=self.style,
+        )
+        return preformatted(table).format_text(width, **kwargs)
+
+    def replace_text(self, pattern, repl, **kwargs):
+
+        def replace_row(row):
+            return _replace_list(row, pattern, repl, **kwargs)
+
+        if self.header:
+            self.header = replace_row(self.header)
+
+        self.rows = [replace_row(row) for row in self.rows]
+
+        if self.footer:
+            self.footer = replace_row(self.footer)
+
 
 def tabulate(
         rows,
@@ -23,6 +91,7 @@ def tabulate(
         align=None, 
         truncate=None,
         max_width=None,
+        page_width=None,
         style=_style,
 ):
     """
@@ -43,7 +112,7 @@ def tabulate(
         truncate (str): Whether each column can be truncated ('x') or not ('-') 
             to help fit the table within the given `max_width`.
         max_width (int): The maximum width of the table to strive for by 
-            truncating columns.  This maximum can be exceeded in `truncate` is 
+            truncating columns.  This maximum can be exceeded if `truncate` is 
             not specified, or if the columns specified by `truncate` cannot are 
             too narrow to make up the difference.
         style (dict): Miscellaneous parameters used to render the table.
@@ -71,7 +140,7 @@ def tabulate(
     col_widths, table_width = _measure_cols(
             table_unfmt,
             truncate,
-            max_width,
+            _eval_max_width(max_width, page_width),
             style['pad'],
     )
     col_alignments = align or _auto_align(rows)
@@ -179,6 +248,8 @@ def _auto_align(rows):
         return all(map(is_numeric, xs))
 
     def is_numeric(x):
+        from stepwise import Quantity
+
         try: float(x)
         except ValueError: pass
         else: return True
@@ -193,6 +264,18 @@ def _auto_align(rows):
             '>' if is_col_numeric(col) else '<'
             for col in zip(*rows)
     ]
+
+def _eval_max_width(max_width, page_width):
+    if not page_width:
+        page_width = get_terminal_size().columns - 1
+
+    if not max_width:
+        return page_width
+
+    if max_width < 0:
+        return page_width + max_width
+
+    return max_width
 
 def _measure_cols(table, truncate, max_width, pad):
     """
@@ -210,10 +293,6 @@ def _measure_cols(table, truncate, max_width, pad):
 
     if truncate and num_cols != len(truncate):
         raise ValueError(f"table has {plural(num_cols):# column/s}, but truncation specified for {len(truncate)}: {truncate!r}")
-    if not max_width:
-        max_width = get_terminal_size().columns - 1
-    if max_width < 0:
-        max_width = get_terminal_size().columns - 1 - max_width
 
     sum_col_widths = lambda: sum(col_widths) + pad * max(num_cols - 1, 0)
     table_width = sum_col_widths()

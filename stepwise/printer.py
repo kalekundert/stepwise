@@ -33,23 +33,6 @@ class Printer:
     def __init__(self, name=None):
         self.name = name or get_default_printer_name()
 
-    def format_protocol(self, protocol):
-        return protocol.format_text(self.content_width)
-
-    def print_protocol(self, protocol):
-        lines = self.format_protocol(protocol).splitlines()
-        lines = truncate_lines(lines, self)
-
-        try:
-            check_for_long_lines(lines, self)
-        except PrinterWarning as err:
-            err.report(informant=warn)
-
-        pages = make_pages(lines, self)
-        pages = add_margin(pages, self)
-
-        print_pages(pages, self)
-        print_files(protocol.attachments, self)
 
     def truncate_lines(self, lines):
         def do_truncate(line):
@@ -84,7 +67,7 @@ class Printer:
         
     def make_pages(self, lines):
         """
-        Split the given protocol into pages by trying to best take advantage of 
+        Split the given content into pages by trying to best take advantage of 
         natural paragraph breaks.
 
         The return value is a list of "pages", where each page is a list of lines 
@@ -156,6 +139,29 @@ class Printer:
         if files:
             lpr = ['lpr', *shlex.split(self.lpr_flags), *files]
             run(lpr)
+
+def format_protocol(protocol, printer=None, **kwargs):
+    printer = printer or Printer()
+    return protocol.format_text(printer.content_width, **kwargs)
+
+def print_protocol(protocol, printer):
+    text = format_protocol(
+            protocol, printer,
+            truncate_width=printer.page_width - printer.margin_width,
+    )
+    lines = text.splitlines()
+    lines = printer.truncate_lines(lines)
+
+    try:
+        printer.check_for_long_lines(lines)
+    except PrinterWarning as err:
+        err.report(informant=warn)
+
+    pages = printer.make_pages(lines)
+    pages = printer.add_margin(pages)
+
+    printer.print_pages(pages)
+    printer.print_files(protocol.attachments)
 
 def get_default_printer_name():
     import re
