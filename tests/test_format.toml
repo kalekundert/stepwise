@@ -2683,3 +2683,244 @@ pre('[2] [2]')
 n = 2
 
 
+[[test_step_from_str]]
+id = 'step'
+step = "a"
+delim = '~'
+wrap = true
+expected = '''
+'a'
+'''
+
+[[test_step_from_str]]
+id = 'step'
+step = "a~b"
+delim = '~'
+wrap = true
+expected = '''
+pl('a', ul('b'))
+'''
+
+[[test_step_from_str]]
+id = 'step'
+step = "a~b~c"
+delim = '~'
+wrap = true
+expected = '''
+pl('a', ul('b', 'c'))
+'''
+
+[[test_step_from_str]]
+id = 'step'
+step = "a~b~~c"
+delim = '~'
+wrap = true
+expected = '''
+pl('a', ul(pl('b', ul('c'))))
+'''
+
+[[test_step_from_str]]
+id = 'step'
+step = "a~b~c~~d"
+delim = '~'
+wrap = true
+expected = '''
+pl('a', ul('b', pl('c', ul('d'))))
+'''
+
+[[test_step_from_str]]
+id = 'step'
+step = "a~b~~c~d"
+delim = '~'
+wrap = true
+expected = '''
+pl('a', ul(pl('b', ul('c')), 'd'))
+'''
+
+[[test_step_from_str]]
+id = 'delim'
+step = "a~b"
+delim = ';'
+wrap = true
+expected = '''
+'a~b'
+'''
+
+[[test_step_from_str]]
+id = 'delim'
+step = "a;b"
+delim = ';'
+wrap = true
+expected = '''
+pl('a', ul('b'))
+'''
+
+[[test_step_from_str]]
+id = 'wrap'
+step = "a"
+delim = '~'
+wrap = false
+expected = '''
+pre('a')
+'''
+
+[[test_step_from_str]]
+id = 'wrap'
+step = "a~b"
+delim = '~'
+wrap = false
+expected = '''
+pl(pre('a'), ul(pre('b')))
+'''
+
+[[test_step_from_str]]
+id = 'wrap'
+step = "a~b~~c"
+delim = '~'
+wrap = false
+expected = '''
+pl(
+  pre('a'),
+  ul(
+    pl(
+      pre('b'),
+      ul(
+        pre('c'),
+      ),
+    ),
+  ),
+)
+'''
+
+[[test_split_by_delim_count]]
+str = ''
+delim = '~'
+count = 1
+expected = ['']
+
+[[test_split_by_delim_count]]
+str = 'a'
+delim = '~'
+count = 1
+expected = ['a']
+
+[[test_split_by_delim_count]]
+str = '~'
+delim = '~'
+count = 1
+expected = ['', '']
+
+[[test_split_by_delim_count]]
+str = 'a~'
+delim = '~'
+count = 1
+expected = ['a', '']
+
+[[test_split_by_delim_count]]
+str = '~a'
+delim = '~'
+count = 1
+expected = ['', 'a']
+
+[[test_split_by_delim_count]]
+str = 'a~b'
+delim = '~'
+count = 1
+expected = ['a', 'b']
+
+[[test_split_by_delim_count]]
+str = '~~'
+delim = '~'
+count = 1
+expected = ['~~']
+
+[[test_split_by_delim_count]]
+str = 'a~~'
+delim = '~'
+count = 1
+expected = ['a~~']
+
+[[test_split_by_delim_count]]
+str = '~~a'
+delim = '~'
+count = 1
+expected = ['~~a']
+
+[[test_split_by_delim_count]]
+str = 'a~~b'
+delim = '~'
+count = 1
+expected = ['a~~b']
+
+[[test_split_by_delim_count]]
+str = 'a~b~~c~~d~e~~f~~g'
+delim = '~'
+count = 1
+expected = ['a', 'b~~c~~d', 'e~~f~~g']
+
+[[test_split_by_delim_count]]
+str = ''
+delim = '~'
+count = 2
+expected = ['']
+
+[[test_split_by_delim_count]]
+str = 'a'
+delim = '~'
+count = 2
+expected = ['a']
+
+[[test_split_by_delim_count]]
+str = '~'
+delim = '~'
+count = 2
+expected = ['~']
+
+[[test_split_by_delim_count]]
+str = 'a~'
+delim = '~'
+count = 2
+expected = ['a~']
+
+[[test_split_by_delim_count]]
+str = '~a'
+delim = '~'
+count = 2
+expected = ['~a']
+
+[[test_split_by_delim_count]]
+str = 'a~b'
+delim = '~'
+count = 2
+expected = ['a~b']
+
+[[test_split_by_delim_count]]
+str = '~~'
+delim = '~'
+count = 2
+expected = ['', '']
+
+[[test_split_by_delim_count]]
+str = 'a~~'
+delim = '~'
+count = 2
+expected = ['a', '']
+
+[[test_split_by_delim_count]]
+str = '~~a'
+delim = '~'
+count = 2
+expected = ['', 'a']
+
+[[test_split_by_delim_count]]
+str = 'a~~b'
+delim = '~'
+count = 2
+expected = ['a', 'b']
+
+[[test_split_by_delim_count]]
+str = 'a~b~~c~~d~e~~f~~g'
+delim = '~'
+count = 2
+expected = ['a~b', 'c', 'd~e', 'f', 'g']
+

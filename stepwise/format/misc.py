@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from .format import Formatter, replace_text, _align_indents_if_possible
+from .lists import paragraph_list, unordered_list
 from more_itertools import mark_ends
 
 class preformatted(Formatter):
@@ -48,3 +49,54 @@ class preformatted(Formatter):
 
 
 
+
+def step_from_str(step_str, delim, *, wrap=True, level=1):
+    fields = split_by_delim_count(step_str, delim, count=level)
+
+    if len(fields) == 1:
+        wrapper = str if wrap else preformatted
+        return wrapper(fields[0])
+
+    return paragraph_list(
+            step_from_str(fields[0], delim, wrap=wrap, level=level+1),
+            unordered_list(*(
+                step_from_str(x, delim, wrap=wrap, level=level+1)
+                for x in fields[1:]
+            )),
+            br='\n\n' if level == 1 else '\n',
+    )
+
+def split_by_delim_count(str, delim, count):
+    return list(iter_by_delim_count(str, delim, count))
+
+def iter_by_delim_count(str, delim, count):
+    """
+    Split the given string wherever the given delimiter appear *exactly* the 
+    given number of times in a row.
+    """
+    if len(delim) != 1:
+        raise ValueError(f"delimiter must be a single character, not: {delim!r}")
+
+    curr_field = ''
+    curr_delim = ''
+
+    for c in str:
+        if c == delim:
+            curr_delim += c
+        else:
+            if curr_delim:
+                if len(curr_delim) == count:
+                    yield curr_field
+                    curr_field = ''
+                else:
+                    curr_field += curr_delim
+
+                curr_delim = ''
+
+            curr_field += c
+
+    if len(curr_delim) == count:
+        yield curr_field
+        yield ''
+    else:
+        yield curr_field + curr_delim

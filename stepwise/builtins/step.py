@@ -19,16 +19,14 @@ Options:
 """
 
 from docopt import docopt
-from stepwise import Protocol, pl, ul, pre
+from stepwise import Protocol, step_from_str
 
 args = docopt(__doc__)
+
 p = Protocol()
-
-wrap = pre if args['--no-wrap'] else str
-body, *substeps = args['<text>'].split(args['--delimiter'])
-body = wrap(body)
-substeps = map(wrap, substeps)
-
-p += pl(body, ul(*substeps))
-
+p += step_from_str(
+        args['<text>'], 
+        delim=args['--delimiter'],
+        wrap=not args['--no-wrap'],
+)
 p.print()

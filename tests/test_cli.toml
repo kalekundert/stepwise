@@ -34,17 +34,21 @@ return_code = 0
 
 [[test_main]]
 id = 'builtin-step'
-cmd = "sw step 'A~b~c'"
+cmd = "sw step 'A~b~~c~~d~e~~f~~g'"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ sw step 'A~b~c'
+\$ sw step 'A~b~~c~~d~e~~f~~g'
 
 1\. A
 
    - b
-   - c
+     - c
+     - d
+   - e
+     - f
+     - g
 '''
 stderr = '^$'
 return_code = 0

@@ -131,3 +131,10 @@ def test_pre_operators():
     assert x != stepwise.pre('x')
     assert x != 'a'
 
+@parametrize_via_toml('test_format.toml')
+def test_step_from_str(step, delim, wrap, expected):
+    assert stepwise.step_from_str(step, delim, wrap=wrap) == eval(expected)
+
+@parametrize_via_toml('test_format.toml')
+def test_split_by_delim_count(str, delim, count, expected):
+    assert stepwise.split_by_delim_count(str,delim, count) == expected
