@@ -130,13 +130,6 @@ class definition_list(Formatter):
         return f'{self.__class__.__name__}({", ".join(repr(x) for x in self)})'
 
     def __eq__(self, other):
-        debug(
-                self._keys,      other._keys,
-                self._values,    other._values,
-                self.prefix,     other.prefix,
-                self.indent,     other.indent,
-                self.br,         other.br,
-        )
         return (
                 type(self) == type(other) and
                 self._keys == other._keys and
