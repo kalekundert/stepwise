@@ -69,7 +69,6 @@ def test_dl_operators():
     x += ('a', 'b')
     assert len(x) == 1
     assert list(x) == [('a', 'b')]
-    debug(x._keys, x._values)
     assert x == dl(('a', 'b'))
     assert x != dl(('a', 'x'))
     assert x != dl(('x', 'b'))
