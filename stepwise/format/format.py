@@ -90,8 +90,3 @@ def _align_indents_if_possible(kwargs):
         return diff == 0
 
 
-def _replace_text_list(objs, pattern, repl, **kwargs):
-    return [
-            replace_text(x, pattern, repl, **kwargs) if x else x
-            for x in objs
-    ]
