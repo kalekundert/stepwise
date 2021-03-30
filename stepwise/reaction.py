@@ -63,11 +63,22 @@ class MasterMix:
 
     def __getattr__(self, attr):
         # Note that `__getattr__()` isn't used to lookup dunder methods, so 
-        # methods like `__getitem__()` need to be explicitly defined.
-        #
-        # See Section 3.3.10 of the python docs.
+        # methods like `__getitem__()` need to be explicitly defined.  See 
+        # Section 3.3.10 of the python docs.
+
+        # Due to the way `autoprop` does caching, this method is called by 
+        # `__setattr__()` when the `reaction` attribute is being set for the 
+        # first time.  This means we have to be careful about accessing 
+        # `reaction`, because the normal `self.reaction` syntax would trigger 
+        # infinite recursion in this case.
+
         try:
-            return getattr(self.reaction, attr)
+            reaction = self.__dict__['reaction']
+        except KeyError:
+            raise AttributeError
+
+        try:
+            return getattr(reaction, attr)
         except AttributeError as err:
             raise AttributeError(str(err).replace(
                 self.reaction.__class__.__name__,
