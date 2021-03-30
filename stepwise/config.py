@@ -68,21 +68,26 @@ class PresetConfig(appcli.Config):
         self._presets = None
 
     def load(self, obj):
-        # Note that the `obj.presets` attribute is evaluated when this config 
-        # is loaded, so subsequent changes to this attribute will have no 
-        # effect.  If this is a problem, you can either: (i) make sure this 
-        # config is loaded after `obj.presets` has its final value, or (ii) 
-        # implement `appcli.reload()` and use it every time `obj.presets` 
-        # changes.
+        # Note that the `obj.presets` attribute is evaluated the first time a 
+        # preset is accessed.  Subsequent changes to this attribute will have 
+        # no effect.  If this ever turns out to be a problem, I could tweak 
+        # this class so that reloading it would re-evaluate this attribute.
         #
-        # In contrast, the `obj.preset` attribute is queried every time the 
+        # In contrast, the `obj.preset` attribute is evaluated every time the 
         # parameter is accessed, so changes to that attribute will be 
         # automatically applied.
         
-        presets = self.get_presets(obj)
+        def values():
+            presets = self.get_presets(obj)
+            values_func = lambda k: presets[getattr(obj, self.key_attr)][k]
+            return appcli.dict_like(values_func)
+
+        def location():
+            return f'{obj.__class__.__qualname__}.{self.presets_attr}[{getattr(obj, self.key_attr)!r}]'
+
         yield appcli.Layer(
-                values=lambda k: presets[getattr(obj, self.key_attr)][k],
-                location=lambda: f'{obj.__class__.__qualname__}.{self.presets_attr}[{getattr(obj, self.key_attr)!r}]'
+                values=values,
+                location=location,
         )
 
     def get_presets(self, obj):
