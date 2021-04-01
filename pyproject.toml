@@ -67,6 +67,9 @@ metric = "stepwise.cli.metric:Metric"
 markers = """slow: marks tests as slow (deselect with '-m "not slow"')"""
 filterwarnings = "ignore::PendingDeprecationWarning:Bio.Alphabet"
 
+[tool.pccc]
+types = ["chore", "docs", "feat", "fix", "refactor", "style", "test"]
+
 [tool.semantic_release]
 version_variable = 'stepwise/__init__.py:__version__'
 build_command = 'python -m pip install flit && flit build'
