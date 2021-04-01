@@ -4,7 +4,7 @@ import sys
 import appcli
 from pathlib import Path
 from inform import fatal
-from stepwise import ProtocolIO, Printer, get_default_printer_name
+from stepwise import ProtocolIO, Printer, get_default_printer_name, format_protocol, print_protocol
 from stepwise.config import StepwiseCommand, StepwiseConfig
 from appcli import Key, DocoptConfig
 from operator import not_
@@ -107,10 +107,10 @@ Configuration:
                 print(f"Aborting; protocol NOT sent to printer.")
                 sys.exit(1)
                 
-            path.write_text(printer.format_protocol(io.protocol))
+            path.write_text(format_protocol(io.protocol, printer))
             print(f"Protocol saved to '{path}'")
 
         # Send to protocol to the printer.
         if self.send_to_printer:
-            printer.print_protocol(io.protocol)
+            print_protocol(io.protocol, printer)
             print(f"Protocol sent to '{printer.name}'")
