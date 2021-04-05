@@ -64,6 +64,25 @@ def test_unit():
     with pytest.raises(AttributeError):
         q.unit = 'µL'
 
+def test_convert_unit():
+    f = {
+            'g': 1,
+            'mg': 1e3,
+    }
+
+    assert Q('1 g').convert_unit('mg', f) == Q('1000 mg')
+    assert Q('2000 mg').convert_unit('g', f) == Q('2 g')
+
+def test_convert_unit_err():
+    f = {
+            'g': 1,
+            'mg': 1e3,
+    }
+
+    with pytest.raises(ValueError, match="cannot convert between 'g' and 'mL', did you mean: 'mg'"):
+        Q('1 g').convert_unit('mL', f)
+
+
 def test_require_matching_unit():
     q1 = Quantity(1, 'ng')
     q2 = Quantity(2, 'ng')

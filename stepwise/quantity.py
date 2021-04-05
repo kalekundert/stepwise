@@ -2,6 +2,7 @@
 
 import re
 import autoprop
+from inform import did_you_mean
 from operator import lt, le, eq, ne, ge, gt, add, sub, mul, truediv, floordiv
 from collections.abc import Iterable
 
@@ -85,6 +86,41 @@ class Quantity:
     def format(self, spec=''):
         padding = '' if self.unit in self.NO_PADDING else ' '
         return f'{self.value:{spec or "g"}}{padding}{self.unit}'
+
+    def convert_unit(self, new_unit, conversion_factors):
+        """
+        Arguments:
+            new_unit: str
+                The unit to convert to.  This unit must be present in the 
+                *conversion_factors* argument, or a `ValueError` will be 
+                raised.
+            conversion_factors: Dict[str,float]
+                The keys are the units that can be converted to.  The values 
+                are the multipliers needed to make each of these units equal to 
+                all of the others. For example, ``dict(g=1, mg=1000)`` 
+                indicates that 1000mg equals 1g.
+
+        Returns:
+            Quantity:
+                A new quantity instance representing the same physical quantity 
+                in the given units.
+
+        Examples:
+
+        >>> from stepwise import Quantity
+        >>> q = Quantity(2, 'g')
+        >>> q.convert_unit('mg', dict(g=1, mg=1000))
+        Quantity(2000, 'mg')
+        """
+        f = conversion_factors
+
+        try:
+            new_value = self.value / f[self.unit] * f[new_unit]
+        except KeyError as err:
+            guess = did_you_mean(str(err), f.keys())
+            raise ValueError(f"cannot convert between {self.unit!r} and {new_unit!r}, did you mean: {guess!r}")
+
+        return Quantity(new_value, new_unit)
 
     def require_matching_unit(self, other):
         if other is None or self.unit != other.unit:
