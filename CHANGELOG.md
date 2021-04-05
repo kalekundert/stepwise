@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.19.2 (2021-04-05)
+### Fix
+* Keep `dl` keys/values in sync after empty value ([`d562fe3`](https://github.com/kalekundert/stepwise/commit/d562fe3a7192acf5105e44d7e8e08188476acac2))
+
 ## v0.19.1 (2021-04-01)
 ### Fix
 * Debug the `go` command ([`7285350`](https://github.com/kalekundert/stepwise/commit/7285350a043855983438fc41b2d529632ec944b3))
