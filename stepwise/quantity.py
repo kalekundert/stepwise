@@ -65,10 +65,10 @@ class Quantity:
         return f'Quantity({self.value:g}, {self.unit!r})'
 
     def __str__(self):
-        return self.show()
+        return self.format()
 
     def __format__(self, spec):
-        return self.show(spec)
+        return self.format(spec)
 
     def __bool__(self):
         return bool(self.value)
@@ -82,9 +82,9 @@ class Quantity:
     def get_tuple(self):
         return self._value, self._unit
 
-    def show(self, format=''):
+    def format(self, spec=''):
         padding = '' if self.unit in self.NO_PADDING else ' '
-        return f'{self.value:{format or "g"}}{padding}{self.unit}'
+        return f'{self.value:{spec or "g"}}{padding}{self.unit}'
 
     def require_matching_unit(self, other):
         if other is None or self.unit != other.unit:

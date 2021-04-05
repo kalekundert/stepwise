@@ -1141,13 +1141,13 @@ def test_master_mix_scale(params):
     assert mm.get_scale() == pytest.approx(params['expected'])
 
 @pytest.mark.parametrize(
-        'show', [
+        'format', [
             pytest.param(lambda mm: str(mm), id='str()'),
-            pytest.param(lambda mm: mm.show(), id='show()'),
+            pytest.param(lambda mm: mm.format_text(), id='format_text()'),
             pytest.param(lambda mm: mm.format_text(1), id='format_text(1)'),
         ],
 )
-def test_master_mix_show(show):
+def test_master_mix_format_text(format):
     mm = MasterMix.from_text("""\
 Reagent  Stock    Volume  MM?
 =======  =====  ========  ===
@@ -1157,7 +1157,7 @@ enzyme      5x      2 µL   no
 """)
 
     mm.num_reactions = 1
-    assert show(mm) == """\
+    assert format(mm) == """\
 Reagent  Stock    Volume
 ────────────────────────
 water            7.00 µL
@@ -1169,7 +1169,7 @@ enzyme      5x   2.00 µL
     mm.num_reactions = 2
     mm.extra_fraction = 0
     mm.extra_reactions = 0
-    assert show(mm) == """\
+    assert format(mm) == """\
 Reagent  Stock    Volume        2x
 ──────────────────────────────────
 water            7.00 µL  14.00 µL
@@ -1181,7 +1181,7 @@ enzyme      5x   2.00 µL
     mm.show_master_mix = False
     mm.show_1x = True
     mm.show_totals = True
-    assert show(mm) == """\
+    assert format(mm) == """\
 Reagent  Stock    Volume
 ────────────────────────
 water            7.00 µL
@@ -1193,7 +1193,7 @@ enzyme      5x   2.00 µL
     mm.show_master_mix = True
     mm.show_1x = False
     mm.show_totals = True
-    assert show(mm) == """\
+    assert format(mm) == """\
 Reagent  Stock        2x
 ────────────────────────
 water           14.00 µL
@@ -1205,14 +1205,14 @@ enzyme      5x
     mm.show_master_mix = True
     mm.show_1x = True
     mm.show_totals = False
-    assert show(mm) == """\
+    assert format(mm) == """\
 Reagent  Stock   Volume        2x
 ─────────────────────────────────
 water           7.00 µL  14.00 µL
 buffer     10x  1.00 µL   2.00 µL
 enzyme      5x  2.00 µL"""
 
-def test_master_mix_show_scale_header():
+def test_master_mix_format_text_scale_header():
     mm = MasterMix.from_text("""\
 Reagent  Stock    Volume  MM?
 =======  =====  ========  ===
@@ -1266,7 +1266,7 @@ enzyme      5x   2.00 µL
 ──────────────────────────────────
                 10.00 µL   8.00 µL/rxn"""
 
-def test_master_mix_show_0_volume_reagent():
+def test_master_mix_format_text_0_volume_reagent():
     mm = MasterMix.from_text("""\
 Reagent  Stock   Volume  MM?
 =======  =====  =======  ===
@@ -1303,7 +1303,7 @@ enzyme      5x  2.00 µL
 ────────────────────────────────
                 3.00 µL  1.00 µL/rxn"""
 
-def test_master_mix_show_no_solvent():
+def test_master_mix_format_text_no_solvent():
     mm = MasterMix.from_text("""\
 Reagent  Stock    Volume  MM?
 =======  =====  ========  ===

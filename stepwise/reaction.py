@@ -4,6 +4,7 @@ import re
 import math
 import autoprop
 import functools
+from math import inf
 from pathlib import Path
 from inform import plural, warn
 from more_itertools import one, only
@@ -44,7 +45,7 @@ class MasterMix:
         return self.reaction.__repr__.__func__(self)
 
     def __str__(self):
-        return self.show()
+        return self.format_text()
 
     def __iter__(self):
         return self.reaction.__iter__()
@@ -138,7 +139,7 @@ class MasterMix:
             self.extra_min_volume / min_volume if min_volume else 0,
         ))
 
-    def show(self):
+    def format_text(self, width=inf, **kwargs):
         show_master_mix = not any([
                 # Nothing in the master mix:
                 not any(self.iter_master_mix_reagents()),
@@ -202,12 +203,7 @@ class MasterMix:
         if show_master_mix and self.show_totals:
             table += '/rxn'
 
-        return table
-
-    def format_text(self, width, **kwargs):
-        # Don't wrap the table, because that would make it unreadable.
-        text = self.show()
-        return preformatted(text).format_text(width, **kwargs)
+        return preformatted(table).format_text(width, **kwargs)
 
     def replace_text(self, pattern, repl, **kwargs):
         from .format import replace_text
