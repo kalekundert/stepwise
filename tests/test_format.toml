@@ -4,42 +4,49 @@
 id = 'str-empty'
 obj = '""'
 width = 5
+kwargs = {}
 expected = ""
 
 [[test_format_text]]
 id = 'str-wrap-1'
 obj = '"a b c"'
 width = 1
+kwargs = {}
 expected = "a\nb\nc"
 
 [[test_format_text]]
 id = 'str-wrap-2'
 obj = '"a b c"'
 width = 2
+kwargs = {}
 expected = "a\nb\nc"
 
 [[test_format_text]]
 id = 'str-wrap-3'
 obj = '"a b c"'
 width = 3
+kwargs = {}
 expected = "a b\nc"
 
 [[test_format_text]]
 id = 'str-wrap-4'
 obj = '"a b c"'
 width = 4
+kwargs = {}
 expected = "a b\nc"
 
 [[test_format_text]]
 id = 'str-wrap-5'
 obj = '"a b c"'
 width = 5
+kwargs = {}
 expected = "a b c"
 
 [[test_format_text]]
 id = 'str-wrap-inf'
 obj = '"a b c"'
 width = inf
+kwargs = {}
 expected = "a b c"
 
 [[test_format_text]]
@@ -52,30 +59,56 @@ id = 'str-trailing-space'
 #   work around it.
 obj = '"a \nb \nc"'
 width = 3
+kwargs = {}
 expected = "a b\nc"
 
 [[test_format_text]]
 id = 'str-trailing-space'
 obj = '"a \nb \nc"'
 width = 5
+kwargs = {}
 expected = "a b c"
 
 [[test_format_text]]
 id = 'str-leading-space'
 obj = '" a\n b\n c"'
 width = 3
+kwargs = {}
 expected = "a b\nc"
 
 [[test_format_text]]
 id = 'str-leading-space'
 obj = '" a\n b\n c"'
 width = 5
+kwargs = {}
 expected = "a b c"
+
+[[test_format_text]]
+id = 'str-initial-indent'
+obj = '"a b c"'
+width = 3
+kwargs.initial_indent = '> '
+expected = "> a\nb c"
+
+[[test_format_text]]
+id = 'str-subsequent-indent'
+obj = '"a b c"'
+width = 3
+kwargs.subsequent_indent = '> '
+expected = "a b\n> c"
+
+[[test_format_text]]
+id = 'str-truncate-width'
+obj = '"a"'
+width = 1
+kwargs.truncate_width = 1
+expected = "a"
 
 [[test_format_text]]
 id = 'str-no-wrap-references'
 obj = '"[1]"'
 width = 1
+kwargs = {}
 expected = "[1]"
 
 
@@ -151,6 +184,7 @@ obj = '''
 pl()
 '''
 width = inf
+kwargs = {}
 expected = ""
 
 [[test_format_text]]
@@ -159,6 +193,7 @@ obj = '''
 pl('a')
 '''
 width = inf
+kwargs = {}
 expected = "a"
 
 [[test_format_text]]
@@ -167,6 +202,7 @@ obj = '''
 pl('a', 'b')
 '''
 width = inf
+kwargs = {}
 expected = """
 a
 
@@ -178,6 +214,7 @@ obj = '''
 pl('a', '')
 '''
 width = 3
+kwargs = {}
 expected = "a"
 
 [[test_format_text]]
@@ -186,6 +223,7 @@ obj = '''
 pl('a', None)
 '''
 width = 3
+kwargs = {}
 expected = "a"
 
 [[test_format_text]]
@@ -194,6 +232,7 @@ obj = '''
 pl('a', pl())
 '''
 width = 3
+kwargs = {}
 expected = "a"
 
 [[test_format_text]]
@@ -202,6 +241,7 @@ obj = '''
 pl('a b c', 'd e f')
 '''
 width = 1
+kwargs = {}
 expected = """
 a
 b
@@ -217,6 +257,7 @@ obj = '''
 pl('a b c', 'd e f')
 '''
 width = 2
+kwargs = {}
 expected = """
 a
 b
@@ -232,6 +273,7 @@ obj = '''
 pl('a b c', 'd e f')
 '''
 width = 3
+kwargs = {}
 expected = """
 a b
 c
@@ -245,6 +287,7 @@ obj = '''
 pl('a b c', 'd e f')
 '''
 width = 4
+kwargs = {}
 expected = """
 a b
 c
@@ -258,6 +301,7 @@ obj = '''
 pl('a b c', 'd e f')
 '''
 width = 5
+kwargs = {}
 expected = """
 a b c
 
@@ -269,6 +313,7 @@ obj = '''
 pl('a b c', 'd e f')
 '''
 width = inf
+kwargs = {}
 expected = """
 a b c
 
@@ -280,6 +325,7 @@ obj = '''
 pl('a', 'b', br='\n')
 '''
 width = inf
+kwargs = {}
 expected = """
 a
 b"""
@@ -290,6 +336,7 @@ obj = '''
 pl('a', pl('b', 'c'))
 '''
 width = inf
+kwargs = {}
 expected = """
 a
 
@@ -303,6 +350,7 @@ obj = '''
 pl('a', ul('b', 'c'))
 '''
 width = inf
+kwargs = {}
 expected = """
 a
 
@@ -315,6 +363,7 @@ obj = '''
 pl('a', ol('b', 'c'))
 '''
 width = inf
+kwargs = {}
 expected = """
 a
 
@@ -328,6 +377,7 @@ obj = '''
 pl('a', dl(('b', 'c'), ('d', 'e')))
 '''
 width = inf
+kwargs = {}
 expected = """
 a
 
@@ -340,6 +390,7 @@ obj = '''
 pl('a', table([['b', 'c'], ['d', 'e']]))
 '''
 width = inf
+kwargs = {}
 expected = """
 a
 
@@ -352,46 +403,47 @@ obj = '''
 pl('a b c', pre('d e f'))
 '''
 width = 3
+kwargs = {}
 expected = """
 a b
 c
 
 d e f"""
 
-[[test_format_text_indents]]
+[[test_format_text]]
 id = 'pl'
 obj = '''
 pl('a b', 'c d')
 '''
 width = inf
-initial_indent = '>'
-subsequent_indent = ''
+kwargs.initial_indent = '>'
+kwargs.subsequent_indent = ''
 expected = """
 >a b
 
 c d"""
   
-[[test_format_text_indents]]
+[[test_format_text]]
 id = 'pl'
 obj = '''
 pl('a b', 'c d')
 '''
 width = inf
-initial_indent = ''
-subsequent_indent = '>'
+kwargs.initial_indent = ''
+kwargs.subsequent_indent = '>'
 expected = """
 a b
 
 >c d"""
 
-[[test_format_text_indents]]
+[[test_format_text]]
 id = 'pl'
 obj = '''
 pl('a b', 'c d')
 '''
 width = inf
-initial_indent = '>'
-subsequent_indent = '>'
+kwargs.initial_indent = '>'
+kwargs.subsequent_indent = '>'
 expected = """
 >a b
 
@@ -576,6 +628,7 @@ obj = '''
 ul()
 '''
 width = inf
+kwargs = {}
 expected = ""
 
 [[test_format_text]]
@@ -584,6 +637,7 @@ obj = '''
 ul('a')
 '''
 width = inf
+kwargs = {}
 expected = "- a"
 
 [[test_format_text]]
@@ -592,6 +646,7 @@ obj = '''
 ul('a', 'b')
 '''
 width = inf
+kwargs = {}
 expected = """
 - a
 - b"""
@@ -602,6 +657,7 @@ obj = '''
 ul('a', '')
 '''
 width = inf
+kwargs = {}
 expected = "- a"
 
 [[test_format_text]]
@@ -610,6 +666,7 @@ obj = '''
 ul('a', None)
 '''
 width = inf
+kwargs = {}
 expected = "- a"
 
 [[test_format_text]]
@@ -618,6 +675,7 @@ obj = '''
 ul('a', pl())
 '''
 width = inf
+kwargs = {}
 expected = "- a"
 
 [[test_format_text]]
@@ -626,6 +684,7 @@ obj = '''
 ul('a b c')
 '''
 width = 1
+kwargs = {}
 expected = """
 - a
   b
@@ -637,6 +696,7 @@ obj = '''
 ul('a b c')
 '''
 width = 3
+kwargs = {}
 expected = """
 - a
   b
@@ -648,6 +708,7 @@ obj = '''
 ul('a b c')
 '''
 width = 4
+kwargs = {}
 expected = """
 - a
   b
@@ -659,6 +720,7 @@ obj = '''
 ul('a b c')
 '''
 width = 5
+kwargs = {}
 expected = """
 - a b
   c"""
@@ -669,6 +731,7 @@ obj = '''
 ul('a b c')
 '''
 width = 6
+kwargs = {}
 expected = """
 - a b
   c"""
@@ -679,6 +742,7 @@ obj = '''
 ul('a b c')
 '''
 width = 7
+kwargs = {}
 expected = """
 - a b c"""
 
@@ -688,6 +752,7 @@ obj = '''
 ul('a b c')
 '''
 width = inf
+kwargs = {}
 expected = """
 - a b c"""
 
@@ -697,6 +762,7 @@ obj = '''
 ul('a', 'b', br='\n\n')
 '''
 width = inf
+kwargs = {}
 expected = """
 - a
 
@@ -708,6 +774,7 @@ obj = '''
 ul('a', 'b', prefix='[ ] ')
 '''
 width = inf
+kwargs = {}
 expected = """
 [ ] a
 [ ] b"""
@@ -718,6 +785,7 @@ obj = '''
 ul('a', pl('b', 'c'))
 '''
 width = inf
+kwargs = {}
 expected = """
 - a
 - b
@@ -730,6 +798,7 @@ obj = '''
 ul('a', ul('b', 'c'))
 '''
 width = inf
+kwargs = {}
 expected = """
 - a
 - - b
@@ -741,6 +810,7 @@ obj = '''
 ul('a', ol('b', 'c'))
 '''
 width = inf
+kwargs = {}
 expected = """
 - a
 - 1. b
@@ -753,6 +823,7 @@ obj = '''
 ul('a', dl(('b', 'c'), ('d', 'e')))
 '''
 width = inf
+kwargs = {}
 expected = """
 - a
 - b: c
@@ -764,6 +835,7 @@ obj = '''
 ul('a', table([['b', 'c'], ['d', 'e']]))
 '''
 width = inf
+kwargs = {}
 expected = """
 - a
 - b  c
@@ -775,44 +847,45 @@ obj = '''
 ul('a b c', pre('d e f'))
 '''
 width = 5
+kwargs = {}
 expected = """
 - a b
   c
 - d e f"""
 
-[[test_format_text_indents]]
+[[test_format_text]]
 id = 'ul'
 obj = '''
 ul('a', 'b')
 '''
 width = inf
-initial_indent = '>'
-subsequent_indent = ''
+kwargs.initial_indent = '>'
+kwargs.subsequent_indent = ''
 expected = """
 >
 - a
 - b"""
   
-[[test_format_text_indents]]
+[[test_format_text]]
 id = 'ul'
 obj = '''
 ul('a', 'b')
 '''
 width = inf
-initial_indent = ''
-subsequent_indent = '>'
+kwargs.initial_indent = ''
+kwargs.subsequent_indent = '>'
 expected = """
  - a
 >- b"""
 
-[[test_format_text_indents]]
+[[test_format_text]]
 id = 'ul'
 obj = '''
 ul('a', 'b')
 '''
 width = inf
-initial_indent = '>'
-subsequent_indent = '>'
+kwargs.initial_indent = '>'
+kwargs.subsequent_indent = '>'
 expected = """
 >- a
 >- b"""
@@ -996,6 +1069,7 @@ obj = '''
 ol()
 '''
 width = inf
+kwargs = {}
 expected = ""
 
 [[test_format_text]]
@@ -1004,6 +1078,7 @@ obj = '''
 ol('a')
 '''
 width = inf
+kwargs = {}
 expected = "1. a"
 
 [[test_format_text]]
@@ -1012,6 +1087,7 @@ obj = '''
 ol('a', 'b')
 '''
 width = inf
+kwargs = {}
 expected = """
 1. a
 
@@ -1023,6 +1099,7 @@ obj = '''
 ol('a', '')
 '''
 width = inf
+kwargs = {}
 expected = "1. a"
 
 [[test_format_text]]
@@ -1031,6 +1108,7 @@ obj = '''
 ol('a', None)
 '''
 width = inf
+kwargs = {}
 expected = "1. a"
 
 [[test_format_text]]
@@ -1039,6 +1117,7 @@ obj = '''
 ol('a', ol())
 '''
 width = inf
+kwargs = {}
 expected = "1. a"
 
 [[test_format_text]]
@@ -1047,6 +1126,7 @@ obj = '''
 ol('a b c')
 '''
 width = 1
+kwargs = {}
 expected = """
 1. a
    b
@@ -1058,6 +1138,7 @@ obj = '''
 ol('a b c')
 '''
 width = 4
+kwargs = {}
 expected = """
 1. a
    b
@@ -1069,6 +1150,7 @@ obj = '''
 ol('a b c')
 '''
 width = 5
+kwargs = {}
 expected = """
 1. a
    b
@@ -1080,6 +1162,7 @@ obj = '''
 ol('a b c')
 '''
 width = 6
+kwargs = {}
 expected = """
 1. a b
    c"""
@@ -1090,6 +1173,7 @@ obj = '''
 ol('a b c')
 '''
 width = 7
+kwargs = {}
 expected = """
 1. a b
    c"""
@@ -1100,6 +1184,7 @@ obj = '''
 ol('a b c')
 '''
 width = 8
+kwargs = {}
 expected = """
 1. a b c"""
 
@@ -1109,6 +1194,7 @@ obj = '''
 ol('a b c')
 '''
 width = inf
+kwargs = {}
 expected = """
 1. a b c"""
 
@@ -1118,6 +1204,7 @@ obj = '''
 ol('a', 'b', br='\n')
 '''
 width = inf
+kwargs = {}
 expected = """
 1. a
 2. b"""
@@ -1128,6 +1215,7 @@ obj = '''
 ol('a', 'b', prefix='[{}] ')
 '''
 width = inf
+kwargs = {}
 expected = """
 [1] a
 
@@ -1139,6 +1227,7 @@ obj = '''
 ol('a', 'b', start=9)
 '''
 width = inf
+kwargs = {}
 expected = """
  9. a
 
@@ -1150,6 +1239,7 @@ obj = '''
 ol('a', 'b', indices=[10, 9])
 '''
 width = inf
+kwargs = {}
 expected = """
 10. a
 
@@ -1161,6 +1251,7 @@ obj = '''
 ol('a', pl('b', 'c'))
 '''
 width = inf
+kwargs = {}
 expected = """
 1. a
 
@@ -1174,6 +1265,7 @@ obj = '''
 ol('a', ul('b', 'c'))
 '''
 width = inf
+kwargs = {}
 expected = """
 1. a
 
@@ -1186,6 +1278,7 @@ obj = '''
 ol('a', ol('b', 'c'))
 '''
 width = inf
+kwargs = {}
 expected = """
 1. a
 
@@ -1199,6 +1292,7 @@ obj = '''
 ol('a', dl(('b', 'c'), ('d', 'e')))
 '''
 width = inf
+kwargs = {}
 expected = """
 1. a
 
@@ -1211,6 +1305,7 @@ obj = '''
 ol('a', table([['b', 'c'], ['d', 'e']]))
 '''
 width = inf
+kwargs = {}
 expected = """
 1. a
 
@@ -1223,47 +1318,48 @@ obj = '''
 ol('a b c', pre('d e f'))
 '''
 width = 6
+kwargs = {}
 expected = """
 1. a b
    c
 
 2. d e f"""
 
-[[test_format_text_indents]]
+[[test_format_text]]
 id = 'ol'
 obj = '''
 ol('a', 'b')
 '''
 width = inf
-initial_indent = '>'
-subsequent_indent = ''
+kwargs.initial_indent = '>'
+kwargs.subsequent_indent = ''
 expected = """
 >
 1. a
 
 2. b"""
   
-[[test_format_text_indents]]
+[[test_format_text]]
 id = 'ol'
 obj = '''
 ol('a', 'b')
 '''
 width = inf
-initial_indent = ''
-subsequent_indent = '>'
+kwargs.initial_indent = ''
+kwargs.subsequent_indent = '>'
 expected = """
  1. a
 
 >2. b"""
 
-[[test_format_text_indents]]
+[[test_format_text]]
 id = 'ol'
 obj = '''
 ol('a', 'b')
 '''
 width = inf
-initial_indent = '>'
-subsequent_indent = '>'
+kwargs.initial_indent = '>'
+kwargs.subsequent_indent = '>'
 expected = """
 >1. a
 
@@ -1448,6 +1544,7 @@ obj = '''
 dl()
 '''
 width = inf
+kwargs = {}
 expected = ""
 
 [[test_format_text]]
@@ -1456,6 +1553,7 @@ obj = '''
 dl(('a', 'b'))
 '''
 width = inf
+kwargs = {}
 expected = "a: b"
 
 [[test_format_text]]
@@ -1464,6 +1562,7 @@ obj = '''
 dl(('a', 'b'), ('c', 'd'))
 '''
 width = inf
+kwargs = {}
 expected = """
 a: b
 c: d"""
@@ -1474,6 +1573,7 @@ obj = '''
 dl(('a', 'b'), ('c', ''))
 '''
 width = inf
+kwargs = {}
 expected = "a: b"
 
 [[test_format_text]]
@@ -1482,6 +1582,7 @@ obj = '''
 dl(('a', 'b'), ('c', None))
 '''
 width = inf
+kwargs = {}
 expected = "a: b"
 
 [[test_format_text]]
@@ -1490,6 +1591,7 @@ obj = '''
 dl(('a', 'b'), ('c', dl()))
 '''
 width = inf
+kwargs = {}
 expected = "a: b"
 
 [[test_format_text]]
@@ -1498,6 +1600,7 @@ obj = '''
 dl(('a', None), ('b', 'c'))
 '''
 width = inf
+kwargs = {}
 expected = "b: c"
 
 [[test_format_text]]
@@ -1506,6 +1609,7 @@ obj = '''
 dl(('a b', 'c d e'))
 '''
 width = 1
+kwargs = {}
 # I think the 'c' should be wrapped, but that's not how textwrap works.
 expected = """
 a b: c
@@ -1518,6 +1622,7 @@ obj = '''
 dl(('a b', 'c d e'))
 '''
 width = 6
+kwargs = {}
 expected = """
 a b: c
   d e"""
@@ -1528,6 +1633,7 @@ obj = '''
 dl(('a b', 'c d e'))
 '''
 width = 7
+kwargs = {}
 expected = """
 a b: c
   d e"""
@@ -1538,6 +1644,7 @@ obj = '''
 dl(('a b', 'c d e'))
 '''
 width = 8
+kwargs = {}
 expected = """
 a b: c d
   e"""
@@ -1548,6 +1655,7 @@ obj = '''
 dl(('a b', 'c d e'))
 '''
 width = 9
+kwargs = {}
 expected = """
 a b: c d
   e"""
@@ -1558,6 +1666,7 @@ obj = '''
 dl(('a b', 'c d e'))
 '''
 width = 10
+kwargs = {}
 expected = """
 a b: c d e"""
 
@@ -1567,6 +1676,7 @@ obj = '''
 dl(('a b', 'c d e'))
 '''
 width = inf
+kwargs = {}
 expected = """
 a b: c d e"""
 
@@ -1576,6 +1686,7 @@ obj = '''
 dl(('a', 'b'), ('c', 'd'), br='\n\n')
 '''
 width = inf
+kwargs = {}
 expected = """
 a: b
 
@@ -1587,6 +1698,7 @@ obj = '''
 dl(('a', 'b'), ('c', 'd'), prefix='{} => ')
 '''
 width = inf
+kwargs = {}
 expected = """
 a => b
 c => d"""
@@ -1597,6 +1709,7 @@ obj = '''
 dl(('a', 'b'), ('c', 'd'), prefix='{}:\n')
 '''
 width = inf
+kwargs = {}
 expected = """
 a:
   b
@@ -1609,6 +1722,7 @@ obj = '''
 dl(('a', 'b c'), ('d', 'e f g h i'), indent='~')
 '''
 width = 4
+kwargs = {}
 expected = """
 a: b
 ~c
@@ -1625,6 +1739,7 @@ dl(
 )
 '''
 width = 6
+kwargs = {}
 # Note that paragraphs don't need to be aligned.
 expected = """
 a: b
@@ -1643,6 +1758,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a: b
 c: 
@@ -1659,6 +1775,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a: b
 c: - d
@@ -1675,6 +1792,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a:
    b
@@ -1691,6 +1809,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a: b
 c: 
@@ -1708,6 +1827,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a: b
 c: 1. d
@@ -1725,6 +1845,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a:
    b
@@ -1742,6 +1863,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a: b
 c: 
@@ -1758,6 +1880,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a: b
 c: d: e
@@ -1774,6 +1897,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a:
    b
@@ -1790,6 +1914,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a: b
 c: 
@@ -1806,6 +1931,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a: b
 c: d  e
@@ -1822,6 +1948,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a:
    b
@@ -1838,6 +1965,7 @@ dl(
 )
 '''
 width = 4
+kwargs = {}
 expected = """
 a: b
   c
@@ -1852,6 +1980,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a: b
 c: 
@@ -1868,6 +1997,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a: b
 c: d
@@ -1884,6 +2014,7 @@ dl(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a:
    b
@@ -1891,39 +2022,39 @@ c:
    d
    e"""
 
-[[test_format_text_indents]]
+[[test_format_text]]
 id = 'dl'
 obj = '''
 dl(('a', 'b'), ('c', 'd'))
 '''
 width = inf
-initial_indent = '>'
-subsequent_indent = ''
+kwargs.initial_indent = '>'
+kwargs.subsequent_indent = ''
 expected = """
 >
 a: b
 c: d"""
   
-[[test_format_text_indents]]
+[[test_format_text]]
 id = 'dl'
 obj = '''
 dl(('a', 'b'), ('c', 'd'))
 '''
 width = inf
-initial_indent = ''
-subsequent_indent = '>'
+kwargs.initial_indent = ''
+kwargs.subsequent_indent = '>'
 expected = """
  a: b
 >c: d"""
 
-[[test_format_text_indents]]
+[[test_format_text]]
 id = 'dl'
 obj = '''
 dl(('a', 'b'), ('c', 'd'))
 '''
 width = inf
-initial_indent = '>'
-subsequent_indent = '>'
+kwargs.initial_indent = '>'
+kwargs.subsequent_indent = '>'
 expected = """
 >a: b
 >c: d"""
@@ -2146,6 +2277,7 @@ obj = '''
 table([[]])
 '''
 width = inf
+kwargs = {}
 expected = ""
 
 [[test_format_text]]
@@ -2154,6 +2286,7 @@ obj = '''
 table([['a', 'b']])
 '''
 width = inf
+kwargs = {}
 expected = "a  b"
 
 [[test_format_text]]
@@ -2162,6 +2295,7 @@ obj = '''
 table([['a', 'b'], ['c', 'd']])
 '''
 width = inf
+kwargs = {}
 expected = """
 a  b
 c  d"""
@@ -2175,6 +2309,7 @@ table(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a  b
 ────
@@ -2190,42 +2325,43 @@ table(
 )
 '''
 width = inf
+kwargs = {}
 expected = """
 a  b
 c  d
 ────
 e  f"""
 
-[[test_format_text_indents]]
+[[test_format_text]]
 obj = '''
 table([['a', 'b'], ['c', 'd']])
 '''
 width = inf
-initial_indent = '>'
-subsequent_indent = ''
+kwargs.initial_indent = '>'
+kwargs.subsequent_indent = ''
 expected = """
 >
 a  b
 c  d"""
   
-[[test_format_text_indents]]
+[[test_format_text]]
 obj = '''
 table([['a', 'b'], ['c', 'd']])
 '''
 width = inf
-initial_indent = ''
-subsequent_indent = '>'
+kwargs.initial_indent = ''
+kwargs.subsequent_indent = '>'
 expected = """
  a  b
 >c  d"""
 
-[[test_format_text_indents]]
+[[test_format_text]]
 obj = '''
 table([['a', 'b'], ['c', 'd']])
 '''
 width = inf
-initial_indent = '>'
-subsequent_indent = '>'
+kwargs.initial_indent = '>'
+kwargs.subsequent_indent = '>'
 expected = """
 >a  b
 >c  d"""
@@ -2534,6 +2670,7 @@ obj = '''
 pre("")
 '''
 width = 1
+kwargs = {}
 expected = ""
 
 [[test_format_text]]
@@ -2541,6 +2678,7 @@ obj = '''
 pre("a")
 '''
 width = 1
+kwargs = {}
 expected = "a"
 
 [[test_format_text]]
@@ -2548,6 +2686,7 @@ obj = '''
 pre("a b")
 '''
 width = 1
+kwargs = {}
 expected = "a b"
 
 [[test_format_text]]
@@ -2555,6 +2694,7 @@ obj = '''
 pre("a\nb")
 '''
 width = 1
+kwargs = {}
 expected = "a\nb"
 
 [[test_format_text]]
@@ -2562,38 +2702,39 @@ obj = '''
 pre("a b\nc d")
 '''
 width = 1
+kwargs = {}
 expected = "a b\nc d"
 
-[[test_format_text_indents]]
+[[test_format_text]]
 obj = '''
 pre('a\nb')
 '''
 width = inf
-initial_indent = '>'
-subsequent_indent = ''
+kwargs.initial_indent = '>'
+kwargs.subsequent_indent = ''
 expected = """
 >
 a
 b"""
   
-[[test_format_text_indents]]
+[[test_format_text]]
 obj = '''
 pre('a\nb')
 '''
 width = inf
-initial_indent = ''
-subsequent_indent = '>'
+kwargs.initial_indent = ''
+kwargs.subsequent_indent = '>'
 expected = """
  a
 >b"""
 
-[[test_format_text_indents]]
+[[test_format_text]]
 obj = '''
 pre('a\nb')
 '''
 width = inf
-initial_indent = '>'
-subsequent_indent = '>'
+kwargs.initial_indent = '>'
+kwargs.subsequent_indent = '>'
 expected = """
 >a
 >b"""
@@ -2799,6 +2940,7 @@ pl(
   ),
 )
 '''
+
 
 [[test_split_by_delim_count]]
 str = ''

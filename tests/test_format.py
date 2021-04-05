@@ -5,17 +5,8 @@ from stepwise import ol, ul, pl, dl, pre, table, MasterMix
 from utils import *
 
 @parametrize_via_toml('test_format.toml')
-def test_format_text(obj, width, expected):
-    assert stepwise.format_text(eval(obj), width) == expected
-
-@parametrize_via_toml('test_format.toml')
-def test_format_text_indents(obj, width, expected, initial_indent, subsequent_indent):
-    str_formatted = stepwise.format_text(
-            eval(obj), width,
-            initial_indent=initial_indent,
-            subsequent_indent=subsequent_indent,
-    )
-    assert str_formatted == expected
+def test_format_text(obj, width, expected, kwargs):
+    assert stepwise.format_text(eval(obj), width, **kwargs) == expected
 
 @parametrize_via_toml('test_format.toml')
 def test_replace_text(obj, pattern, repl, count, expected, n):

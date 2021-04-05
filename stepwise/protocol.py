@@ -216,14 +216,14 @@ class Protocol:
         except ParseError as err:
             err.reraise(content='\n'.join(lines))
         
-    def format_text(self, width):
+    def format_text(self, width, **kwargs):
         pl = paragraph_list(
                 self._format_date(),
                 self._format_commands(),
                 self._format_steps(),
                 self._format_footnotes(),
         )
-        return pl.format_text(width)
+        return pl.format_text(width, **kwargs)
 
     def _format_date(self):
         if self.date:

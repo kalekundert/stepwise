@@ -36,6 +36,10 @@ def format_text(obj, width, **kwargs):
     text = re.sub(r'(?m) $', '', obj)
     text = textwrap.dedent(text)
 
+    # This is the only keyword argument allowed to `format_text()` that doesn't 
+    # correspond to a `textwrap.fill()` keyword argument.
+    kwargs.pop('truncate_width', None)
+
     return textwrap.fill(
         text, width,
         drop_whitespace=True,
