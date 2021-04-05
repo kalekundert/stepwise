@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.19.1 (2021-04-01)
+### Fix
+* Debug the `go` command ([`7285350`](https://github.com/kalekundert/stepwise/commit/7285350a043855983438fc41b2d529632ec944b3))
+* Avoid infinite recursion with autoprop>=2.0 ([`bc6fdd8`](https://github.com/kalekundert/stepwise/commit/bc6fdd8bd63100d370a8a1791f81ec1148594b0d))
+* Update semantics for callable `appcli.Layer` values ([`0a948bd`](https://github.com/kalekundert/stepwise/commit/0a948bd3b93bb17c522b3bcf2fc577c5b2c62904))
+
 ## v0.19.0 (2021-03-12)
 ### Feature
 * Teach `sw step` about subsubsteps ([`fabfdd7`](https://github.com/kalekundert/stepwise/commit/fabfdd78a2e8477d67546f19541c4840c4d5f6f3))
