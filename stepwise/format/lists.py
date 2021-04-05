@@ -202,15 +202,18 @@ def _format_list(items, indents, width, br, force_alignment=True, **kwargs):
             # of those values are read.
             force_alignment = not _align_indents_if_possible(kwargs)
 
-        item_iter = filter(bool, items)
-        list_indent_iter = iter(indents)
+        item_indent_iter = (
+                (item, indent)
+                for item, indent in zip(items, indents)
+                if item
+        )
         kwargs_indent_iter = repeat_last((
                 kwargs.get('initial_indent', ''),
                 kwargs.get('subsequent_indent', ''),
         ))
 
-        def next_kwargs():
-            initial_indent, subsequent_indent = next(list_indent_iter)
+        def next_kwargs(indent):
+            initial_indent, subsequent_indent = indent
             return {
                     **kwargs,
                     'initial_indent': \
@@ -224,8 +227,8 @@ def _format_list(items, indents, width, br, force_alignment=True, **kwargs):
         if force_alignment:
             list_str += next(kwargs_indent_iter) + '\n'
 
-        for is_first, is_last, item in mark_ends(item_iter):
-            list_str += format_text(item, width, **next_kwargs())
+        for is_first, is_last, (item, indent) in mark_ends(item_indent_iter):
+            list_str += format_text(item, width, **next_kwargs(indent))
             list_str += br * (not is_last)
 
         return list_str

@@ -1493,6 +1493,14 @@ width = inf
 expected = "a: b"
 
 [[test_format_text]]
+id = 'dl-items-falsy-trailing'
+obj = '''
+dl(('a', None), ('b', 'c'))
+'''
+width = inf
+expected = "b: c"
+
+[[test_format_text]]
 id = 'dl-wrap-1'
 obj = '''
 dl(('a b', 'c d e'))
