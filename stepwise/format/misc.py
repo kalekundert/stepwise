@@ -12,7 +12,7 @@ class preformatted(Formatter):
     """
 
     def __init__(self, content):
-        self.content = content
+        self.content = str(content)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.content!r})'
