@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.20.0 (2021-04-06)
+### Feature
+* Add `Quantity.convert_unit()` ([`618d55e`](https://github.com/kalekundert/stepwise/commit/618d55ecbb8c6cc0f4b112328dc52cbb259aa8b9))
+
+### Fix
+* Allow `truncate_width` to be given ([`45d4608`](https://github.com/kalekundert/stepwise/commit/45d4608237dcefaaec6d5322954674aa0980aa62))
+
 ## v0.19.2 (2021-04-05)
 ### Fix
 * Keep `dl` keys/values in sync after empty value ([`d562fe3`](https://github.com/kalekundert/stepwise/commit/d562fe3a7192acf5105e44d7e8e08188476acac2))
