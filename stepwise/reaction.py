@@ -6,6 +6,7 @@ import autoprop
 import functools
 from math import inf
 from pathlib import Path
+from copy import deepcopy
 from inform import plural, warn
 from more_itertools import one, only
 from .quantity import Quantity
@@ -109,6 +110,9 @@ class MasterMix:
     @classmethod
     def from_cols(cls, cols):
         return cls(Reaction.from_cols(cols))
+
+    def copy(self):
+        return deepcopy(self)
 
     def iter_master_mix_reagents(self):
         yield from [x for x in self if x.master_mix]
@@ -454,6 +458,9 @@ class Reaction:
                 reagent.volume = cols['volume'][i]
 
         return rxn
+
+    def copy(self):
+        return deepcopy(self)
 
     def iter_reagents(self):
         # Yield the solvent before any of the other reagents, unless the 
