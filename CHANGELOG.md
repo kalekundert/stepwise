@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v0.21.0 (2021-04-26)
+### Feature
+* Implement MasterMix.copy() ([`19dd947`](https://github.com/kalekundert/stepwise/commit/19dd947565b4c7cb13564f4c9b450287222d1436))
+* Provide default width for formatting protocols ([`a52fb68`](https://github.com/kalekundert/stepwise/commit/a52fb6882d2964fc05aebea8c9af794687b67629))
+* Expose config paths to protocol apps ([`7c386e3`](https://github.com/kalekundert/stepwise/commit/7c386e3491f540e8daff3f79d70be83ffed1743d))
+
+### Fix
+* Add missing import ([`ed4528b`](https://github.com/kalekundert/stepwise/commit/ed4528b971a01d8ff6252823dc01b75624110482))
+
 ## v0.20.0 (2021-04-06)
 ### Feature
 * Add `Quantity.convert_unit()` ([`618d55e`](https://github.com/kalekundert/stepwise/commit/618d55ecbb8c6cc0f4b112328dc52cbb259aa8b9))
