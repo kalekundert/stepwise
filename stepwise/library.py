@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from fnmatch import fnmatch
 from voluptuous import Schema
 from more_itertools import one
-from inform import warn, error, set_culprit, get_culprit
+from inform import warn, error, codicil, set_culprit, get_culprit
 from .protocol import Protocol
 from .printer import format_protocol
 from .format import preformatted
@@ -647,7 +647,7 @@ class ProtocolIO:
 
             out = format_protocol(self.protocol) \
                     if not self.errors else self.protocol
-            pager(out)
+            pager(out + '\n')
 
         else:
             # Raise if there's a broken pipe error.
