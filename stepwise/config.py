@@ -60,6 +60,9 @@ class StepwiseConfig(appcli.Config):
     def get_dirs(self, obj):
         return self.app_dirs.get_dirs(obj)
 
+    def get_config_paths(self, obj):
+        return self.app_dirs.get_config_paths(obj)
+
 class PresetConfig(appcli.Config):
 
     def __init__(self, presets_attr='presets', key_attr='preset'):
