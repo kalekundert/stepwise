@@ -216,7 +216,7 @@ class Protocol:
         except ParseError as err:
             err.reraise(content='\n'.join(lines))
         
-    def format_text(self, width, **kwargs):
+    def format_text(self, width=inf, **kwargs):
         pl = paragraph_list(
                 self._format_date(),
                 self._format_commands(),
