@@ -266,7 +266,20 @@ class CwdCollection(PathCollection):
     """
 
     def __init__(self):
-        super().__init__(Path.cwd())
+        pass
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}()'
+
+    @property
+    def root(self):
+        # Recalculate the current working directory on each access, because it 
+        # might change.
+        return Path.cwd()
+
+    @property
+    def name(self):
+        return self.root
 
     def find_entries(self, tag):
         if tag is None:

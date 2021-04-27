@@ -71,10 +71,15 @@ def test_path_collection_find_entries(tag, expected):
 @parametrize_via_toml('test_library.toml')
 def test_cwd_collection_find_entries(tag, expected):
     import os
+
+    # Instantiate the collection before changing directories, to ensure that 
+    # the collection evaluates the current working directory each time it 
+    # searches for entries.
+    collection = stepwise.CwdCollection()
+
     prev_cwd = os.getcwd()
     os.chdir(COLLECT1_DIR)
 
-    collection = stepwise.CwdCollection()
     entries = list(x.name for _, x in collection.find_entries(tag))
 
     try:
