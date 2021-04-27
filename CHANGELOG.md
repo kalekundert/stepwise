@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.21.1 (2021-04-27)
+### Fix
+* Allow the current working directory to change ([`7dc96ff`](https://github.com/kalekundert/stepwise/commit/7dc96ff7681e1dc9c7ad459befb54ce3dcd23eb8))
+
 ## v0.21.0 (2021-04-26)
 ### Feature
 * Implement MasterMix.copy() ([`19dd947`](https://github.com/kalekundert/stepwise/commit/19dd947565b4c7cb13564f4c9b450287222d1436))
