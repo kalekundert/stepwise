@@ -5,6 +5,7 @@ import appcli
 import inform
 from pathlib import Path
 from contextlib import contextmanager
+from traceback import print_exc
 from fnmatch import fnmatch
 from voluptuous import Schema
 from more_itertools import one
@@ -427,7 +428,7 @@ class ProtocolIO:
 
 
     def __init__(self, protocol=None, errors=0):
-        self.protocol = protocol or Protocol()
+        self.protocol = protocol if protocol is not None else Protocol()
         self.errors = errors
 
     @no_errors
@@ -670,8 +671,8 @@ class ProtocolIO:
             try:
                 pickle.dump(self, sys.stdout.buffer)
 
-            # If the pipe closed while we were making the protocol, e.g. if it 
-            # hit an early error, there's no point outputting anything.  Just 
+            # If the pipe closed while we were making the protocol (e.g. if it 
+            # hit an early error), there's no point outputting anything.  Just 
             # exit gracefully.
             except BrokenPipeError:
                 return
@@ -680,21 +681,9 @@ class ProtocolIO:
             # attributes, and can raise any kind of exception.  If this 
             # happens, record the error and output an empty `ProtocolIO`:
             except Exception as err:
-                pickle.dumps(ProtocolIO('', 1))
-
-    def to_pickle(self):
-        """
-        Write the protocol to the pickle format.
-
-        If this fails (e.g. if the protocol has non-pickle-able attributes), 
-        record the error and pickle an empty `ProtocolIO` instead.
-        """
-        try:
-            return pickle.dumps(self)
-        except Exception as err:
-            print_exc(file=sys.stderr)
-            io = ProtocolIO('', 1)
-            return pickle.dumps(io)
+                print_exc(file=sys.stderr)
+                io_err = ProtocolIO('', 1)
+                pickle.dump(io_err, sys.stdout.buffer)
 
     del no_errors
 

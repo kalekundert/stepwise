@@ -3,6 +3,8 @@
 import sys
 import pytest
 import stepwise
+import pickle
+
 from pathlib import Path
 from stepwise.library import _capture_stdout
 from utils import *
@@ -278,6 +280,17 @@ def test_from_pickle_january():
             b'1. A'
     )
     assert format_steps(io.protocol) == ['A']
+
+def test_to_stdout(capsysbinary):
+    unpickleable_protocol = stepwise.Protocol(steps=[lambda: None])
+    io = stepwise.ProtocolIO(unpickleable_protocol)
+    io.to_stdout()
+
+    cap = capsysbinary.readouterr()
+    io_out = pickle.loads(cap.out)
+    assert io_out.protocol == ''
+    assert io_out.errors == 1
+    assert "AttributeError: Can't pickle local object" in cap.err.decode()
 
 
 def path(x):
