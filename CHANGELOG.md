@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.21.2 (2021-04-28)
+### Fix
+* Report errors that occur when pickling protocols ([`df03481`](https://github.com/kalekundert/stepwise/commit/df034812e31d9b6798557c55cd1faca6567fb3e7))
+
 ## v0.21.1 (2021-04-27)
 ### Fix
 * Allow the current working directory to change ([`7dc96ff`](https://github.com/kalekundert/stepwise/commit/7dc96ff7681e1dc9c7ad459befb54ce3dcd23eb8))
