@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.22.0 (2021-04-29)
+### Feature
+* Make Quantity a subclass of Real ([`3e91ecc`](https://github.com/kalekundert/stepwise/commit/3e91ecc9fe621d93f147b1ecc9e8d6b8b3d5383b))
+
 ## v0.21.2 (2021-04-28)
 ### Fix
 * Report errors that occur when pickling protocols ([`df03481`](https://github.com/kalekundert/stepwise/commit/df034812e31d9b6798557c55cd1faca6567fb3e7))
