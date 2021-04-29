@@ -2,12 +2,15 @@
 
 import re
 import autoprop
-from inform import did_you_mean
-from operator import lt, le, eq, ne, ge, gt, add, sub, mul, truediv, floordiv
+import math
+
+from numbers import Number, Real
+from operator import *
 from collections.abc import Iterable
+from inform import did_you_mean
 
 @autoprop
-class Quantity:
+class Quantity(Real):
     """
     Simple class to manage numbers with units.
 
@@ -74,6 +77,9 @@ class Quantity:
     def __bool__(self):
         return bool(self.value)
 
+    def __float__(self):
+        return self.value
+
     def get_value(self):
         return self._value
 
@@ -127,20 +133,20 @@ class Quantity:
             raise ValueError(f"'{self}' and '{other}' have different units.")
 
 
+    def _overload_unary_op(f):
+
+        def wrapper(self, *args, **kwargs):
+            value = f(self.value, *args, **kwargs)
+            return Quantity(value, self.unit)
+
+        return wrapper
+
     def _overload_binary_op(f, side, quantity, scalar):
-
-        def validate_quantity_same_unit(self, other):
-            self.require_matching_unit(other)
-            return True
-
-        def validate_scalar_zero_only(self, other):
-            return other == 0
-
         validators = {
                 'ok':           lambda self, other: True,
                 'error':        lambda self, other: False,
-                '0 only':       validate_scalar_zero_only,
-                'same unit':    validate_quantity_same_unit,
+                '0 only':       lambda self, other: other == 0,
+                'same unit':    lambda self, other: self.unit == other.unit,
         }
         operators = {
                 'left':         lambda a, b: f(a, b),
@@ -154,36 +160,37 @@ class Quantity:
         operator = operators[side]
 
         def wrapper(self, other):
-            if isinstance(other, (int, float)):
-                other_value = other
-                params = scalar
-            else:
+            try:
                 other = self.from_anything(other)
                 other_value = other.value
                 params = quantity
 
+            except ValueError:
+                if isinstance(other, Number):
+                    other_value = other
+                    params = scalar
+                else:
+                    return NotImplemented
+            
             if not validators[params['validate']](self, other):
-                operands = {
-                        'left': f"'{self}' and '{other}'",
-                        'right': f"'{other}' and '{self}'",
-                }
-                raise ValueError(f"cannot {f.__name__} {operands[side]}")
+                return NotImplemented
 
             value = operator(self.value, other_value)
             return unit_handlers[params['unit']](value, self.unit)
 
+        wrapper.__name__ = f'__{"r" if side == "right" else ""}{f.__name__}__'
+        wrapper.__doc__ = f.__doc__
+
         return wrapper
 
-    __lt__ = _overload_binary_op(
-            lt, 'left',  
-            quantity=dict(validate='same unit', unit='drop'),
-            scalar=  dict(validate='0 only',    unit='drop'),
-    )
-    __le__ = _overload_binary_op(
-            le, 'left',  
-            quantity=dict(validate='same unit', unit='drop'),
-            scalar=  dict(validate='0 only',    unit='drop'),
-    )
+    __pos__ = _overload_unary_op(pos)
+    __neg__ = _overload_unary_op(neg)
+    __abs__ = _overload_unary_op(abs)
+    __ceil__ = _overload_unary_op(math.ceil)
+    __floor__ = _overload_unary_op(math.floor)
+    __trunc__ = _overload_unary_op(math.trunc)
+    __round__ = _overload_unary_op(round)
+
     __eq__ = _overload_binary_op(
             eq, 'left',  
             quantity=dict(validate='same unit', unit='drop'),
@@ -194,13 +201,23 @@ class Quantity:
             quantity=dict(validate='same unit', unit='drop'),
             scalar=  dict(validate='0 only',    unit='drop'),
     )
-    __ge__ = _overload_binary_op(
-            ge, 'left',  
+    __lt__ = _overload_binary_op(
+            lt, 'left',  
+            quantity=dict(validate='same unit', unit='drop'),
+            scalar=  dict(validate='0 only',    unit='drop'),
+    )
+    __le__ = _overload_binary_op(
+            le, 'left',  
             quantity=dict(validate='same unit', unit='drop'),
             scalar=  dict(validate='0 only',    unit='drop'),
     )
     __gt__ = _overload_binary_op(
             gt, 'left',  
+            quantity=dict(validate='same unit', unit='drop'),
+            scalar=  dict(validate='0 only',    unit='drop'),
+    )
+    __ge__ = _overload_binary_op(
+            ge, 'left',  
             quantity=dict(validate='same unit', unit='drop'),
             scalar=  dict(validate='0 only',    unit='drop'),
     )
@@ -234,6 +251,16 @@ class Quantity:
             quantity=dict(validate='error',                ),
             scalar=  dict(validate='ok',        unit='keep'),   
     )
+    __pow__ = _overload_binary_op(
+            pow, 'left',  
+            quantity=dict(validate='error',                ),
+            scalar=  dict(validate='error',                ),   
+    )
+    __rpow__ = _overload_binary_op(
+            pow, 'right', 
+            quantity=dict(validate='error',                ),
+            scalar=  dict(validate='error',                ),   
+    )
     __truediv__ = _overload_binary_op(
             truediv, 'left',  
             quantity=dict(validate='same unit', unit='drop'),
@@ -254,7 +281,18 @@ class Quantity:
             quantity=dict(validate='same unit', unit='drop'),
             scalar=  dict(validate='0 only',    unit='drop'),
     )
+    __mod__ = _overload_binary_op(
+            mod, 'left',
+            quantity=dict(validate='error'                 ),
+            scalar=  dict(validate='error'                 ),
+    )
+    __rmod__ = _overload_binary_op(
+            mod, 'right',
+            quantity=dict(validate='error'                 ),
+            scalar=  dict(validate='error'                 ),
+    )
 
+    del _overload_unary_op
     del _overload_binary_op
 
 Q = Quantity.from_string
