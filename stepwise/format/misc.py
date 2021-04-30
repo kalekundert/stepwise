@@ -47,9 +47,6 @@ class preformatted(Formatter):
         # This could mess up the formatting.
         self.content = replace_text(self.content, pattern, repl, **kwargs)
 
-
-
-
 def step_from_str(step_str, delim, *, wrap=True, level=1):
     fields = split_by_delim_count(step_str, delim, count=level)
 
@@ -100,3 +97,18 @@ def iter_by_delim_count(str, delim, count):
         yield ''
     else:
         yield curr_field + curr_delim
+
+def oxford_comma(items, conj='and'):
+    if len(items) == 2:
+        return '{0[0]} {1} {0[1]}'.format(items, conj)
+
+    result = ''
+    for i, item in enumerate(items):
+        if i == len(items) - 1:
+            result += '{}'.format(item)
+        elif i == len(items) - 2:
+            result += '{}, {} '.format(item, conj)
+        else:
+            result += '{}, '.format(item)
+    return result
+

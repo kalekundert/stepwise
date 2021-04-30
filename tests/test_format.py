@@ -128,3 +128,21 @@ def test_step_from_str(step, delim, wrap, expected):
 @parametrize_via_toml('test_format.toml')
 def test_split_by_delim_count(str, delim, count, expected):
     assert stepwise.split_by_delim_count(str,delim, count) == expected
+
+@parametrize(
+        'given,kwargs,expected', [
+            ([],         dict(),           ''),
+            ([1],        dict(),           '1'),
+            ([1,2],      dict(),           '1 and 2'),
+            ([1,2,3],    dict(),           '1, 2, and 3'),
+            ([1,2,3,4],  dict(),           '1, 2, 3, and 4'),
+
+            ([],         dict(conj='or'),  ''),
+            ([1],        dict(conj='or'),  '1'),
+            ([1,2],      dict(conj='or'),  '1 or 2'),
+            ([1,2,3],    dict(conj='or'),  '1, 2, or 3'),
+            ([1,2,3,4],  dict(conj='or'),  '1, 2, 3, or 4'),
+        ]
+)
+def test_oxford_comma(given, kwargs, expected):
+    assert stepwise.oxford_comma(given, **kwargs) == expected
