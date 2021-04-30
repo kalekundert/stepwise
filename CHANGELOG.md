@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.23.0 (2021-04-30)
+### Feature
+* Add an Oxford comma function ([`1fc4b07`](https://github.com/kalekundert/stepwise/commit/1fc4b072cfd988afc7dee19031893271077356d3))
+
 ## v0.22.0 (2021-04-29)
 ### Feature
 * Make Quantity a subclass of Real ([`3e91ecc`](https://github.com/kalekundert/stepwise/commit/3e91ecc9fe621d93f147b1ecc9e8d6b8b3d5383b))
