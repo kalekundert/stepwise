@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.24.0 (2021-05-05)
+### Feature
+* Allow negative reagent orders ([`dba0664`](https://github.com/kalekundert/stepwise/commit/dba066412cb472001075475ed997564c7d6fb12c))
+
 ## v0.23.0 (2021-04-30)
 ### Feature
 * Add an Oxford comma function ([`1fc4b07`](https://github.com/kalekundert/stepwise/commit/1fc4b072cfd988afc7dee19031893271077356d3))
