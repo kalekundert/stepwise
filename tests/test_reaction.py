@@ -409,6 +409,13 @@ def test_reaction_iter():
             (   1,    1, 'w', ['w', 'x', 'y']),
             (   1,    2, 'w', ['w', 'x', 'y']),
             (   2,    1, 'w', ['w', 'y', 'x']),
+            (None,   -1, 'w', ['w', 'x', 'y']),
+            (  -1, None, 'w', ['w', 'y', 'x']),
+            (  -1,   -1, 'w', ['w', 'x', 'y']),
+            (  -1,   -2, 'w', ['w', 'y', 'x']),
+            (  -2,   -1, 'w', ['w', 'x', 'y']),
+            (   1,   -1, 'w', ['w', 'x', 'y']),
+            (  -1,    1, 'w', ['w', 'y', 'x']),
         ]
 )
 def test_reaction_iter_sorting(x, y, solvent, expected):

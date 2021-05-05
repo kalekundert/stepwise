@@ -469,9 +469,13 @@ class Reaction:
             if self._solvent not in self._reagents:
                 yield Solvent(self)
 
+        def by_order(x):
+            order = math.inf if x.order is None else x.order
+            return order < 0, order
+
         yield from sorted(
                 self._reagents.values(),
-                key=lambda x: math.inf if x.order is None else x.order
+                key=by_order,
         )
 
     def iter_non_solvent_reagents(self):
