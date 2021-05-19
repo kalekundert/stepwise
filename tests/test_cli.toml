@@ -167,13 +167,34 @@ stderr = '^$'
 return_code = 0
 
 [[test_main]]
-id = 'builtin-reaction-title'
-cmd = "sw reaction 'A;;to 10 µL' 'B;10x;1 µL' -t AB"
+id = 'builtin-reaction-step'
+cmd = "sw reaction 'A;;to 10 µL' 'B;10x;1 µL' -S 'Prepare {n:# AB reaction/s}':"
 env = {}
 stdout = '''
 ^{DATE}
 
-\$ sw reaction 'A;;to 10 µL' 'B;10x;1 µL' -t AB
+\$ sw reaction 'A;;to 10 µL' 'B;10x;1 µL' -S 'Prepare {{n:# AB reaction/s}}:'
+
+1. Prepare 1 AB reaction:
+
+   Reagent  Stock    Volume
+   ────────────────────────
+   A                9.00 µL
+   B          10x   1.00 µL
+   ────────────────────────
+                   10.00 µL
+'''
+stderr = '^$'
+return_code = 0
+
+[[test_main]]
+id = 'builtin-reaction-kind'
+cmd = "sw reaction 'A;;to 10 µL' 'B;10x;1 µL' -s AB"
+env = {}
+stdout = '''
+^{DATE}
+
+\$ sw reaction 'A;;to 10 µL' 'B;10x;1 µL' -s AB
 
 1. Setup 1 AB reaction:
 

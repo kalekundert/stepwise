@@ -583,7 +583,7 @@ class Reaction:
 
     def require_reagent(self, key):
         if key not in self._reagents:
-            raise ValueError(f"no '{key}` reagent in the reaction")
+            raise ValueError(f"no {key!r} reagent in the reaction")
 
     def require_volume(self):
         if self._solvent and self._volume is None:

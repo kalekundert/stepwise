@@ -4,8 +4,8 @@
 Display a reaction table.
 
 Usage:
-    reaction <reagent;stock;volume;mm>... [-t <title>] [-n <rxns>] [-v <vol>]
-        [-V <factor>] [-i <info>]... [-x <extra>] [options]
+    reaction <reagent;stock;volume;mm>... [-S <step> | -s <kind>] [-n <rxns>]
+        [-v <vol>] [-V <factor>] [-i <info>]... [-x <extra>] [options]
 
 Arguments:
     <reagent;stock;volume;mm>
@@ -39,12 +39,23 @@ Arguments:
             included in the master mix.
 
 Options:
-    -t --title <str>
-        The name of the reaction being setup.  By default, the reaction will 
-        just be referred to as "reaction".  If the given value contains one or 
-        more slashes, they will be taken to separate the singular and plural 
-        forms of the title.  See `inform.plural()` for details.  If the given 
-        value doesn't contain a slash, it will be suffixed with "reaction/s".
+    -S --step <str>
+        The text introducing the reaction.  "Setup {n:# reaction/s}:" is the 
+        default.  This string will be formatted with a single parameter `n`, 
+        which will be an `inform.plural()` object representing the number of 
+        reactions to setup.
+
+    -s --step-kind <str>
+        The kind of reaction being setup.  This value will be included in the 
+        text introducing the reaction.  For example, if given "PCR", the 
+        reaction might be introduced as "Setup 1 PCR reaction" or "Setup 2 PCR 
+        reactions" (depending on `--num-reactions`).
+
+        If the given value contains one or more slashes, they will be used to 
+        control pluralization.  See `inform.plural()` for details.  If the 
+        given value doesn't contain a slash, it will be suffixed with 
+        "reaction/s".  Note that this option cannot be used with `--step`, 
+        because `--step` overwrites the text introducing the reaction.
 
     -n --num-reactions <int>        [default: 1]
         The number of reactions to setup.
@@ -74,7 +85,7 @@ Options:
     --extra-reactions <float>
         How much extra master mix to make, given as a number of reactions. 
 
-    --extra-min-volume <float>
+    -X --extra-min-volume <float>
         Scale the master mix such that every reagent has at least this volume.  
         This volume is taken to be in the same unit as all the reagents.
 """
@@ -129,14 +140,19 @@ if x := args['--extra-volume']:
 if x := args['--extra-min-volume']:
     rxn.extra_min_volume = float(x), rxn.volume.unit
 
-if x := args['--title']:
-    title = x if '/' in x else f'{x} reaction/s'
+if x := args['--step-kind']:
+    kind = x if '/' in x else f'{x} reaction/s'
 else:
-    title = 'reaction/s'
+    kind = 'reaction/s'
+
+if x := args['--step']:
+    step = x
+else:
+    step = f"Setup {{n:# {kind}}}:"
 
 p = stepwise.Protocol()
 p += paragraph_list(
-        f"Setup {plural(rxn.num_reactions):# {title}}:",
+        step.format(n=plural(rxn.num_reactions)),
         rxn,
         unordered_list(*args['--instruction']),
 )
