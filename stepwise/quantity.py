@@ -47,6 +47,13 @@ class Quantity(Real):
             raise ValueError(f"{string!r} cannot be interpreted as a value with a unit.")
 
     @classmethod
+    def from_string_or_float(cls, value, default_unit):
+        try:
+            return cls.from_string(value)
+        except (ValueError, TypeError):
+            return cls(float(value), default_unit)
+
+    @classmethod
     def from_tuple(cls, tuple):
         if len(tuple) != 2:
             raise ValueError(f"{tuple!r} has {len(tuple)} values, expected 2.")

@@ -122,6 +122,18 @@ def test_from_string_err(given):
         Quantity.from_string(given)
 
 @pytest.mark.parametrize(
+        'value,default_unit,expected', [
+            (   '1 nM', 'ng/µL', Quantity(1, 'nM')),
+            ('1 ng/µL', 'ng/µL', Quantity(1, 'ng/µL')),
+            (      '1', 'ng/µL', Quantity(1, 'ng/µL')),
+            (    '1.0', 'ng/µL', Quantity(1, 'ng/µL')),
+            (       1 , 'ng/µL', Quantity(1, 'ng/µL')),
+            (     1.0 , 'ng/µL', Quantity(1, 'ng/µL')),
+])
+def test_from_string_or_float(value, default_unit, expected):
+    assert Quantity.from_string_or_float(value, default_unit) == expected
+
+@pytest.mark.parametrize(
         'given,expected', [
             ((1, 'ng'), Quantity(1, 'ng')),
             ((1, 'µL'), Quantity(1, 'µL')),
