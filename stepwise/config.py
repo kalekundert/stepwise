@@ -68,7 +68,7 @@ class PresetConfig(appcli.Config):
     def __init__(self, presets_attr='presets', key_attr='preset'):
         self.presets_attr = presets_attr
         self.key_attr = key_attr
-        self._presets = None
+        self._presets = {}
 
     def load(self, obj):
         # Note that the `obj.presets` attribute is evaluated the first time a 
@@ -94,12 +94,11 @@ class PresetConfig(appcli.Config):
         )
 
     def get_presets(self, obj):
-        if self._presets:
-            return self._presets
-        else:
+        if id(obj) not in self._presets:
             raw_presets = getattr(obj, self.presets_attr)
-            self._presets = Presets(raw_presets)
-            return self._presets
+            self._presets[id(obj)] = Presets(raw_presets)
+
+        return self._presets[id(obj)]
 
     def get_preset_briefs(self, obj):
         presets = self.get_presets(obj)
@@ -126,27 +125,23 @@ class Presets:
         yield from self.raw_presets
 
     def __getitem__(self, key):
-        try:
-            return self.final_presets[key]
-        except KeyError:
-            pass
+        if key not in self.final_presets:
+            try:
+                preset = self.raw_presets[key]
+            except KeyError:
+                if not self.raw_presets:
+                    raise KeyError(f"no preset {key!r}") from None
+                else:
+                    from inform import did_you_mean
+                    raise KeyError(f"no preset {key!r}, did you mean {did_you_mean(str(key), self)!r}") from None
 
-        try:
-            preset = self.raw_presets[key]
-        except KeyError:
-            if not self.raw_presets:
-                raise KeyError(f"no preset {key!r}") from None
+            if 'inherit' not in preset:
+                self.final_presets[key] = preset
             else:
-                from inform import did_you_mean
-                raise KeyError(f"no preset {key!r}, did you mean {did_you_mean(str(key), self)!r}") from None
+                parent = self[preset['inherit']]
+                merged = {**parent, **preset}; del merged['inherit']
+                self.final_presets[key] = merged
 
-        if 'inherit' not in preset:
-            self.final_presets[key] = preset
-            return preset
-        else:
-            parent = self[preset['inherit']]
-            merged = {**parent, **preset}; del merged['inherit']
-            self.final_presets[key] = merged
-            return merged
+        return self.final_presets[key]
 
 config_dirs = StepwiseConfig().get_dirs(None)
