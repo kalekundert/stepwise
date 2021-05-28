@@ -4,7 +4,7 @@ import pytest
 
 from stepwise import Protocol, UsageError
 from stepwise.cli.stash.model import *
-from test_cli import check_command
+from stepwise.testing import check_command
 
 @pytest.fixture
 def empty_db():
