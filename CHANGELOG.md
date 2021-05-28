@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v0.25.0 (2021-05-28)
+### Feature
+* Add the testing submodule ([`4e5a280`](https://github.com/kalekundert/stepwise/commit/4e5a280dbf4ff6f68512b3db4b2064a961d46b47))
+* Add Quantity.from_string_or_float() ([`d44aa42`](https://github.com/kalekundert/stepwise/commit/d44aa4261ad7c0b973b32237459b81d7535de948))
+* Let the user fully specify how reactions are introduced ([`f23624a`](https://github.com/kalekundert/stepwise/commit/f23624ad0ee1d8dbb8ef27e6e289cd6132a1c343))
+
+### Fix
+* Don't share presets between instances ([`b074db7`](https://github.com/kalekundert/stepwise/commit/b074db73563ac0176f3536b2132f9cb20fe1b211))
+* Don't show master mixes with only 1 reagent ([`acd5221`](https://github.com/kalekundert/stepwise/commit/acd52219f23ecd3c8c4c59b5e50ca4fd60c7b6ea))
+
 ## v0.24.0 (2021-05-05)
 ### Feature
 * Allow negative reagent orders ([`dba0664`](https://github.com/kalekundert/stepwise/commit/dba066412cb472001075475ed997564c7d6fb12c))
