@@ -144,9 +144,14 @@ class MasterMix:
         ))
 
     def format_text(self, width=inf, **kwargs):
+        # Leave out reagents that round to 0 volume.
+        reagents = [
+                x for x in self
+                if f'{abs(x.volume.value):.2f}' != '0.00'
+        ]
         show_master_mix = not any([
                 # Nothing in the master mix:
-                not any(self.iter_master_mix_reagents()),
+                sum(x.master_mix for x in reagents) <= 1,
 
                 # Only one reaction:
                 self.num_reactions == 1 and self.show_master_mix == None,  
@@ -189,10 +194,7 @@ class MasterMix:
                     f'{x.volume:.2f}',
                     f'{x.volume * self.scale:.2f}' if x.master_mix else '',
                 )
-                for x in self
-
-                # Leave out reagents that round to 0 volume.
-                if f'{abs(x.volume.value):.2f}' != '0.00'
+                for x in reagents
         ]
         footer = None if not self.show_totals else cols(
                 '',
