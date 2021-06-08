@@ -1,4 +1,5 @@
 import pytest, sys, os, re, inspect
+from re_assert import Matches
 from pathlib import Path
 
 DATE = r'\w+ \d{1,2}, \d{4}'
@@ -66,7 +67,7 @@ def check_output(captured, expected, file=sys.stdout):
     print(repr(captured), file=file)
     print(repr(expected), file=file)
 
-    assert re.match(expected, captured, flags=re.DOTALL)
+    Matches(expected, flags=re.DOTALL).assert_matches(captured)
 
 def tty_capture(cmd, stdin=None, env={}, **kwargs):
     """

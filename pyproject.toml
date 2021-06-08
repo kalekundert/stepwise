@@ -33,6 +33,7 @@ tests = [
   'pytest-cov',
   'coveralls',
   'rtoml',
+  're_assert',
 ]
 docs = [
   'sphinx',
