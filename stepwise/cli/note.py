@@ -39,7 +39,7 @@ Options:
         `printer.default.content_width` configuration option.
 """
     __config__ = [
-            appcli.DocoptConfig(),
+            appcli.DocoptConfig,
     ]
 
     text = appcli.param('<footnote>')

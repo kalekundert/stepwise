@@ -1,21 +1,67 @@
 [[test_presets]]
-presets.a  = {x=1}
+presets = [
+    {a={x=1}},
+]
 expected.a = {x=1}
 
 [[test_presets]]
-presets.a  = {x=1, y=1, z=1}
-presets.b  = {inherit='a', y=2, z=2}
-presets.c  = {inherit='b', z=3}
+presets = [
+    {a={x=1, y=1, z=1}, b={inherit='a', y=2, z=2}, c={inherit='b', z=3}},
+]
 expected.a = {x=1, y=1, z=1}
 expected.b = {x=1, y=2, z=2}
 expected.c = {x=1, y=2, z=3}
 
+[[test_presets]]
+presets = [
+    {a={x=1, y=1}},
+    {b={inherit='a', y=2}},
+]
+expected.a = {x=1, y=1}
+expected.b = {x=1, y=2}
+
+[[test_presets]]
+presets = [
+    {a={inherit='b', y=1}},
+    {b={x=2, y=2}}
+]
+expected.a = {x=2, y=1}
+expected.b = {x=2, y=2}
+
+[[test_presets]]
+presets = [
+    {a={x=1, y=1}},
+    {a={x=2, y=2}, b={inherit='a', y=3}},
+]
+expected.a = {x=1, y=1}
+expected.b = {x=1, y=3}
+
+[[test_presets]]
+presets = [
+    {a={x=1, y=1, z=1}, b={inherit='a', y=2, z=2}},
+    {b={x=3, y=3, z=3}, c={inherit='b', z=4}},
+]
+expected.a = {x=1, y=1, z=1}
+expected.b = {x=1, y=2, z=2}
+expected.c = {x=1, y=2, z=4}
+
+[[test_presets]]
+presets = [
+    {a={inherit='a', y=1}}, 
+    {a={x=2, y=2}},
+]
+expected.a = {x=2, y=1}
+
 [[test_presets_err]]
-presets.a = {x=1}
+presets = [
+    {a={x=1}},
+]
 key = 'b'
 error = "no preset 'b', did you mean 'a'"
 
 [[test_presets_err]]
-presets.a = {x=1}
+presets = [
+    {a={x=1}},
+]
 key = 1
 error = "no preset 1, did you mean 'a'"

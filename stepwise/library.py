@@ -44,7 +44,7 @@ class Library:
     different means of accessing protocols (e.g. files, plugins, network 
     drives, websites, etc.) can be supported.
     """
-    __config__ = [StepwiseConfig()]
+    __config__ = [StepwiseConfig]
 
     ignore_globs = appcli.param(
             'search.ignore',

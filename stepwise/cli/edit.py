@@ -13,7 +13,7 @@ Usage:
     stepwise edit <protocol>
 """
     __config__ = [
-            appcli.DocoptConfig(),
+            appcli.DocoptConfig,
     ]
     protocol = appcli.param('<protocol>')
 

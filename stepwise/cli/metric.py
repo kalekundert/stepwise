@@ -11,7 +11,7 @@ Usage:
     stepwise metric
 """
     __config__ = [
-            appcli.DocoptConfig(),
+            appcli.DocoptConfig,
     ]
     
     def main(self):

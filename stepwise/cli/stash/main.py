@@ -136,7 +136,7 @@ python could corrupt the stash.
 """
 
     __config__ = [
-            appcli.DocoptConfig(),
+            appcli.DocoptConfig,
     ]
 
     add = appcli.param(default=None)

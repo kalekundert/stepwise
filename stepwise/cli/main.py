@@ -4,6 +4,10 @@ import sys, inspect
 import appcli
 from stepwise import ProtocolIO, StepwiseError, __version__
 
+class DocoptConfig(appcli.DocoptConfig):
+    version = __version__
+    options_first = True
+
 class Stepwise:
     """\
 Generate and display scientific protocols.
@@ -49,9 +53,7 @@ Examples:
 
         $ stepwise ls
 """
-    __config__ = [
-            appcli.DocoptConfig(version=__version__, options_first=True),
-    ]
+    __config__ = [DocoptConfig]
 
     command = appcli.param('<command>', default=None)
     args = appcli.param('<args>', default_factory=list)

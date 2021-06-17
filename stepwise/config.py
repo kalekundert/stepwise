@@ -2,7 +2,10 @@
 
 import sys
 import appcli
+import autoprop
+
 from .format import tabulate
+from more_itertools import only, flatten, unique_everseen
 
 class StepwiseCommand:
     brief = appcli.config_attr()
@@ -13,23 +16,28 @@ class StepwiseCommand:
         self.quiet = False
         self.force_text = False
 
+@autoprop
 class StepwiseConfig(appcli.Config):
+    schema = None
+    root_key = None
 
-    def __init__(self, root_key=None):
-        self.app_dirs = appcli.AppDirsConfig('conf.toml', slug='stepwise')
-        self.root_key = root_key
+    def __init__(self, obj):
+        super().__init__(obj)
 
-    def load(self, obj):
-        yield from self.load_app_dirs(obj)
-        yield from self.load_plugins(obj)
+        self.app_dirs = appcli.AppDirsConfig(obj)
+        self.app_dirs.name = 'conf.toml'
+        self.app_dirs.slug = 'stepwise'
+        self.app_dirs.schema = self.schema
+        self.app_dirs.root_key = self.root_key
 
-    def load_app_dirs(self, obj):
-        yield from (
-                self.normalize_layer(x)
-                for x in self.app_dirs.load(obj)
-        )
+    def load(self):
+        yield from self.load_app_dirs()
+        yield from self.load_plugins()
 
-    def load_plugins(self, obj):
+    def load_app_dirs(self):
+        yield from self.app_dirs.load()
+
+    def load_plugins(self):
         from entrypoints import get_group_all
         plugins = [
                 *get_group_all('stepwise.protocols'),
@@ -40,70 +48,71 @@ class StepwiseConfig(appcli.Config):
             try: path = plugin.load().config_defaults
             except AttributeError: continue
 
-            config = appcli.TomlConfig(path)
-            yield from (
-                    self.normalize_layer(x, prefix=plugin.name)
-                    for x in config.load(obj)
+            layers = TomlConfig.load_from_path(
+                    path,
+                    schema=self.schema,
+                    root_key=self.root_key,
             )
+            for layer in layers:
+                layer.values = {plugin.name: layer.values}
+                yield layer
 
-    def normalize_layer(self, layer, prefix=None):
-        if prefix:
-            layer.values = {prefix: layer.values}
-        if self.root_key:
-            try:
-                layer.values = appcli.lookup(layer.values, self.root_key)
-            except KeyError:
-                layer.values = {}
+    def get_dirs(self):
+        return self.app_dirs.dirs
 
-        return layer
+    def get_config_paths(self):
+        return self.app_dirs.config_paths
 
-    def get_dirs(self, obj):
-        return self.app_dirs.get_dirs(obj)
-
-    def get_config_paths(self, obj):
-        return self.app_dirs.get_config_paths(obj)
-
+@autoprop
 class PresetConfig(appcli.Config):
+    """
+    The presets should be a list of dicts.  If loading the presets using 
+    appcli, you can do this by specifying `pick=list`.
+    """
+    presets_getter = lambda obj: obj.presets
+    key_getter = lambda obj: obj.preset
+    schema = None
+    root_key = None
 
-    def __init__(self, presets_attr='presets', key_attr='preset'):
-        self.presets_attr = presets_attr
-        self.key_attr = key_attr
-        self._presets = {}
+    class PresetLayer(appcli.Layer):
 
-    def load(self, obj):
-        # Note that the `obj.presets` attribute is evaluated the first time a 
-        # preset is accessed.  Subsequent changes to this attribute will have 
-        # no effect.  If this ever turns out to be a problem, I could tweak 
-        # this class so that reloading it would re-evaluate this attribute.
+        def __init__(self, parent):
+            self.parent = parent
+            self.presets = None
+
+        def iter_values(self, key, log):
+            layer_1 = appcli.DictLayer(self.parent.presets)
+            preset = only(layer_1.iter_values(self.parent.key, log))
+
+            if preset is not None:
+                layer_2 = appcli.DictLayer(preset)
+                yield from layer_2.iter_values(key, log)
+
+    def __init__(self, obj):
+        super().__init__(obj)
+        self._presets = None
+
+    def load(self):
+        # `preset_getter`:
+        #   Evaluated the first time a preset is accessed after a load/reload.  
         #
-        # In contrast, the `obj.preset` attribute is evaluated every time the 
-        # parameter is accessed, so changes to that attribute will be 
-        # automatically applied.
-        
-        def values():
-            presets = self.get_presets(obj)
-            values_func = lambda k: presets[getattr(obj, self.key_attr)][k]
-            return appcli.dict_like(values_func)
+        # `key_getter`:
+        #   Evaluated every time the parameter is accessed.
 
-        def location():
-            return f'{obj.__class__.__qualname__}.{self.presets_attr}[{getattr(obj, self.key_attr)!r}]'
+        self._presets = None
+        yield self.PresetLayer(self)
 
-        yield appcli.Layer(
-                values=values,
-                location=location,
-        )
+    def get_presets(self):
+        if self._presets is None:
+            raw_presets = self.__class__.presets_getter(self.obj)
+            self._presets = Presets(raw_presets)
 
-    def get_presets(self, obj):
-        if id(obj) not in self._presets:
-            raw_presets = getattr(obj, self.presets_attr)
-            self._presets[id(obj)] = Presets(raw_presets)
+        return self._presets
 
-        return self._presets[id(obj)]
-
-    def get_preset_briefs(self, obj):
-        presets = self.get_presets(obj)
-        default = getattr(obj, 'preset_brief_template', '')
-        max_width = getattr(obj, 'preset_brief_max_width', 71)
+    def get_preset_briefs(self):
+        presets = self.presets
+        default = getattr(self.obj, 'preset_brief_template', '')
+        max_width = getattr(self.obj, 'preset_brief_max_width', 71)
 
         rows = []
         for key in presets:
@@ -115,33 +124,58 @@ class PresetConfig(appcli.Config):
 
         return tabulate(rows, truncate='-x', max_width=max_width)
 
+    def get_key(self):
+        return self.__class__.key_getter(self.obj)
+
 class Presets:
 
-    def __init__(self, presets):
-        self.raw_presets = presets
-        self.final_presets = {}
+    def __init__(self, layers):
+        self.layers = layers  # List[Dict]
+        self.loaded_presets = {}
 
     def __iter__(self):
-        yield from self.raw_presets
+        yield from unique_everseen(flatten(self.layers))
 
     def __getitem__(self, key):
-        if key not in self.final_presets:
-            try:
-                preset = self.raw_presets[key]
-            except KeyError:
-                if not self.raw_presets:
-                    raise KeyError(f"no preset {key!r}") from None
-                else:
-                    from inform import did_you_mean
-                    raise KeyError(f"no preset {key!r}, did you mean {did_you_mean(str(key), self)!r}") from None
+        try: return self.loaded_presets[key]
+        except KeyError: pass
 
-            if 'inherit' not in preset:
-                self.final_presets[key] = preset
+        try:
+            preset = load_preset(key, self.layers)
+        except KeyError as err:
+            known_presets = list(self)
+            if known_presets:
+                from inform import did_you_mean
+                raise KeyError(f"{err.args[0]}, did you mean {did_you_mean(str(key), self)!r}?") from None
             else:
-                parent = self[preset['inherit']]
-                merged = {**parent, **preset}; del merged['inherit']
-                self.final_presets[key] = merged
+                raise
 
-        return self.final_presets[key]
+        self.loaded_presets[key] = preset
+        return preset
 
-config_dirs = StepwiseConfig().get_dirs(None)
+def load_preset(key, layers):
+    for i, layer in enumerate(layers):
+        if key not in layer:
+            continue
+
+        preset = layer[key]
+
+        if 'inherit' not in preset:
+            return preset
+
+        parent_key = preset['inherit']
+
+        if parent_key == key:
+            layers = layers[:]
+            layers[i] = layer.copy()
+            del layers[i][key]
+
+        parent_preset = load_preset(parent_key, layers)
+
+        merged = {**parent_preset, **preset}
+        del merged['inherit']
+        return merged
+
+    raise KeyError(f"no preset {key!r}")
+
+config_dirs = StepwiseConfig(None).dirs

@@ -4,34 +4,47 @@ import sys
 import shlex
 import appcli
 from inform import warn, format_range
-from appcli import DefaultConfig
 from .config import StepwiseConfig, PresetConfig
 from .errors import *
 
 class Printer:
     __config__ = [
-            PresetConfig('printers', 'name'),
-            DefaultConfig(
-                page_height=56,
-                page_width=78,
-                content_width=53,
-                margin_width=10,
-                paps_flags='--font "FreeMono 12" --paper letter --left-margin 0 --right-margin 0 --top-margin 12 --bottom-margin 12',
-                lpr_flags='-o sides=one-sided',
-            ),
-            StepwiseConfig(),
+            PresetConfig,
+            StepwiseConfig,
     ]
 
-    printers = appcli.param(StepwiseConfig, default_factory=dict)
-    page_height = appcli.param(PresetConfig, DefaultConfig)
-    page_width = appcli.param(PresetConfig, DefaultConfig)
-    content_width = appcli.param(PresetConfig, DefaultConfig)
-    margin_width = appcli.param(PresetConfig, DefaultConfig)
-    paps_flags = appcli.param(PresetConfig, DefaultConfig)
-    lpr_flags = appcli.param(PresetConfig, DefaultConfig)
+    presets = appcli.param(
+            StepwiseConfig,
+            default_factory=dict,
+            pick=list,
+    )
+    page_height = appcli.param(
+            PresetConfig,
+            default=56,
+    )
+    page_width = appcli.param(
+            PresetConfig,
+            default=78,
+    )
+    content_width = appcli.param(
+            PresetConfig,
+            default=53,
+    )
+    margin_width = appcli.param(
+            PresetConfig,
+            default=10,
+    )
+    paps_flags = appcli.param(
+            PresetConfig,
+            default='--font "FreeMono 12" --paper letter --left-margin 0 --right-margin 0 --top-margin 12 --bottom-margin 12',
+    )
+    lpr_flags = appcli.param(
+            PresetConfig,
+            default='-o sides=one-sided',
+    )
 
-    def __init__(self, name=None):
-        self.name = name or get_default_printer_name()
+    def __init__(self, preset=None):
+        self.preset = preset or get_default_printer_name()
 
 
     def truncate_lines(self, lines):

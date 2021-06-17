@@ -21,7 +21,7 @@ Options:
         Don't organize paths by directory.
 """
     __config__ = [
-            appcli.DocoptConfig(),
+            appcli.DocoptConfig,
     ]
 
     protocol = appcli.param('<protocol>', default=None)

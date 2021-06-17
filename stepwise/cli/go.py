@@ -62,8 +62,8 @@ Configuration:
         printer.
 """
     __config__ = [
-            DocoptConfig(),
-            StepwiseConfig(),
+            DocoptConfig,
+            StepwiseConfig,
     ]
 
     output_path = appcli.param(

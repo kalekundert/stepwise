@@ -7,6 +7,9 @@ from utils import *
 @parametrize_via_toml('test_config.toml')
 def test_presets(presets, expected):
     p = Presets(presets)
+
+    assert set(p) == set(expected)
+
     for k, v in expected.items():
         assert p[k] == v
 
