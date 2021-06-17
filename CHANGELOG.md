@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.26.0 (2021-06-17)
+### Feature
+* Allow preset names to be reused ([`0ca56ed`](https://github.com/kalekundert/stepwise/commit/0ca56ed27568288f56fa7c04da7d4f578eaf20fe))
+
 ## v0.25.0 (2021-05-28)
 ### Feature
 * Add the testing submodule ([`4e5a280`](https://github.com/kalekundert/stepwise/commit/4e5a280dbf4ff6f68512b3db4b2064a961d46b47))
