@@ -8,7 +8,7 @@ import pickle
 from pathlib import Path
 from stepwise.library import _capture_stdout
 from stepwise.testing import disable_capture
-from utils import *
+from param_helpers import *
 
 LIBRARY_DIR = TEST_DIR / 'dummy_library'
 COLLECT1_DIR = LIBRARY_DIR / 'collection_1'
@@ -26,7 +26,13 @@ def test_library_singleton():
     lib2 = DummyLibrary.from_singleton()
     assert lib1 is lib2
 
-@parametrize_via_toml('test_library.toml')
+@parametrize_from_file(
+        schema=Schema({
+            'collections': empty_ok([str]),
+            'tag': str,
+            'expected': empty_ok([str]),
+        }),
+)
 def test_library_find_entries(collections, tag, expected):
     collection_map = {
             '1': stepwise.PathCollection(COLLECT1_DIR),
@@ -50,7 +56,13 @@ def test_library_find_entries(collections, tag, expected):
     else:
         assert library.find_entry(tag).name == path(expected[0])
 
-@parametrize_via_toml('test_library.toml')
+@parametrize_from_file(
+        schema=Schema({
+            'name': str,
+            'names': empty_ok([str]),
+            'expected': eval_python,
+        }),
+)
 def test_collection_is_unique(name, names, expected):
     collection = stepwise.Collection(name)
     collections = [stepwise.Collection(x) for x in names]
@@ -63,7 +75,12 @@ def test_path_collection_is_available():
     collection = stepwise.PathCollection(COLLECT1_DIR / 'nonexistant')
     assert not collection.is_available()
 
-@parametrize_via_toml('test_library.toml')
+@parametrize_from_file(
+        schema=Schema({
+            'tag': str,
+            'expected': empty_ok([str]),
+        }),
+)
 def test_path_collection_find_entries(tag, expected):
     collection = stepwise.PathCollection(COLLECT1_DIR)
     entries = list(x.name for _, x in collection.find_entries(tag))
@@ -71,7 +88,12 @@ def test_path_collection_find_entries(tag, expected):
     assert collection.is_available()
     assert entries == paths(expected)
 
-@parametrize_via_toml('test_library.toml')
+@parametrize_from_file(
+        schema=Schema({
+            'tag': str,
+            'expected': empty_ok([str]),
+        }),
+)
 def test_cwd_collection_find_entries(tag, expected):
     import os
 
@@ -90,13 +112,21 @@ def test_cwd_collection_find_entries(tag, expected):
     finally:
         os.chdir(prev_cwd)
 
-@parametrize_via_toml('test_library.toml')
+@parametrize_from_file
 def test_entry_full_name(collection_name, entry_name, full_name):
     collection = stepwise.Collection(collection_name)
     entry = stepwise.Entry(collection, entry_name)
     assert entry.full_name == path(full_name)
 
-@parametrize_via_toml('test_library.toml')
+@parametrize_from_file(
+        schema=Schema({
+            'relpath': str,
+            Optional('args', default=[]): empty_ok([str]),
+            'steps': empty_ok([str]),
+            Optional('attachments', default=[]): empty_ok([str]),
+            Optional('skip_windows', default=''): str,
+        }),
+)
 def test_path_entry_load_protocol(disable_capture, relpath, args, steps, attachments, skip_windows):
     if skip_windows and sys.platform == 'win32':
         pytest.skip(skip_windows)
@@ -120,12 +150,26 @@ def test_path_entry_load_protocol(disable_capture, relpath, args, steps, attachm
         stepwise.Library._singleton = None
 
 
-@parametrize_via_toml('test_library.toml')
+@parametrize_from_file(
+        schema=Schema({
+            'tag': str,
+            'name': str,
+            'expected': eval_python,
+        }),
+)
 def test_match_tag(tag, name, expected):
     from stepwise.library import _match_tag
     assert _match_tag(tag or None, name) == tuple(expected)
 
-@parametrize_via_toml('test_library.toml')
+@parametrize_from_file(
+        schema=Schema({
+            'scripts': {str: str},
+            Optional('args', default=[]): [str],
+            Optional('stdout', default=''): str,
+            Optional('stderr', default=''): str,
+            Optional('return_code', default=0): Coerce(int),
+        }),
+)
 def test_run_python_script(tmp_path, scripts, args, stdout, stderr, return_code):
     import sys, pickle
     from subprocess import run

@@ -6,7 +6,7 @@ from pytest import raises
 from stepwise import Protocol, ProtocolIO, ParseError
 from stepwise import pl, ul, ol, dl, pre, table
 from math import inf
-from utils import *
+from param_helpers import *
 
 parse = Protocol.parse
 merge = Protocol.merge
@@ -650,74 +650,82 @@ def test_protocol_iadd():
     assert p.footnotes == {1: "h"}
     assert p[-1] == "H"
 
-@parametrize_via_toml('test_protocol.toml')
+@parametrize_from_file(schema=Schema({str: eval_stepwise}))
 def test_protocol_add_footnotes(footnotes_new, footnotes_before, footnotes_after, formatted_ids):
     p = Protocol()
-    p.footnotes = int_keys(footnotes_before)
+    p.footnotes = footnotes_before
 
     assert p.add_footnotes(*footnotes_new) == formatted_ids
-    assert p.footnotes == int_keys(footnotes_after)
+    assert p.footnotes == footnotes_after
 
-@parametrize_via_toml('test_protocol.toml')
-def test_protocol_insert_footnotes(steps_before, footnotes_before, footnotes_new, pattern, steps_after, footnotes_after):
+@parametrize_from_file(
+    schema=Schema({
+        'steps_before': eval_stepwise,
+        'footnotes_before': eval_stepwise,
+        'footnotes_new': eval_stepwise,
+        Optional('pattern', default='(?=[.:])'): str,
+        **error_or({
+            'steps_after': eval_stepwise,
+            'footnotes_after': eval_stepwise,
+        }),
+    }),
+)
+def test_protocol_insert_footnotes(steps_before, footnotes_before, footnotes_new, pattern, steps_after, footnotes_after, error):
     p = Protocol()
-    p.steps = eval_steps(steps_before)
-    p.footnotes = int_keys(footnotes_before)
+    p.steps = steps_before
+    p.footnotes = footnotes_before
 
-    p.insert_footnotes(*footnotes_new, pattern=pattern)
-
-    assert p.steps == eval_steps(steps_after)
-    assert p.footnotes == int_keys(footnotes_after)
-
-@parametrize_via_toml('test_protocol.toml')
-def test_protocol_insert_footnotes_err(steps_before, footnotes_before, footnotes_new, pattern, error_message):
-    p = Protocol()
-    p.steps = eval_steps(steps_before)
-    p.footnotes = int_keys(footnotes_before)
-
-    with pytest.raises(ValueError, match=error_message):
+    with error:
         p.insert_footnotes(*footnotes_new, pattern=pattern)
 
-@parametrize_via_toml('test_protocol.toml')
+        assert p.steps == steps_after
+        assert p.footnotes == footnotes_after
+
+@parametrize_from_file(schema=Schema({str: eval_stepwise}))
 def test_protocol_renumber_footnotes(new_ids, steps_before, footnotes_before, steps_after, footnotes_after):
     p = Protocol()
-    p.steps = eval_steps(steps_before)
-    p.footnotes = eval_footnotes(footnotes_before)
-    p.renumber_footnotes(eval(new_ids))
+    p.steps = steps_before
+    p.footnotes = footnotes_before
+    p.renumber_footnotes(new_ids)
 
-    assert p.steps == eval_steps(steps_after)
-    assert p.footnotes == eval_footnotes(footnotes_after)
+    assert p.steps == steps_after
+    assert p.footnotes == footnotes_after
 
-@parametrize_via_toml('test_protocol.toml')
+@parametrize_from_file(schema=Schema({str: eval_stepwise}))
 def test_protocol_merge_footnotes(steps_before, steps_after):
     p = Protocol()
-    p.steps = eval_steps(steps_before)
+    p.steps = steps_before
     p.merge_footnotes()
-    assert p.steps == eval_steps(steps_after)
+    assert p.steps == steps_after
 
-@parametrize_via_toml('test_protocol.toml')
+@parametrize_from_file(schema=Schema({str: eval_stepwise}))
 def test_protocol_prune_footnotes(steps_before, footnotes_before, steps_after, footnotes_after):
     p = Protocol()
-    p.steps = eval_steps(steps_before)
-    p.footnotes = eval_footnotes(footnotes_before)
+    p.steps = steps_before
+    p.footnotes = footnotes_before
     p.prune_footnotes()
 
-    assert p.steps == eval_steps(steps_after)
-    assert p.footnotes == eval_footnotes(footnotes_after)
+    assert p.steps == steps_after
+    assert p.footnotes == footnotes_after
 
-@parametrize_via_toml('test_protocol.toml')
+@parametrize_from_file(schema=Schema({str: eval_stepwise}))
 def test_protocol_clear_footnotes(steps_before, steps_after, footnotes_before):
     p = Protocol()
-    p.steps = eval_steps(steps_before)
-    p.footnotes = eval_footnotes(footnotes_before)
+    p.steps = steps_before
+    p.footnotes = footnotes_before
     p.clear_footnotes()
 
-    assert p.steps == eval_steps(steps_after)
+    assert p.steps == steps_after
     assert p.footnotes == {}
 
-@parametrize_via_toml('test_protocol.toml')
+@parametrize_from_file(
+        schema=Schema({
+            Optional('date', default=None): Or(None, arrow.get),
+            Optional('commands', default=[]): [str],
+            'expected': str,
+        }),
+)
 def test_protocol_pick_slug(date, commands, expected):
-    date = None if date is False else arrow.get(date)
     p = Protocol(date=date, commands=commands)
     assert p.pick_slug() == expected
 
@@ -726,28 +734,38 @@ def test_protocol_format_text_empty():
     p = Protocol()
     assert p.format_text(inf) == ''
 
-@parametrize_via_toml('test_protocol.toml')
+@parametrize_from_file
 def test_protocol_format_date(date, expected):
     p = Protocol()
     p.date = arrow.get(date)
     assert p.format_text(inf) == expected.rstrip()
 
-@parametrize_via_toml('test_protocol.toml')
+@parametrize_from_file
 def test_protocol_format_commands(commands, expected):
     p = Protocol()
     p.commands = commands
     assert p.format_text(inf) == expected.rstrip()
 
-@parametrize_via_toml('test_protocol.toml')
+@parametrize_from_file(
+        schema=Schema({
+            'steps': eval_stepwise,
+            'expected': str,
+        }),
+)
 def test_protocol_format_steps(steps, expected):
     p = Protocol()
-    p.steps = eval_steps(steps)
+    p.steps = steps
     assert p.format_text(inf) == expected.rstrip()
 
-@parametrize_via_toml('test_protocol.toml')
+@parametrize_from_file(
+        schema=Schema({
+            'footnotes': eval_stepwise,
+            'expected': str,
+        }),
+)
 def test_protocol_format_footnotes(footnotes, expected):
     p = Protocol()
-    p.footnotes = eval_footnotes(footnotes)
+    p.footnotes = footnotes
     assert p.format_text(inf) == expected.rstrip()
 
 def test_protocol_format_everything():
@@ -775,7 +793,7 @@ Notes:
 [2] Footnote 2"""
 
 
-@parametrize_via_toml('test_protocol.toml')
+@parametrize_from_file
 def test_protocol_parse_empty(text):
     p = parse(text)
     assert p.date == None
@@ -783,40 +801,49 @@ def test_protocol_parse_empty(text):
     assert p.steps == []
     assert p.footnotes == {}
 
-@parametrize_via_toml('test_protocol.toml')
+@parametrize_from_file
 def test_protocol_parse_date(text, date):
     p = parse(text)
     assert p.date == arrow.get(date)
 
-@parametrize_via_toml('test_protocol.toml')
-def test_protocol_parse_commands(text, commands):
-    p = parse(text)
-    assert p.commands == commands
+@parametrize_from_file(
+        schema=Schema({
+            'text': str,
+            **error_or({
+                'commands': [str],
+            }),
+        }),
+)
+def test_protocol_parse_commands(text, commands, error):
+    with error:
+        p = parse(text)
+        assert p.commands == commands
 
-@parametrize_via_toml('test_protocol.toml')
-def test_protocol_parse_commands_err(text, err):
-    with raises(ParseError, match=err):
-        parse(text)
+@parametrize_from_file(
+        schema=Schema({
+            'text': str,
+            **error_or({
+                'steps': [str],
+            }),
+        }),
+)
+def test_protocol_parse_steps(text, steps, error):
+    with error:
+        p = parse(text)
+        assert p.steps == [pre(x) for x in steps]
 
-@parametrize_via_toml('test_protocol.toml')
-def test_protocol_parse_steps(text, steps):
-    p = parse(text)
-    assert p.steps == [pre(x) for x in steps]
-
-@parametrize_via_toml('test_protocol.toml')
-def test_protocol_parse_steps_err(err, text):
-    with pytest.raises(ParseError, match=err):
-        parse(text)
-
-@parametrize_via_toml('test_protocol.toml')
-def test_protocol_parse_footnotes(text, footnotes):
-    p = parse(text)
-    assert p.footnotes == {int(k): pre(v) for k, v in footnotes.items()}
-
-@parametrize_via_toml('test_protocol.toml')
-def test_protocol_parse_footnotes_err(err, text):
-    with pytest.raises(ParseError, match=err):
-        parse(text)
+@parametrize_from_file(
+        schema=Schema({
+            'text': str,
+            **error_or({
+                'footnotes': empty_ok({Coerce(int): str}),
+            }),
+        }),
+)
+def test_protocol_parse_footnotes(text, footnotes, error):
+    with error:
+        p = parse(text)
+        assert p.footnotes == {k: pre(v) for k, v in footnotes.items()}
 
 def test_protocol_parse_everything():
     from io import StringIO
@@ -852,12 +879,3 @@ def test_protocol_parse_err():
     with raises(ParseError, match="not <class 'int'>"):
         parse(1)
 
-
-def eval_steps(steps):
-    return [eval(x) for x in steps]
-
-def eval_footnotes(footnotes):
-    return {int(k): eval(v) for k, v in footnotes.items()}
-
-def int_keys(d):
-    return {int(k): v for k, v in d.items()}

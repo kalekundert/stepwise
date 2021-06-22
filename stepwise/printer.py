@@ -90,6 +90,11 @@ class Printer:
         current_page = []
         skip_next_line = False
 
+        def add_page(current_page):
+            if any(line.strip() for line in current_page):
+                pages.append(current_page[:])
+            current_page[:] = []
+
         for i, line_i in enumerate(lines):
 
             if skip_next_line:
@@ -115,12 +120,11 @@ class Printer:
 
                 if len(current_page) + (j-i) > self.page_height or j == i+1:
                     skip_next_line = (j == i+1)
-                    pages.append(current_page)
-                    current_page = []
-                else:
+                    add_page(current_page)
+                elif current_page:
                     current_page.append(line_i)
 
-        pages.append(current_page)
+        add_page(current_page)
         return pages
 
     def add_margin(self, pages):

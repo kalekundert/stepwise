@@ -1,0 +1,1007 @@
+test_protocol_add_footnotes:
+  -
+    footnotes_new: []
+    footnotes_before: {}
+    footnotes_after: {}
+    formatted_ids: ''
+  -
+    footnotes_new:
+      - 'Footnote 1'
+    footnotes_before: {}
+    footnotes_after:
+      1: 'Footnote 1'
+    formatted_ids: ' [1]'
+  -
+    footnotes_new:
+      - 'Footnote 1'
+      - 'Footnote 2'
+    footnotes_before: {}
+    footnotes_after:
+      1: 'Footnote 1'
+      2: 'Footnote 2'
+    formatted_ids: ' [1,2]'
+  -
+    footnotes_new:
+      - 'Footnote 3'
+    footnotes_before:
+      2: 'Footnote 2'
+    footnotes_after:
+      2: 'Footnote 2'
+      3: 'Footnote 3'
+    formatted_ids: ' [3]'
+
+test_protocol_insert_footnotes:
+  -
+    steps_before: []
+    footnotes_before: {}
+    footnotes_new: []
+    steps_after: []
+    footnotes_after: {}
+  -
+    steps_before:
+      - 'Step 1:'
+    footnotes_before: {}
+    footnotes_new:
+      - 'Footnote 1'
+    steps_after:
+      - 'Step 1 [1]:'
+    footnotes_after:
+      1: 'Footnote 1'
+  -
+    steps_before:
+      - 'Step 1:'
+      - 'Step 2:'
+    footnotes_before: {}
+    footnotes_new:
+      - 'Footnote 1'
+    steps_after:
+      - 'Step 1:'
+      - 'Step 2 [1]:'
+    footnotes_after:
+      1: 'Footnote 1'
+  -
+    steps_before:
+      - 'Step 1:'
+    footnotes_before: {}
+    footnotes_new:
+      - 'Footnote 1'
+      - 'Footnote 2'
+    steps_after:
+      - 'Step 1 [1,2]:'
+    footnotes_after:
+      1: 'Footnote 1'
+      2: 'Footnote 2'
+  -
+    steps_before:
+      - 'Step 1:'
+    footnotes_before:
+      1: 'Footnote 1'
+    footnotes_new:
+      - 'Footnote 2'
+    steps_after:
+      - 'Step 1 [2]:'
+    footnotes_after:
+      1: 'Footnote 1'
+      2: 'Footnote 2'
+  -
+    steps_before:
+      - 'Step 1:'
+      - 'Step 2:'
+    footnotes_before: {}
+    footnotes_new:
+      - 'Footnote 1'
+    steps_after:
+      - 'Step 1:'
+      - 'Step 2 [1]:'
+    footnotes_after:
+      1: 'Footnote 1'
+  -
+    steps_before:
+      - 'Step 1'
+    footnotes_before: {}
+    pattern: \d
+    footnotes_new:
+      - 'Footnote 1'
+    steps_after:
+      - 'Step 1 [1]'
+    footnotes_after:
+      1: 'Footnote 1'
+  -
+    steps_before:
+      - pl('Step 1:')
+    footnotes_before: {}
+    footnotes_new:
+      - 'Footnote 1'
+    steps_after:
+      - pl('Step 1 [1]:')
+    footnotes_after:
+      1: 'Footnote 1'
+  -
+    # Although we go through the steps backwards, we go through each individual 
+    # steep forward.
+    steps_before:
+      - 'Sentence 1.  Sentence 2.'
+      - 'Sentence 3.  Sentence 4.'
+    footnotes_before: {}
+    footnotes_new:
+      - 'Footnote 1'
+    steps_after:
+      - 'Sentence 1.  Sentence 2.'
+      - 'Sentence 3 [1].  Sentence 4.'
+    footnotes_after:
+      1: 'Footnote 1'
+  -
+    # Although we go through the steps backwards, we go through each individual 
+    # steep forward.
+    steps_before:
+      - pl('Paragraph 1:', 'Paragraph 2:')
+      - pl('Paragraph 3:', 'Paragraph 4:')
+    footnotes_before: {}
+    footnotes_new:
+      - 'Footnote 1'
+    steps_after:
+      - pl('Paragraph 1:', 'Paragraph 2:')
+      - pl('Paragraph 3 [1]:', 'Paragraph 4:')
+    footnotes_after:
+      1: 'Footnote 1'
+
+  -
+    id: err
+    steps_before: []
+    footnotes_before: {}
+    footnotes_new:
+      - 'Footnote 1'
+    error:
+      type: ValueError
+      message: pattern '\(\?=\[\.:\]\)' not found in protocol
+  -
+    id: err
+    steps_before:
+      - 'Step 1'
+    footnotes_before: {}
+    footnotes_new:
+      - 'Footnote 1'
+    error:
+      type: ValueError
+      message: pattern '\(\?=\[\.:\]\)' not found in protocol
+
+test_protocol_renumber_footnotes:
+  -
+    new_ids: 1
+    steps_before: []
+    steps_after : []
+    footnotes_before: {}
+    footnotes_after : {}
+  -
+    new_ids: 1
+    steps_before: ['[1]']
+    steps_after : ['[1]']
+    footnotes_before: {1: 'Footnote 1'}
+    footnotes_after : {1: 'Footnote 1'}
+  -
+    new_ids: 2
+    steps_before: ['[1]']
+    steps_after : ['[2]']
+    footnotes_before: {1: 'Footnote 1'}
+    footnotes_after : {2: 'Footnote 1'}
+  -
+    new_ids: 1
+    steps_before: ['[2]']
+    steps_after : ['[1]']
+    footnotes_before: {2: 'Footnote 1'}
+    footnotes_after : {1: 'Footnote 1'}
+  -
+    new_ids: 2
+    steps_before: ['[2]']
+    steps_after : ['[2]']
+    footnotes_before: {2: 'Footnote 1'}
+    footnotes_after : {2: 'Footnote 1'}
+  -
+    new_ids: 1
+    steps_before: ['[1] [3]']
+    steps_after : ['[1] [2]']
+    footnotes_before: {1: 'Footnote 1', 3: 'Footnote 3'}
+    footnotes_after : {1: 'Footnote 1', 2: 'Footnote 3'}
+  -
+    new_ids: 2
+    steps_before: ['[1] [3]']
+    steps_after : ['[2] [3]']
+    footnotes_before: {1: 'Footnote 1', 3: 'Footnote 3'}
+    footnotes_after : {2: 'Footnote 1', 3: 'Footnote 3'}
+  -
+    new_ids: 3
+    steps_before: ['[1] [3]']
+    steps_after : ['[3] [4]']
+    footnotes_before: {1: 'Footnote 1', 3: 'Footnote 3'}
+    footnotes_after : {3: 'Footnote 1', 4: 'Footnote 3'}
+  -
+    new_ids: 1
+    steps_before: ['[2] [3]']
+    steps_after : ['[1] [2]']
+    footnotes_before: {2: 'Footnote 2', 3: 'Footnote 3'}
+    footnotes_after : {1: 'Footnote 2', 2: 'Footnote 3'}
+  -
+    new_ids: 1
+    steps_before: ['[3] [1]']
+    steps_after : ['[2] [1]']
+    footnotes_before: {1: 'Footnote 1', 3: 'Footnote 3'}
+    footnotes_after : {1: 'Footnote 1', 2: 'Footnote 3'}
+  -
+    new_ids: 1
+    steps_before: ['[1,2]']
+    steps_after : ['[1,2]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2'}
+    footnotes_after : {1: 'Footnote 1', 2: 'Footnote 2'}
+  -
+    new_ids: 2
+    steps_before: ['[1,2]']
+    steps_after : ['[2,3]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2'}
+    footnotes_after : {2: 'Footnote 1', 3: 'Footnote 2'}
+  -
+    new_ids: 1
+    steps_before: ['[1-3]']
+    steps_after : ['[1-3]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'}
+    footnotes_after : {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'}
+  -
+    new_ids: 2
+    steps_before: ['[1-3]']
+    steps_after : ['[2-4]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'}
+    footnotes_after : {2: 'Footnote 1', 3: 'Footnote 2', 4: 'Footnote 3'}
+  -
+    new_ids: 1
+    steps_before: ['[1,2,3]']
+    steps_after : ['[1-3]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'}
+    footnotes_after : {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'}
+  -
+    new_ids: {1: 1}
+    steps_before: ['[1]']
+    steps_after : ['[1]']
+    footnotes_before: {1: 'Footnote 1'}
+    footnotes_after : {1: 'Footnote 1'}
+  -
+    new_ids: {1: 2}
+    steps_before: ['[1]']
+    steps_after : ['[2]']
+    footnotes_before: {1: 'Footnote 1'}
+    footnotes_after : {2: 'Footnote 1'}
+  -
+    new_ids: {1: 1, 2: 2}
+    steps_before: ['[1] [2]']
+    steps_after : ['[1] [2]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2'}
+    footnotes_after : {1: 'Footnote 1', 2: 'Footnote 2'}
+  -
+    new_ids: {1: 2, 2: 1}
+    steps_before: ['[1] [2]']
+    steps_after : ['[2] [1]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2'}
+    footnotes_after : {2: 'Footnote 1', 1: 'Footnote 2'}
+  -
+    new_ids: lambda x: x
+    steps_before: ['[2]']
+    steps_after : ['[2]']
+    footnotes_before: {2: 'Footnote 2'}
+    footnotes_after : {2: 'Footnote 2'}
+  -
+    new_ids: lambda x: x-1
+    steps_before: ['[2]']
+    steps_after : ['[1]']
+    footnotes_before: {2: 'Footnote 2'}
+    footnotes_after : {1: 'Footnote 2'}
+  -
+    new_ids: lambda x: x
+    steps_before: ['[2] [3]']
+    steps_after : ['[2] [3]']
+    footnotes_before: {2: 'Footnote 2', 3: 'Footnote 3'}
+    footnotes_after : {2: 'Footnote 2', 3: 'Footnote 3'}
+  -
+    new_ids: lambda x: x-1
+    steps_before: ['[2] [3]']
+    steps_after : ['[1] [2]']
+    footnotes_before: {2: 'Footnote 2', 3: 'Footnote 3'}
+    footnotes_after : {1: 'Footnote 2', 2: 'Footnote 3'}
+  -
+    new_ids: 2
+    steps_before: [pl('[1]')]
+    steps_after : [pl('[2]')]
+    footnotes_before: {1: 'Footnote 1'}
+    footnotes_after : {2: 'Footnote 1'}
+  -
+    new_ids: 2
+    steps_before: [pl(ul('[1]'))]
+    steps_after: [pl(ul('[2]'))]
+    footnotes_before: {1: 'Footnote 1'}
+    footnotes_after : {2: 'Footnote 1'}
+  -
+    new_ids: 2
+    steps_before: ['[1]']
+    steps_after : ['[2]']
+    footnotes_before: {1: pl('Footnote 1')}
+    footnotes_after : {2: pl('Footnote 1')}
+
+test_protocol_merge_footnotes:
+  -
+    steps_before: []
+    steps_after: []
+  -
+    steps_before: ['Step 1']
+    steps_after: ['Step 1']
+  -
+    steps_before: ['Step 1 [1]']
+    steps_after: ['Step 1 [1]']
+  -
+    steps_before: ['Step 1 [1,2]']
+    steps_after: ['Step 1 [1,2]']
+  -
+    steps_before: ['Step 1 [1] [1]']
+    steps_after: ['Step 1 [1]']
+  -
+    steps_before: ['Step 1 [1] [2]']
+    steps_after: ['Step 1 [1,2]']
+  -
+    steps_before: ['Step 1 [1] [3]']
+    steps_after: ['Step 1 [1,3]']
+  -
+    steps_before: ['Step 1 [1,2] [1,2]']
+    steps_after: ['Step 1 [1,2]']
+  -
+    steps_before: ['Step 1 [1,2] [2,3]']
+    steps_after: ['Step 1 [1-3]']
+  -
+    steps_before: ['Step 1 [1,2] [3,4]']
+    steps_after: ['Step 1 [1-4]']
+  -
+    steps_before: [pl('Step 1 [1] [2]')]
+    steps_after: [pl('Step 1 [1,2]')]
+  -
+    steps_before: ['Step 1 [1] [2]', 'Step 2 [3] [4]']
+    steps_after: ['Step 1 [1,2]', 'Step 2 [3,4]']
+
+test_protocol_prune_footnotes:
+  -
+    steps_before: []
+    steps_after : []
+    footnotes_before: {}
+    footnotes_after : {}
+  -
+    steps_before: ['[1]']
+    steps_after : ['[1]']
+    footnotes_before: {1: 'Footnote 1'}
+    footnotes_after : {1: 'Footnote 1'}
+  -
+    steps_before: ['[1]']
+    steps_after : ['[1]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2'}
+    footnotes_after : {1: 'Footnote 1'}
+  -
+    steps_before: ['[2]']
+    steps_after : ['[1]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2'}
+    footnotes_after : {1: 'Footnote 2'}
+  -
+    steps_before: [pl('[2]')]
+    steps_after : [pl('[1]')]
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2'}
+    footnotes_after : {1: 'Footnote 2'}
+  -
+    steps_before: [pl(ul('[2]'))]
+    steps_after : [pl(ul('[1]'))]
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2'}
+    footnotes_after : {1: 'Footnote 2'}
+  -
+    steps_before: ['[2]']
+    steps_after : ['[1]']
+    footnotes_before: {1: pl('Footnote 1'), 2: pl('Footnote 2')}
+    footnotes_after : {1: pl('Footnote 2')}
+  -
+    steps_before: ['[1,2]']
+    steps_after : ['[1,2]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'}
+    footnotes_after : {1: 'Footnote 1', 2: 'Footnote 2'}
+  -
+    steps_before: ['[1-2]']
+    steps_after : ['[1,2]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'}
+    footnotes_after : {1: 'Footnote 1', 2: 'Footnote 2'}
+  -
+    steps_before: ['[2,3]']
+    steps_after : ['[1,2]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'}
+    footnotes_after : {1: 'Footnote 2', 2: 'Footnote 3'}
+  -
+    steps_before: ['[2-3]']
+    steps_after : ['[1,2]']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'}
+    footnotes_after : {1: 'Footnote 2', 2: 'Footnote 3'}
+
+test_protocol_clear_footnotes:
+  -
+    steps_before: []
+    steps_after : []
+    footnotes_before: {}
+  -
+    steps_before: ['Step [1]:']
+    steps_after : ['Step:']
+    footnotes_before: {1: 'Footnote 1'}
+  -
+    steps_before: ['Step [1,2]:']
+    steps_after : ['Step:']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2'}
+  -
+    steps_before: ['Step [1-3]:']
+    steps_after : ['Step:']
+    footnotes_before: {1: 'Footnote 1', 2: 'Footnote 2', 3: 'Footnote 3'}
+  -
+    steps_before: ['Some [1] idea.']
+    steps_after : ['Some idea.']
+    footnotes_before: {1: 'Footnote 1'}
+  -
+    steps_before: [pl('Step [1]:')]
+    steps_after : [pl('Step:')]
+    footnotes_before: {1: 'Footnote 1'}
+  -
+    steps_before: [pl(ul('Substep [1]:'))]
+    steps_after : [pl(ul('Substep:'))]
+    footnotes_before: {1: 'Footnote 1'}
+  -
+    steps_before: ['Step [1]:']
+    steps_after : ['Step:']
+    footnotes_before: {1: pl('Footnote 1')}
+
+test_protocol_pick_slug:
+  -
+    expected: protocol
+  -
+    commands:
+      - command1 args
+    expected: command1
+  -
+    commands:
+      - file1.txt
+    expected: file1
+  -
+    commands:
+      - command1 args
+      - file2.txt
+    expected: command1_file2
+  -
+    date: 1988-11-08
+    expected: 19881108
+  -
+    date: 1988-11-08
+    commands:
+      - command1 args
+    expected: 19881108_command1
+  -
+    date: 1988-11-08
+    commands:
+      - file1.txt
+    expected: 19881108_file1
+  -
+    date: 1988-11-08
+    commands:
+      - command1 args
+      - file2.txt
+    expected: 19881108_command1_file2
+
+test_protocol_format_date:
+  -
+    date: 1988-11-08
+    expected: November 8, 1988
+
+test_protocol_format_commands:
+  -
+    commands:
+      - sw cmd-1
+    expected:
+      > $ sw cmd-1
+  -
+    commands:
+      - sw cmd-1
+      - sw cmd-2
+    expected:
+      > $ sw cmd-1
+      > $ sw cmd-2
+
+test_protocol_format_steps:
+  -
+    steps:
+      - 'Step 1'
+    expected:
+      > 1. Step 1
+  -
+    steps:
+      - pl('Step 1')
+    expected:
+      > 1. Step 1
+  -
+    steps:
+      - pl('Step 1', ul('Substep 1'))
+    expected:
+      > 1. Step 1
+      >
+      >    - Substep 1
+  -
+    steps:
+      - 'Step 1:\nLine wrap'
+    expected:
+      > 1. Step 1: Line wrap
+  -
+    steps:
+      - pre('Step 1\nLine break')
+    expected:
+      > 1. Step 1
+      >    Line break
+  -
+    steps:
+      - pl('Step 1:\nLine wrap', ul('Substep 1:\nAnother line wrap'))
+    expected:
+      > 1. Step 1: Line wrap
+      >
+      >    - Substep 1: Another line wrap
+  -
+    steps:
+      - 'Step 1'
+      - 'Step 2'
+    expected:
+      > 1. Step 1
+      >
+      > 2. Step 2
+  -
+    steps:
+      - pre('Step 1\nLine break')
+      - pre('Step 2\nAnother line break')
+    expected:
+      > 1. Step 1
+      >    Line break
+      >
+      > 2. Step 2
+      >    Another line break
+  -
+    id: 'leading-whitespace'
+    steps:
+      - pre('A\nB')
+      - pre('C\nD')
+      - pre('E\nF')
+      - pre('G\nH')
+      - pre('I\nJ')
+      - pre('K\nL')
+      - pre('M\nN')
+      - pre('O\nP')
+      - pre('Q\nR')
+      - pre('S\nT')
+      - pre('U\nV')
+      - pre('W\nX')
+      - pre('Y\nZ')
+    expected:
+      >  1. A
+      >     B
+      >
+      >  2. C
+      >     D
+      >
+      >  3. E
+      >     F
+      >
+      >  4. G
+      >     H
+      >
+      >  5. I
+      >     J
+      >
+      >  6. K
+      >     L
+      >
+      >  7. M
+      >     N
+      >
+      >  8. O
+      >     P
+      >
+      >  9. Q
+      >     R
+      >
+      > 10. S
+      >     T
+      >
+      > 11. U
+      >     V
+      >
+      > 12. W
+      >     X
+      >
+      > 13. Y
+      >     Z
+
+test_protocol_format_footnotes:
+  -
+    footnotes:
+      1: 'Footnote 1'
+    expected:
+      > Note:
+      > [1] Footnote 1
+  -
+    footnotes:
+      1: pl('Footnote 1')
+    expected:
+      > Note:
+      > [1] Footnote 1
+  -
+    footnotes:
+      1: pl('Footnote 1', ul('Subnote 1'))
+    expected:
+      > Note:
+      > [1] Footnote 1
+      >
+      >     - Subnote 1
+  -
+    footnotes:
+      1: 'Footnote 1'
+      2: 'Footnote 2'
+    expected:
+      > Notes:
+      > [1] Footnote 1
+      >
+      > [2] Footnote 2
+  -
+    footnotes:
+      1: 'Footnote 1:\nLine wrap'
+    expected:
+      > Note:
+      > [1] Footnote 1: Line wrap
+  -
+    footnotes:
+      1: pre('Footnote 1\nLine break')
+    expected:
+      > Note:
+      > [1] Footnote 1
+      >     Line break
+  -
+    footnotes:
+      1: pre('Footnote 1\nLine break')
+      2: pre('Footnote 2\nAnother line break')
+    expected:
+      > Notes:
+      > [1] Footnote 1
+      >     Line break
+      >
+      > [2] Footnote 2
+      >     Another line break
+  -
+    footnotes:
+      1: pre('Footnote 1\nLine break')
+      10: pre('Footnote 10\nAnother line break')
+    expected:
+      > Notes:
+      >  [1] Footnote 1
+      >      Line break
+      >
+      > [10] Footnote 10
+      >      Another line break
+
+test_protocol_parse_empty:
+  -
+    text:
+  -
+    text:
+      >
+      >
+  -
+    text:
+      >
+      >
+      >
+  -
+    text:
+      >
+      > # Comment
+      >
+      >
+
+test_protocol_parse_date:
+  -
+    text:
+      > November 8, 1988
+    date: 1988-11-08
+  -
+    text:
+      >
+      > November 8, 1988
+    date: 1988-11-08
+  -
+    text:
+      > November 8, 1988
+      >
+    date: 1988-11-08
+
+test_protocol_parse_commands:
+  -
+    text:
+      > $ sw pcr
+    commands:
+      - sw pcr
+  -
+    text:
+      >
+      > $ sw pcr
+    commands:
+      - sw pcr
+  -
+    text:
+      > $ sw pcr
+      >
+    commands:
+      - sw pcr
+  -
+    text:
+      > $ sw pcr
+      > $ sw kld
+    commands:
+      - sw pcr
+      - sw kld
+  -
+    text:
+      > $ sw pcr
+      >
+      > $ sw kld
+    commands:
+      - sw pcr
+      - sw kld
+  -
+    text:
+      > $ sw pcr
+      > unexpected text
+    error:
+      type: ParseError
+      message: expected a step
+
+test_protocol_parse_steps:
+  -
+    text:
+      > - Step 1
+    steps:
+      - Step 1
+  -
+    text:
+      >
+      > - Step 1
+    steps:
+      - Step 1
+  -
+    text:
+      > - Step 1
+      >
+    steps:
+      - Step 1
+  -
+    text:
+      > - Step 1
+      >   Line wrap
+    steps:
+      -
+        > Step 1
+        > Line wrap
+  -
+    text:
+      > - Step 1
+      >
+      >   Blank line
+    steps:
+      -
+        > Step 1
+        >
+        > Blank line
+  -
+    text:
+      > - Step 1
+      >     Indented line
+    steps:
+      -
+        > Step 1
+        >   Indented line
+  -
+    text:
+      > - Step 1
+      >   - Substep 1
+    steps:
+      -
+        > Step 1
+        > - Substep 1
+  -
+    text:
+      > - Step 1
+      > - Step 2
+    steps:
+      - Step 1
+      - Step 2
+  -
+    text:
+      > - Step 1
+      >
+      > - Step 2
+    steps:
+      - Step 1
+      - Step 2
+  -
+    text:
+      > 1. Step 1
+    steps:
+      - Step 1
+  -
+    text:
+      > 1. Step 1
+      > 2. Step 2
+    steps:
+      - Step 1
+      - Step 2
+  -
+    text:
+      >  1. Step 1
+      >  2. Step 2
+    steps:
+      - Step 1
+      - Step 2
+  -
+    id: err
+    text:
+      > - Step 1
+      > unexpected text
+    error:
+      type: ParseError
+      message: expected a step
+  -
+    id: err
+    text:
+      >   Fake line wrap
+    error:
+      type: ParseError
+      message: expected a step
+
+test_protocol_parse_footnotes:
+  -
+    text:
+      > Notes:
+    footnotes:
+  -
+    text:
+      > Notes:
+      > [1] Footnote 1
+    footnotes:
+      1: Footnote 1
+  -
+    text:
+      > Notes:
+      >
+      > [1] Footnote 1
+    footnotes:
+      1: Footnote 1
+  -
+    text:
+      > Notes:
+      > [1] Footnote 1
+      >
+    footnotes:
+      1: Footnote 1
+  -
+    id: line-wrap
+    text:
+      > Notes:
+      > [1] Footnote 1
+      >     Line wrap
+    footnotes:
+      1:
+        > Footnote 1
+        > Line wrap
+  -
+    text:
+      > Notes:
+      > [1] Footnote 1
+      >       Indented line
+    footnotes:
+      1:
+        > Footnote 1
+        >   Indented line
+  -
+    text:
+      > Notes:
+      > [1] Footnote 1
+      >
+      >     Blank line
+    footnotes:
+      1:
+        > Footnote 1
+        >
+        > Blank line
+  -
+    text:
+      > Notes:
+      > [1] Footnote 1
+      > [2] Footnote 2
+    footnotes:
+      1: Footnote 1
+      2: Footnote 2
+  -
+    text:
+      > Notes:
+      > [1] Footnote 1
+      >
+      > [2] Footnote 2
+    footnotes:
+      1: Footnote 1
+      2: Footnote 2
+  -
+    text:
+      > Notes:
+      >  [1] Footnote 1
+    footnotes:
+      1: Footnote 1
+  -
+    id: err
+    text:
+      > Notes:
+      > unexpected text
+    error:
+      type: ParseError
+      message: expected a footnote
+  -
+    id: err
+    text:
+      > Notes:
+      > [1] Footnote 1
+      > unexpected text
+    error:
+      type: ParseError
+      message: expected a footnote
+  -
+    text:
+      > Notes:
+      > [1,2] Footnote 1
+    error:
+      type: ParseError
+      message: expected a footnote
+  -
+    text:
+      > Notes:
+      >    Fake line wrap
+    error:
+      type: ParseError
+      message: expected a footnote
+  -
+    text:
+      > - Step 1 [1]
+    error:
+      type: ParseError
+      message: unknown footnote \[1\]
+  -
+    text:
+      > - Step 1 [2]
+      >
+      > Footnotes:
+      > [1] Footnote
+    error:
+      type: ParseError
+      message: unknown footnote \[2\]
+  -
+    text:
+      > - Step 1 [1,2]
+      >
+      > Footnotes:
+      > [1] Footnote
+    error:
+      type: ParseError
+      message: unknown footnote \[2\]
+  -
+    text:
+      > - Step 1 [1-3]
+      >
+      > Footnotes:
+      > [1] Footnote
+    error:
+      type: ParseError
+      message: unknown footnotes \[2,3\]
+
+

@@ -2,18 +2,31 @@
 
 import stepwise
 from stepwise import ol, ul, pl, dl, pre, table, MasterMix
-from utils import *
+from param_helpers import *
 
-@parametrize_via_toml('test_format.toml')
+@parametrize_from_file(
+        schema=Schema({
+            'obj': eval_stepwise,
+            'width': eval_python,
+            Optional('kwargs', default={}): {str: eval_python},
+            'expected': str,
+        }),
+)
 def test_format_text(obj, width, expected, kwargs):
-    assert stepwise.format_text(eval(obj), width, **kwargs) == expected
+    assert stepwise.format_text(obj, width, **kwargs) == expected
 
-@parametrize_via_toml('test_format.toml')
+@parametrize_from_file(
+        schema=Schema({
+            'obj': eval_stepwise,
+            'pattern': eval_python,
+            'repl': eval_python,
+            'count': Coerce(int),
+            'expected': eval_stepwise,
+            'n': Coerce(int),
+        }),
+)
 def test_replace_text(obj, pattern, repl, count, expected, n):
-    obj = eval(obj)
-    expected = eval(expected)
     state = {}
-
     obj_repl = stepwise.replace_text(
             obj, pattern, repl,
             count=count,
@@ -121,28 +134,34 @@ def test_pre_operators():
     assert x != stepwise.pre('x')
     assert x != 'a'
 
-@parametrize_via_toml('test_format.toml')
-def test_step_from_str(step, delim, wrap, expected):
-    assert stepwise.step_from_str(step, delim, wrap=wrap) == eval(expected)
+@parametrize_from_file(
+        schema=Schema({
+            'str': str,
+            'delim': str,
+            'wrap': eval_python,
+            'expected': eval_stepwise,
+        }),
+)
+def test_step_from_str(str, delim, wrap, expected):
+    assert stepwise.step_from_str(str, delim, wrap=wrap) == expected
 
-@parametrize_via_toml('test_format.toml')
+@parametrize_from_file(
+        schema=Schema({
+            'str': str,
+            'delim': str,
+            'count': Coerce(int),
+            'expected': eval_python,
+        }),
+)
 def test_split_by_delim_count(str, delim, count, expected):
-    assert stepwise.split_by_delim_count(str,delim, count) == expected
+    assert stepwise.split_by_delim_count(str, delim, count) == expected
 
-@parametrize(
-        'given,kwargs,expected', [
-            ([],         dict(),           ''),
-            ([1],        dict(),           '1'),
-            ([1,2],      dict(),           '1 and 2'),
-            ([1,2,3],    dict(),           '1, 2, and 3'),
-            ([1,2,3,4],  dict(),           '1, 2, 3, and 4'),
-
-            ([],         dict(conj='or'),  ''),
-            ([1],        dict(conj='or'),  '1'),
-            ([1,2],      dict(conj='or'),  '1 or 2'),
-            ([1,2,3],    dict(conj='or'),  '1, 2, or 3'),
-            ([1,2,3,4],  dict(conj='or'),  '1, 2, 3, or 4'),
-        ]
+@parametrize_from_file(
+        schema=Schema({
+            'given': eval_python,
+            Optional('kwargs', default={}): {str: eval_python},
+            'expected': str,
+        }),
 )
 def test_oxford_comma(given, kwargs, expected):
     assert stepwise.oxford_comma(given, **kwargs) == expected

@@ -1,0 +1,474 @@
+test_library_find_entries:
+  -
+    id: empty
+    collections:
+    tag: proto
+    expected:
+  -
+    id: 1-a
+    collections:
+      - 1
+    tag: a
+    expected:
+      - protocol_a
+  -
+    id: 1-z
+    collections:
+      - 1
+    tag: z
+    expected:
+  -
+    id: 1-proto
+    collections:
+      - 1
+    tag: proto
+    expected:
+      - protocol_a
+      - subdir/protocol_b
+  -
+    id: 2-a
+    collections:
+      - 2
+    tag: a
+    expected:
+  -
+    id: 2-z
+    collections:
+      - 2
+    tag: z
+    expected:
+      - protocol_z
+  -
+    id: 2-proto
+    collections:
+      - 2
+    tag: proto
+    expected:
+      - protocol_z
+  -
+    id: 12-a
+    collections:
+      - 1
+      - 2
+    tag: a
+    expected:
+      - protocol_a
+  -
+    id: 12-z
+    collections:
+      - 1
+      - 2
+    tag: z
+    expected:
+      - protocol_z
+  -
+    id: 12-proto
+    collections:
+      - 1
+      - 2
+    tag: proto
+    expected:
+      - protocol_a
+      - subdir/protocol_b
+      - protocol_z
+
+test_collection_is_unique:
+  -
+    name: a
+    names:
+    expected: True
+  -
+    name: a
+    names:
+      - a
+    expected: False
+  -
+    name: a
+    names:
+      - b
+    expected: True
+  -
+    name: a
+    names:
+      - a
+      - b
+    expected: False
+
+test_path_collection_find_entries:
+  -
+    tag: no match
+    expected:
+  -
+    tag: a
+    expected:
+      - protocol_a
+  -
+    tag: b
+    expected:
+      - subdir/protocol_b
+  -
+    tag: proto
+    expected:
+      - protocol_a
+      - subdir/protocol_b
+  -
+    tag: dir/proto
+    expected:
+      - subdir/protocol_b
+
+test_cwd_collection_find_entries:
+  -
+    tag: a
+    expected:
+  -
+    tag: protocol_a.txt
+    expected:
+      - protocol_a
+  -
+    tag: protocol_b.txt
+    expected:
+  -
+    tag: subdir/protocol_b.txt
+    expected:
+      - subdir/protocol_b
+
+test_entry_full_name:
+  -
+    collection_name: a
+    entry_name: b
+    full_name: a/b
+  -
+    collection_name: a/
+    entry_name: b/
+    full_name: a/b
+
+test_path_entry_load_protocol:
+  -
+    relpath: protocol_txt.txt
+    steps:
+      - txt
+  -
+    relpath: protocol_pdf.pdf
+    steps:
+      - <protocol_pdf>
+    attachments:
+      - protocol_pdf.pdf
+  -
+    relpath: script_echo.sh
+    args:
+      - 1
+      - 2
+    steps:
+      - echo 1 2
+    skip_windows: Cannot run Unix shell scripts on Windows.
+  -
+    relpath: script_nested.sh
+    steps:
+      - nested
+    skip_windows: Cannot run Unix shell scripts on Windows.
+  -
+    relpath: script_stdin.sh
+    steps:
+      - cat
+    skip_windows: Cannot run Unix shell scripts on Windows.
+  -
+    relpath: script_py.py
+    steps:
+      - py
+  -
+    relpath: script_main.py
+    steps:
+      - main
+  -
+    relpath: script_argv.py
+    args:
+      - 1
+      - 2
+    steps:
+      - argv script_argv.py,1,2
+  -
+    relpath: script_import.py
+    steps:
+      - lib
+  -
+    id: focus
+    relpath: script_load.py
+    steps:
+      - load
+      - main
+      - argv script_argv.py,1,2
+      - lib
+  -
+    relpath: script_subproc.py
+    steps:
+      - os.system
+      - subprocess.run
+    skip_windows: Cannot use 'echo' on Windows.
+  -
+    relpath: script_subproc_nested.py
+    steps:
+      - nested
+    skip_windows: Not totally sure why this one doesn't work.
+  -
+    relpath: script_subproc_stdin.py
+    steps:
+      - cat
+    skip_windows: false
+
+test_match_tag:
+  -
+    tag:
+    name: a
+    expected: [0]
+  -
+    tag:
+    name: a/b
+    expected: [0]
+  -
+    tag:
+    name: a/b/c
+    expected: [0]
+
+  -
+    tag: ab
+    name: ab
+    expected: [3]
+  -
+    tag: a
+    name: ab
+    expected: [2]
+  -
+    tag: b
+    name: ab
+    expected: [1]
+  -
+    tag: z
+    name: abc
+    expected: []
+
+  -
+    tag: ab
+    name: ab/cd
+    expected: []
+  -
+    tag: cd
+    name: ab/cd
+    expected: [3]
+  -
+    tag: a
+    name: ab/cd
+    expected: []
+  -
+    tag: b
+    name: ab/cd
+    expected: []
+  -
+    tag: c
+    name: ab/cd
+    expected: [2]
+  -
+    tag: d
+    name: ab/cd
+    expected: [1]
+  -
+    tag: z
+    name: ab/cd
+    expected: []
+  -
+    tag: ab/cd
+    name: ab/cd
+    expected: [3, 3]
+  -
+    tag: ab/c
+    name: ab/cd
+    expected: [2, 3]
+  -
+    tag: ab/d
+    name: ab/cd
+    expected: [1, 3]
+  -
+    tag: ab/z
+    name: ab/cd
+    expected: []
+  -
+    tag: a/cd
+    name: ab/cd
+    expected: [3, 2]
+  -
+    tag: a/c
+    name: ab/cd
+    expected: [2, 2]
+  -
+    tag: a/d
+    name: ab/cd
+    expected: [1, 2]
+  -
+    tag: a/z
+    name: ab/cd
+    expected: []
+  -
+    tag: b/cd
+    name: ab/cd
+    expected: [3, 1]
+  -
+    tag: b/c
+    name: ab/cd
+    expected: [2, 1]
+  -
+    tag: b/d
+    name: ab/cd
+    expected: [1, 1]
+  -
+    tag: b/z
+    name: ab/cd
+    expected: []
+  -
+    tag: z/cd
+    name: ab/cd
+    expected: []
+  -
+    tag: z/c
+    name: ab/cd
+    expected: []
+  -
+    tag: z/d
+    name: ab/cd
+    expected: []
+  -
+    tag: z/z
+    name: ab/cd
+    expected: []
+  -
+    tag: a/a
+    name: a
+    expected: []
+
+  -
+    tag: a/b
+    name: a/b/c
+    expected: []
+  -
+    tag: a/c
+    name: a/b/c
+    expected: [3, 0, 3]
+  -
+    tag: b/c
+    name: a/b/c
+    expected: [3, 3]
+
+  -
+    tag: a
+    name: ab/bc
+    expected: []
+  -
+    tag: b
+    name: ab/bc
+    expected: [2]
+  -
+    tag: c
+    name: ab/bc
+    expected: [1]
+  -
+    tag: a/b
+    name: ab/bc
+    expected: [2, 2]
+  -
+    tag: b/a
+    name: ab/bc
+    expected: []
+  -
+    tag: b/b
+    name: ab/bc
+    expected: [2, 1]
+  -
+    tag: b/c
+    name: ab/bc
+    expected: [1, 1]
+  -
+    tag: c/b
+    name: ab/bc
+    expected: []
+
+test_run_python_script:
+  -
+    id: stdout_1
+    scripts:
+      main:
+        > print("hello world")
+    stdout:
+      > hello world
+      >
+  -
+    id: main_1
+    scripts:
+      main:
+        > if __name__:= '__main__':
+        >   print("hello world")
+    stdout:
+      > hello world
+      >
+  -
+    id: arguments_1
+    scripts:
+      main:
+        > import sys
+        > print(sys.argv[1:])
+    args:
+      - hello
+      - world
+    stdout:
+      > ['hello', 'world']
+      >
+  -
+    id: imports_1
+    scripts:
+      main:
+        > import greeting
+      greeting:
+        > print("hello world")
+    stdout:
+      > hello world
+      >
+  -
+    id: exceptions_1
+    scripts:
+      main:
+        > raise ValueError("some error")
+    stderr: ValueError: some error
+    return_code: 1
+  -
+    id: exceptions_2
+    scripts:
+      main:
+        > raise SystemExit(2)
+    return_code: 2
+  -
+    id: exceptions_3
+    scripts:
+      main:
+        > raise SystemExit(None)
+    return_code: 0
+  -
+    id: exceptions_4
+    scripts:
+      main:
+        > raise SystemExit("some error")
+    stderr: some error
+    return_code: 1
+  -
+    id: exceptions_docopt
+    # This case is now covered by `exceptions_4`, but I'm leaving it because 
+    # docopt is an important use case.
+    scripts:
+      main:
+        > """
+        > Usage:
+        >   main.py <hello> <world>
+        > """
+        > import docopt
+        > docopt.docopt(__doc__)
+    stderr:
+      > Usage:
+      >   main.py <hello> <world>
+    return_code: 1
+

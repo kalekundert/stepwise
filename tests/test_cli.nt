@@ -1,0 +1,447 @@
+test_main:
+###############################################################################
+### Builtins
+###############################################################################
+
+  -
+    id: builtin-echo
+    cmd: sw echo '- A\n- B'
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw echo '- A\\n- B'
+      >
+      > 1\. A
+      >
+      > 2\. B
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-step
+    cmd: sw step A
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      >
+      > 1\. A
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-step
+    cmd: sw step 'A~b~~c~~d~e~~f~~g'
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step 'A~b~~c~~d~e~~f~~g'
+      >
+      > 1\. A
+      >
+      >    - b
+      >      - c
+      >      - d
+      >    - e
+      >      - f
+      >      - g
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-step-wrap
+    cmd: sw step '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
+      >
+      > 1\. 123456789 123456789 123456789 123456789 123456789
+      >    123456789
+      >
+      >    - 123456789 123456789 123456789 123456789
+      >      123456789 123456789
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-step-no-wrap
+    cmd: sw step -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step -W '123456789 123456789 123456789 123456789 123456789 123456789~123456789 123456789 123456789 123456789 123456789 123456789'
+      >
+      > 1\. 123456789 123456789 123456789 123456789 123456789 123456789
+      >
+      >    - 123456789 123456789 123456789 123456789 123456789 123456789
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-step-delimiter
+    cmd: sw step -dx 'Axb~c'
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step -dx 'Axb~c'
+      >
+      > 1\. A
+      >
+      >    - b~c
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-conditions
+    cmd: sw conditions conditions.csv
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw conditions conditions\.csv
+      >
+      > 1\. In the following steps, setup these conditions:
+      >
+      >    Condition A:  −  −  \+  \+
+      >    Condition B:  −  \+  −  \+
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-conditions
+    cmd: sw conditions conditions.xlsx
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw conditions conditions\.xlsx
+      >
+      > 1\. In the following steps, setup these conditions:
+      >
+      >    Condition A:  −  −  \+  \+
+      >    Condition B:  −  \+  −  \+
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-conditions
+    cmd: sw conditions does_not_exist.csv
+    stdout: ^$
+    stderr: .*sw error.*does_not_exist.csv.*no such file
+    return_code: 1
+  -
+    id: builtin-reaction
+    cmd: sw reaction 'A;;to 10 µL' 'B;10x;1 µL'
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw reaction 'A;;to 10 µL' 'B;10x;1 µL'
+      >
+      > 1. Setup 1 reaction:
+      >
+      >    Reagent  Stock    Volume
+      >    ────────────────────────
+      >    A                9.00 µL
+      >    B          10x   1.00 µL
+      >    ────────────────────────
+      >                    10.00 µL
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-reaction-step
+    cmd: sw reaction 'A;;to 10 µL' 'B;10x;1 µL' -S 'Prepare {n:# AB reaction/s}':
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw reaction 'A;;to 10 µL' 'B;10x;1 µL' -S 'Prepare {{n:# AB reaction/s}}:'
+      >
+      > 1. Prepare 1 AB reaction:
+      >
+      >    Reagent  Stock    Volume
+      >    ────────────────────────
+      >    A                9.00 µL
+      >    B          10x   1.00 µL
+      >    ────────────────────────
+      >                    10.00 µL
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-reaction-kind
+    cmd: sw reaction 'A;;to 10 µL' 'B;10x;1 µL' -s AB
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw reaction 'A;;to 10 µL' 'B;10x;1 µL' -s AB
+      >
+      > 1. Setup 1 AB reaction:
+      >
+      >    Reagent  Stock    Volume
+      >    ────────────────────────
+      >    A                9.00 µL
+      >    B          10x   1.00 µL
+      >    ────────────────────────
+      >                    10.00 µL
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-reaction-mm
+    cmd: sw reaction 'A;;to 10 µL;y' 'B;10x;1 µL;y' 'C;5x;2 µL' -n2
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw reaction 'A;;to 10 µL;y' 'B;10x;1 µL;y' 'C;5x;2 µL' -n2
+      >
+      > 1. Setup 2 reactions:
+      >
+      >    Reagent  Stock    Volume      2.2x
+      >    ──────────────────────────────────
+      >    A                7.00 µL  15.40 µL
+      >    B          10x   1.00 µL   2.20 µL
+      >    C           5x   2.00 µL
+      >    ──────────────────────────────────
+      >                    10.00 µL   8.00 µL/rxn
+    stderr: ^$
+    return_code: 0
+
+
+###############################################################################
+### Pipes
+###############################################################################
+
+  -
+    id: pipeline-2
+    cmd: sw step A | sw step B
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      > \$ sw step B
+      >
+      > 1\. A
+      >
+      > 2\. B
+    stderr: ^$
+    return_code: 0
+  -
+    id: pipeline-3
+    cmd: sw step A | sw step B | sw step C
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      > \$ sw step B
+      > \$ sw step C
+      >
+      > 1\. A
+      >
+      > 2\. B
+      >
+      > 3\. C
+    stderr: ^$
+    return_code: 0
+  -
+    id: pipeline-nested
+    cmd: sw nested A | sw nested B | sw nested C
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw nested A
+      > \$ sw nested B
+      > \$ sw nested C
+      >
+      > 1\. A
+      >
+      > 2\. B
+      >
+      > 3\. C
+    stderr: ^$
+    return_code: 0
+  -
+    id: heredoc
+    cmd:
+      > sw <<EOF
+      > - A
+      > - B
+      > EOF
+    stdout:
+      > ^{DATE}
+      >
+      > 1\. A
+      >
+      > 2\. B
+    stderr: ^$
+    return_code: 0
+
+
+###############################################################################
+### Errors
+###############################################################################
+
+  -
+    id: err-empty-protocol
+    cmd: sw echo ''
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw echo ''
+    stderr:
+      > .*sw warning.*echo.* protocol is empty.
+    return_code: 0
+  -
+    id: err-unknown-protocol
+    cmd: sw unknown-protocol
+    stdout: ^$
+    stderr:
+      > .*sw error.*
+      >     no protocols matching 'unknown-protocol' in:
+    return_code: 1
+  -
+    id: err-formatting
+    cmd: sw echo 'Formatting error'
+    stdout:
+      > ^Formatting error$
+    stderr:
+      > .*sw warning.*the protocol could not be properly rendered due to error\(s\):
+      > .*sw warning.*echo, 1.*expected a step \(e.g. '- …' or '1. …'\), not 'Formatting error'
+    return_code: 1
+
+
+###############################################################################
+### Subcommands
+###############################################################################
+
+  -
+    id: ls
+    cmd: sw ls
+    stdout:
+      > .*/dummy_home/protocols
+      >   a
+      >   b
+      > .*\
+      > stepwise\.builtins
+      >   conditions
+      >   echo
+      >   reaction
+      >   step
+    stderr: ^$
+    return_code: 0
+  -
+    id: ls-d
+    cmd: sw ls -d
+    stdout:
+      > .*/dummy_home/protocols
+      > .*stepwise\.builtins
+    stderr: ^$
+    return_code: 0
+  -
+    id: ls-p
+    cmd: sw ls -p
+    stdout:
+      > a
+      > b
+      > .*\
+      > conditions
+      > echo
+      > reaction
+      > step
+    stderr: ^$
+    return_code: 0
+  -
+    id: edit
+    cmd: sw edit echo
+    env:
+      EDITOR: echo
+    stdout: .*/builtins/echo.py$
+    stderr: ^$
+    return_code: 0
+  -
+    id: note-defaults-1
+    cmd: sw step A: | sw note Z
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A:
+      >
+      > 1\. A \[1\]:
+      >
+      > Note:
+      > \[1\] Z
+    stderr: ^$
+    return_code: 0
+  -
+    id: note-defaults-2
+    cmd: sw step A: | sw step B: | sw note Z
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A:
+      > \$ sw step B:
+      >
+      > 1\. A:
+      >
+      > 2\. B \[1\]:
+      >
+      > Note:
+      > \[1\] Z
+    stderr: ^$
+    return_code: 0
+  -
+    id: note-where
+    cmd: sw step A: | sw step B: | sw note Z A
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A:
+      > \$ sw step B:
+      >
+      > 1\. A \[1\]:
+      >
+      > 2\. B:
+      >
+      > Note:
+      > \[1\] Z
+    stderr: ^$
+    return_code: 0
+  -
+    id: note-wrap
+    cmd: sw step A: | sw note '123456789 123456789 123456789 123456789 123456789 123456789'
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A:
+      >
+      > 1\. A \[1\]:
+      >
+      > Note:
+      > \[1\] 123456789 123456789 123456789 123456789 123456789
+      >     123456789
+    stderr: ^$
+    return_code: 0
+  -
+    id: note-no-wrap
+    cmd: sw step A: | sw note -W '123456789 123456789 123456789 123456789 123456789 123456789'
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A:
+      >
+      > 1\. A \[1\]:
+      >
+      > Note:
+      > \[1\] 123456789 123456789 123456789 123456789 123456789 123456789
+    stderr: ^$
+    return_code: 0
+  -
+    id: note-merge
+    cmd: sw step 'A:' | sw note X | sw note Y
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A:
+      >
+      > 1\. A \[1,2\]:
+      >
+      > Notes:
+      > \[1\] X
+      >
+      > \[2\] Y
+    stderr: ^$
+    return_code: 0
+  -
+    id: which
+    cmd: sw which a
+    stdout: .*/dummy_home/protocols/a.txt$
+    stderr: ^$
+    return_code: 0
+

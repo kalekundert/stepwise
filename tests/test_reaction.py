@@ -4,7 +4,7 @@ import pytest, re
 from io import StringIO
 from stepwise import MasterMix, Reaction, Reagent, Solvent, Quantity, Q
 from stepwise import UsageError
-from utils import parametrize, parametrize_via_toml
+from param_helpers import *
 
 wx = '8 µL', {
         'w': ('5 µL',  ..., True),
@@ -979,7 +979,7 @@ def test_reaction_from_text_catalog_num():
     assert rxn['x'].catalog_num == '101'
 
 @parametrize('solvent', ['water', 'acceptor', 'donor'])
-@parametrize_via_toml('test_reaction.toml')
+@parametrize_from_file(schema=Schema({str: Coerce(int)}))
 def test_fix_volumes(solvent, donor_before, acceptor_before, donor_after, acceptor_after):
     rxn = Reaction()
     rxn.solvent = solvent

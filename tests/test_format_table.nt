@@ -1,0 +1,470 @@
+test_tabulate:
+  -
+    id: empty
+    rows: []
+    expected:
+
+  -
+    id: 1x1
+    rows: [['A']]
+    expected:
+      > A
+
+  -
+    id: 2x1
+    rows: [['A', 'B']]
+    expected:
+      > A  B
+
+  -
+    id: 1x2
+    rows: [['A'], ['B']]
+    expected:
+      > A
+      > B
+
+  -
+    id: 2x2
+    rows: [['AB', 'C'], ['D', 'EF']]
+    expected:
+      > AB  C
+      > D   EF
+
+  -
+    id: header
+    header: ['1', '2']
+    rows: [['AB', 'C'], ['D', 'EF']]
+    expected:
+      > 1   2
+      > ──────
+      > AB  C
+      > D   EF
+
+  -
+    id: footer
+    rows: [['AB', 'C'], ['D', 'EF']]
+    footer: ['X', 'Y']
+    expected:
+      > AB  C
+      > D   EF
+      > ──────
+      > X   Y
+
+  -
+    id: header-footer
+    header: ['1', '2']
+    rows: [['AB', 'C'], ['D', 'EF']]
+    footer: ['X', 'Y']
+    expected:
+      > 1   2
+      > ──────
+      > AB  C
+      > D   EF
+      > ──────
+      > X   Y
+
+  -
+    id: align-1
+    header: ['1', '2']
+    rows: [['AB', 'C'], ['D', 'EF']]
+    footer: ['X', 'Y']
+    align: '<>'
+    expected:
+      > 1    2
+      > ──────
+      > AB   C
+      > D   EF
+      > ──────
+      > X    Y
+
+  -
+    id: align-2
+    header: ['1', '2']
+    rows: [['AB', 'C'], ['D', 'EF']]
+    footer: ['X', 'Y']
+    align: '><'
+    expected:
+      >  1  2
+      > ──────
+      > AB  C
+      >  D  EF
+      > ──────
+      >  X  Y
+
+  -
+    id: auto-align-int-1
+    rows: [['AB', '1'], ['D', '10']]
+    expected:
+      > AB   1
+      > D   10
+
+  -
+    id: auto-align-int-2
+    rows: [['1', 'C'], ['10', 'EF']]
+    expected:
+      >  1  C
+      > 10  EF
+
+  -
+    id: auto-align-unit-1
+    rows: [['AB', '1 µL'], ['D', '10 µL']]
+    expected:
+      > AB   1 µL
+      > D   10 µL
+
+  -
+    id: auto-align-unit-2
+    rows: [['1 µL', 'C'], ['10 µL', 'EF']]
+    expected:
+      >  1 µL  C
+      > 10 µL  EF
+
+  -
+    id: split-header
+    header: ["1\n2", "3"]
+    rows: [["AB", "C"], ["D", "EF"]]
+    expected:
+      > 1
+      > 2   3
+      > ──────
+      > AB  C
+      > D   EF
+
+  -
+    id: split-row
+    rows: [["A\nB", "C"], ["D", "EF"]]
+    expected:
+      > A  C
+      > B
+      > D  EF
+
+  -
+    id: format
+    # The header makes sure that the alignment takes the formatting into 
+    # account.
+    header: ['A', 'B']
+    rows: [[10, 10]]
+    format: [lambda x: f'{x:.2f}', str]
+    expected:
+      >     A   B
+      > ─────────
+      > 10.00  10
+
+  -
+    id: truncate-1
+    header: ['1', '2']
+    rows: [['A B', 'C D']]
+    truncate: '-x'
+    max_width: 7
+    expected:
+      > 1    2
+      > ───────
+      > A B  C…
+
+  -
+    id: truncate-2
+    header: ['1', '2']
+    rows: [['A B', 'C D']]
+    truncate: 'x-'
+    max_width: 7
+    expected:
+      > 1   2
+      > ───────
+      > A…  C D
+
+test_concat_rows:
+  -
+    header: []
+    rows: []
+    footer: []
+    format: None
+    expected: []
+    i_header: 0
+    i_footer: 0
+  -
+    header: ['A', 'B']
+    rows: []
+    footer: []
+    format: None
+    expected: [['A', 'B']]
+    i_header: 1
+    i_footer: 1
+  -
+    header: True
+    rows: [['A', 'B']]
+    footer: []
+    format: None
+    expected: [['A', 'B']]
+    i_header: 1
+    i_footer: 1
+  -
+    header: []
+    rows: [['C', 'D']]
+    footer: []
+    format: None
+    expected: [['C', 'D']]
+    i_header: 0
+    i_footer: 1
+  -
+    header: []
+    rows: [['C', 'D'], ['E', 'F']]
+    footer: []
+    format: None
+    expected: [['C', 'D'], ['E', 'F']]
+    i_header: 0
+    i_footer: 2
+  -
+    header: []
+    rows: []
+    footer: ['G', 'H']
+    format: None
+    expected: [['G', 'H']]
+    i_header: 0
+    i_footer: 0
+  -
+    header: []
+    rows: [['G', 'H']]
+    footer: True
+    format: None
+    expected: [['G', 'H']]
+    i_header: 0
+    i_footer: 0
+  -
+    header: ['A', 'B']
+    rows: [['C', 'D'], ['E', 'F']]
+    footer: ['G', 'H']
+    format: None
+    expected: [['A', 'B'], ['C', 'D'], ['E', 'F'], ['G', 'H']]
+    i_header: 1
+    i_footer: 3
+  -
+    header: []
+    rows: [[10, 10]]
+    footer: []
+    format: None
+    expected: [['10', '10']]
+    i_header: 0
+    i_footer: 1
+  -
+    header: []
+    rows: [[10, 10]]
+    footer: []
+    format: [str, lambda x: f'{x:.2f}']
+    expected: [['10', '10.00']]
+    i_header: 0
+    i_footer: 1
+
+test_concat_rows_err:
+  -
+    header: []
+    rows: [[10, 10]]
+    footer: []
+    format: [str]
+    err: given 1 formatter, expected 2
+  -
+    header: []
+    rows: [[10]]
+    footer: []
+    format: [str, str]
+    err: given 2 formatters, expected 1
+
+test_split_row:
+  -
+    row: []
+    align: 'top'
+    expected: []
+  -
+    row: ['A']
+    align: 'top'
+    expected: [['A']]
+  -
+    row: ['A', 'B']
+    align: 'top'
+    expected: [['A', 'B']]
+  -
+    row: ['A\nB', 'C\nD']
+    align: 'top'
+    expected: [['A', 'C'], ['B', 'D']]
+  -
+    row: ['A', 'C\nD']
+    align: 'top'
+    expected: [['A', 'C'], ['', 'D']]
+  -
+    row: ['A\nB', 'C']
+    align: 'top'
+    expected: [['A', 'C'], ['B', '']]
+  -
+    row: ['A', 'C\nD']
+    align: 'bottom'
+    expected: [['', 'C'], ['A', 'D']]
+  -
+    row: ['A\nB', 'C']
+    align: 'bottom'
+    expected: [['A', ''], ['B', 'C']]
+
+test_auto_align:
+  -
+    rows: []
+    expected: []
+  -
+    rows: [['A']]
+    expected: ['<']
+  -
+    rows: [['1e5']]
+    expected: ['>']
+  -
+    rows: [['A'], ['1e5']]
+    expected: ['<']
+  -
+    rows: [['A', '1e5']]
+    expected: ['<', '>']
+
+test_measure_cols:
+  -
+    table: []
+    truncate: ''
+    max_width: -1
+    pad: 2
+    expected:
+      cols: []
+      table: 0
+  -
+    table: [['A']]
+    truncate: '-'
+    max_width: -1
+    pad: 2
+    expected:
+      cols: [1]
+      table: 1
+  -
+    table: [['A'], ['AB']]
+    truncate: '-'
+    max_width: -1
+    pad: 2
+    expected:
+      cols: [2]
+      table: 2
+  -
+    table: [['AB'], ['A']]
+    truncate: '-'
+    max_width: -1
+    pad: 2
+    expected:
+      cols: [2]
+      table: 2
+  -
+    table: [['A', 'AB']]
+    truncate: '--'
+    max_width: -1
+    pad: 2
+    expected:
+      cols: [1,2]
+      table: 5
+  -
+    table: [['123456']]
+    truncate: '-'
+    max_width: 5
+    pad: 2
+    expected:
+      cols: [6]
+      table: 6
+  -
+    table: [['123456']]
+    truncate: 'x'
+    max_width: 5
+    pad: 2
+    expected:
+      cols: [5]
+      table: 5
+  -
+    table: [['12', '34']]
+    truncate: '--'
+    max_width: 5
+    pad: 2
+    expected:
+      cols: [2, 2]
+      table: 6
+  -
+    table: [['12', '34']]
+    truncate: 'x-'
+    max_width: 5
+    pad: 2
+    expected:
+      cols: [1, 2]
+      table: 5
+  -
+    table: [['12', '34']]
+    truncate: '-x'
+    max_width: 5
+    pad: 2
+    expected:
+      cols: [2, 1]
+      table: 5
+  -
+    table: [['12', '34']]
+    truncate: 'xx'
+    max_width: 4
+    pad: 2
+    expected:
+      cols: [1, 1]
+      table: 4
+  -
+    table: [['12', '345']]
+    truncate: 'xx'
+    max_width: 6
+    pad: 2
+    expected:
+      cols: [2, 2]
+      table: 6
+  -
+    table: [['12', '3456789']]
+    truncate: 'xx'
+    max_width: 6
+    pad: 2
+    expected:
+      cols: [2, 2]
+      table: 6
+
+test_measure_cols_err:
+  -
+    table: [['A']]
+    truncate: '--'
+    max_width: -1
+    pad: 2
+    err: table has 1 column, but truncation specified for 2: '--'
+
+  -
+    table: [['A', 'B']]
+    truncate: '-'
+    max_width: -1
+    pad: 2
+    err: table has 2 columns, but truncation specified for 1: '-'
+
+test_count_cols:
+  -
+    table: []
+    expected: 0
+  -
+    table: [[1]]
+    expected: 1
+  -
+    table: [[1], [1]]
+    expected: 1
+  -
+    table: [[1, 2]]
+    expected: 2
+  -
+    table: [[1, 2], [1, 2]]
+    expected: 2
+
+test_count_cols_err:
+  -
+    id: 2,1
+    table: [[1, 2], [1]]
+    err: different numbers of columns: 1,2
+
+  -
+    id: 1,2
+    table: [[1], [1, 2]]
+    err: different numbers of columns: 1,2
+

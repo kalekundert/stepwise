@@ -1,0 +1,2254 @@
+test_format_text:
+  -
+    id: str-empty
+    obj: ''
+    width: 5
+    expected:
+  -
+    id: str-wrap-1
+    obj: 'a b c'
+    width: 1
+    expected:
+      > a
+      > b
+      > c
+  -
+    id: str-wrap-2
+    obj: 'a b c'
+    width: 2
+    expected:
+      > a
+      > b
+      > c
+  -
+    id: str-wrap-3
+    obj: 'a b c'
+    width: 3
+    expected:
+      > a b
+      > c
+  -
+    id: str-wrap-4
+    obj: 'a b c'
+    width: 4
+    expected:
+      > a b
+      > c
+  -
+    id: str-wrap-5
+    obj: 'a b c'
+    width: 5
+    expected:
+      > a b c
+  -
+    id: str-wrap-inf
+    obj: 'a b c'
+    width: inf
+    expected:
+      > a b c
+  -
+    id: str-trailing-space
+    # This tests two things:
+    # - All trailing spaces are trimmed, so that lines don't get wrapped 
+    #   unnecessarily in the terminal.
+    # - Lines with trailing spaces are don't get an extra space when joined with 
+    #   the line below.  This is the default behavior of textwrap, so we have to 
+    #   work around it.
+    obj: 'a \nb \nc'
+    width: 3
+    expected:
+      > a b
+      > c
+  -
+    id: str-trailing-space
+    obj: 'a \nb \nc'
+    width: 5
+    expected:
+      > a b c
+  -
+    id: str-leading-space
+    obj: ' a\n b\n c'
+    width: 3
+    expected:
+      > a b
+      > c
+  -
+    id: str-leading-space
+    obj: ' a\n b\n c'
+    width: 5
+    expected:
+      > a b c
+  -
+    id: str-initial-indent
+    obj: 'a b c'
+    width: 3
+    kwargs:
+      initial_indent: '> '
+    expected:
+      > > a
+      > b c
+  -
+    id: str-subsequent-indent
+    obj: 'a b c'
+    width: 3
+    kwargs:
+      subsequent_indent: '> '
+    expected:
+      > a b
+      > > c
+  -
+    id: str-truncate-width
+    obj: 'a'
+    width: 1
+    kwargs:
+      truncate_width: 1
+    expected:
+      > a
+  -
+    id: str-no-wrap-references
+    obj: '[1]'
+    width: 1
+    expected:
+      > [1]
+
+  -
+    id: pl-items-0
+    obj: pl()
+    width: inf
+    expected:
+  -
+    id: pl-items-1
+    obj: pl('a')
+    width: inf
+    expected:
+      > a
+  -
+    id: pl-items-2
+    obj: pl('a', 'b')
+    width: inf
+    expected:
+      > a
+      >
+      > b
+  -
+    id: pl-items-falsy
+    obj: pl('a', '')
+    width: 3
+    expected:
+      > a
+  -
+    id: pl-items-falsy
+    obj: pl('a', None)
+    width: 3
+    expected:
+      > a
+  -
+    id: pl-items-falsy
+    obj: pl('a', pl())
+    width: 3
+    expected:
+      > a
+  -
+    id: pl-wrap-1
+    obj: pl('a b c', 'd e f')
+    width: 1
+    expected:
+      > a
+      > b
+      > c
+      >
+      > d
+      > e
+      > f
+  -
+    id: pl-wrap-2
+    obj: pl('a b c', 'd e f')
+    width: 2
+    expected:
+      > a
+      > b
+      > c
+      >
+      > d
+      > e
+      > f
+  -
+    id: pl-wrap-3
+    obj: pl('a b c', 'd e f')
+    width: 3
+    expected:
+      > a b
+      > c
+      >
+      > d e
+      > f
+  -
+    id: pl-wrap-4
+    obj: pl('a b c', 'd e f')
+    width: 4
+    expected:
+      > a b
+      > c
+      >
+      > d e
+      > f
+  -
+    id: pl-wrap-5
+    obj: pl('a b c', 'd e f')
+    width: 5
+    expected:
+      > a b c
+      >
+      > d e f
+  -
+    id: pl-wrap-inf
+    obj: pl('a b c', 'd e f')
+    width: inf
+    expected:
+      > a b c
+      >
+      > d e f
+  -
+    id: pl-args-br
+    obj: pl('a', 'b', br='\n')
+    width: inf
+    expected:
+      > a
+      > b
+  -
+    id: pl-nested-pl
+    obj: pl('a', pl('b', 'c'))
+    width: inf
+    expected:
+      > a
+      >
+      > b
+      >
+      > c
+  -
+    id: pl-nested-ul
+    obj: pl('a', ul('b', 'c'))
+    width: inf
+    expected:
+      > a
+      >
+      > - b
+      > - c
+  -
+    id: pl-nested-ol
+    obj: pl('a', ol('b', 'c'))
+    width: inf
+    expected:
+      > a
+      >
+      > 1. b
+      >
+      > 2. c
+  -
+    id: pl-nested-dl
+    obj: pl('a', dl(('b', 'c'), ('d', 'e')))
+    width: inf
+    expected:
+      > a
+      >
+      > b: c
+      > d: e
+  -
+    id: pl-nested-table
+    obj: pl('a', table([['b', 'c'], ['d', 'e']]))
+    width: inf
+    expected:
+      > a
+      >
+      > b  c
+      > d  e
+  -
+    id: pl-nested-pre
+    obj: pl('a b c', pre('d e f'))
+    width: 3
+    expected:
+      > a b
+      > c
+      >
+      > d e f
+  -
+    id: pl-initial-indent
+    obj: pl('a b', 'c d')
+    width: inf
+    kwargs:
+      initial_indent: '>'
+      subsequent_indent: ''
+    expected:
+      > >a b
+      >
+      > c d
+  -
+    id: pl-subsequent-indent
+    obj: pl('a b', 'c d')
+    width: inf
+    kwargs:
+      initial_indent: ''
+      subsequent_indent: '>'
+    expected:
+      > a b
+      >
+      > >c d
+  -
+    id: pl-uniform-indent
+    obj: pl('a b', 'c d')
+    width: inf
+    kwargs:
+      initial_indent: '>'
+      subsequent_indent: '>'
+    expected:
+      > >a b
+      >
+      > >c d
+
+  -
+    id: ul-items-0
+    obj: ul()
+    width: inf
+    expected:
+  -
+    id: ul-items-1
+    obj: ul('a')
+    width: inf
+    expected:
+      > - a
+  -
+    id: ul-items-2
+    obj: ul('a', 'b')
+    width: inf
+    expected:
+      > - a
+      > - b
+  -
+    id: ul-items-falsy
+    obj: ul('a', '')
+    width: inf
+    expected:
+      > - a
+  -
+    id: ul-items-falsy
+    obj: ul('a', None)
+    width: inf
+    expected:
+      > - a
+  -
+    id: ul-items-falsy
+    obj: ul('a', pl())
+    width: inf
+    expected:
+      > - a
+  -
+    id: ul-wrap-1
+    obj: ul('a b c')
+    width: 1
+    expected:
+      > - a
+      >   b
+      >   c
+  -
+    id: ul-wrap-3
+    obj: ul('a b c')
+    width: 3
+    expected:
+      > - a
+      >   b
+      >   c
+  -
+    id: ul-wrap-4
+    obj: ul('a b c')
+    width: 4
+    expected:
+      > - a
+      >   b
+      >   c
+  -
+    id: ul-wrap-5
+    obj: ul('a b c')
+    width: 5
+    expected:
+      > - a b
+      >   c
+  -
+    id: ul-wrap-6
+    obj: ul('a b c')
+    width: 6
+    expected:
+      > - a b
+      >   c
+  -
+    id: ul-wrap-7
+    obj: ul('a b c')
+    width: 7
+    expected:
+      > - a b c
+  -
+    id: ul-wrap-inf
+    obj: ul('a b c')
+    width: inf
+    expected:
+      > - a b c
+  -
+    id: ul-args-br
+    obj: ul('a', 'b', br='\n\n')
+    width: inf
+    expected:
+      > - a
+      >
+      > - b
+  -
+    id: ul-args-prefix
+    obj: ul('a', 'b', prefix='[ ] ')
+    width: inf
+    expected:
+      > [ ] a
+      > [ ] b
+  -
+    id: ul-nested-pl
+    obj: ul('a', pl('b', 'c'))
+    width: inf
+    expected:
+      > - a
+      > - b
+      >
+      >   c
+  -
+    id: ul-nested-ul
+    obj: ul('a', ul('b', 'c'))
+    width: inf
+    expected:
+      > - a
+      > - - b
+      >   - c
+  -
+    id: ul-nested-ol
+    obj: ul('a', ol('b', 'c'))
+    width: inf
+    expected:
+      > - a
+      > - 1. b
+      >
+      >   2. c
+  -
+    id: ul-nested-dl
+    obj: ul('a', dl(('b', 'c'), ('d', 'e')))
+    width: inf
+    expected:
+     > - a
+     > - b: c
+     >   d: e
+  -
+    id: ul-nested-table
+    obj: ul('a', table([['b', 'c'], ['d', 'e']]))
+    width: inf
+    expected:
+     > - a
+     > - b  c
+     >   d  e
+  -
+    id: ul-nested-pre
+    obj: ul('a b c', pre('d e f'))
+    width: 5
+    expected:
+     > - a b
+     >   c
+     > - d e f
+  -
+    id: ul-initial-indent
+    obj: ul('a', 'b')
+    width: inf
+    kwargs:
+      initial_indent: '>'
+      subsequent_indent: ''
+    expected:
+     > >
+     > - a
+     > - b
+  -
+    id: ul-subsequent-indent
+    obj: ul('a', 'b')
+    width: inf
+    kwargs:
+      initial_indent: ''
+      subsequent_indent: '>'
+    expected:
+      >  - a
+      > >- b
+  -
+    id: ul-uniform-indent
+    obj: ul('a', 'b')
+    width: inf
+    kwargs:
+      initial_indent: '>'
+      subsequent_indent: '>'
+    expected:
+      > >- a
+      > >- b
+
+  -
+    id: ol-items-0
+    obj: ol()
+    width: inf
+    expected:
+  -
+    id: ol-items-1
+    obj: ol('a')
+    width: inf
+    expected:
+      > 1. a
+  -
+    id: ol-items-2
+    obj: ol('a', 'b')
+    width: inf
+    expected:
+      > 1. a
+      >
+      > 2. b
+  -
+    id: ol-items-falsy
+    obj: ol('a', '')
+    width: inf
+    expected:
+      > 1. a
+  -
+    id: ol-items-falsy
+    obj: ol('a', None)
+    width: inf
+    expected:
+      > 1. a
+  -
+    id: ol-items-falsy
+    obj: ol('a', ol())
+    width: inf
+    expected:
+      > 1. a
+  -
+    id: ol-wrap-1
+    obj: ol('a b c')
+    width: 1
+    expected:
+      > 1. a
+      >    b
+      >    c
+  -
+    id: ol-wrap-4
+    obj: ol('a b c')
+    width: 4
+    expected:
+      > 1. a
+      >    b
+      >    c
+  -
+    id: ol-wrap-5
+    obj: ol('a b c')
+    width: 5
+    expected:
+      > 1. a
+      >    b
+      >    c
+  -
+    id: ol-wrap-6
+    obj: ol('a b c')
+    width: 6
+    expected:
+      > 1. a b
+      >    c
+  -
+    id: ol-wrap-7
+    obj: ol('a b c')
+    width: 7
+    expected:
+      > 1. a b
+      >    c
+  -
+    id: ol-wrap-8
+    obj: ol('a b c')
+    width: 8
+    expected:
+      > 1. a b c
+  -
+    id: ol-wrap-inf
+    obj: ol('a b c')
+    width: inf
+    expected:
+      > 1. a b c
+  -
+    id: ol-args-br
+    obj: ol('a', 'b', br='\n')
+    width: inf
+    expected:
+      > 1. a
+      > 2. b
+  -
+    id: ol-args-prefix
+    obj: ol('a', 'b', prefix='[{}] ')
+    width: inf
+    expected:
+      > [1] a
+      >
+      > [2] b
+  -
+    id: ol-args-start
+    obj: ol('a', 'b', start=9)
+    width: inf
+    expected:
+      >  9. a
+      >
+      > 10. b
+  -
+    id: ol-args-indices
+    obj: ol('a', 'b', indices=[10, 9])
+    width: inf
+    expected:
+      > 10. a
+      >
+      >  9. b
+  -
+    id: ol-nested-pl
+    obj: ol('a', pl('b', 'c'))
+    width: inf
+    expected:
+      > 1. a
+      >
+      > 2. b
+      >
+      >    c
+  -
+    id: ol-nested-ul
+    obj: ol('a', ul('b', 'c'))
+    width: inf
+    expected:
+      > 1. a
+      >
+      > 2. - b
+      >    - c
+  -
+    id: ol-nested-ol
+    obj: ol('a', ol('b', 'c'))
+    width: inf
+    expected:
+      > 1. a
+      >
+      > 2. 1. b
+      >
+      >    2. c
+  -
+    id: ol-nested-dl
+    obj: ol('a', dl(('b', 'c'), ('d', 'e')))
+    width: inf
+    expected:
+      > 1. a
+      >
+      > 2. b: c
+      >    d: e
+  -
+    id: ol-nested-table
+    obj: ol('a', table([['b', 'c'], ['d', 'e']]))
+    width: inf
+    expected:
+      > 1. a
+      >
+      > 2. b  c
+      >    d  e
+  -
+    id: ol-nested-pre
+    obj: ol('a b c', pre('d e f'))
+    width: 6
+    expected:
+      > 1. a b
+      >    c
+      >
+      > 2. d e f
+  -
+    id: ol-initial-indent
+    obj: ol('a', 'b')
+    width: inf
+    kwargs:
+      initial_indent: '>'
+      subsequent_indent: ''
+    expected:
+      > >
+      > 1. a
+      >
+      > 2. b
+  -
+    id: ol-subsequent-indent
+    obj: ol('a', 'b')
+    width: inf
+    kwargs:
+      initial_indent: ''
+      subsequent_indent: '>'
+    expected:
+      >  1. a
+      >
+      > >2. b
+  -
+    id: ol-uniform-indent
+    obj: ol('a', 'b')
+    width: inf
+    kwargs:
+      initial_indent: '>'
+      subsequent_indent: '>'
+    expected:
+      > >1. a
+      >
+      > >2. b
+
+  -
+    id: dl-items-0
+    obj: dl()
+    width: inf
+    expected:
+  -
+    id: dl-items-1
+    obj: dl(('a', 'b'))
+    width: inf
+    expected:
+      > a: b
+  -
+    id: dl-items-2
+    obj: dl(('a', 'b'), ('c', 'd'))
+    width: inf
+    expected:
+      > a: b
+      > c: d
+  -
+    id: dl-items-falsy
+    obj: dl(('a', 'b'), ('c', ''))
+    width: inf
+    expected:
+      > a: b
+  -
+    id: dl-items-falsy
+    obj: dl(('a', 'b'), ('c', None))
+    width: inf
+    expected:
+      > a: b
+  -
+    id: dl-items-falsy
+    obj: dl(('a', 'b'), ('c', dl()))
+    width: inf
+    expected:
+      > a: b
+  -
+    id: dl-items-falsy-trailing
+    obj: dl(('a', None), ('b', 'c'))
+    width: inf
+    expected:
+      > b: c
+  -
+    id: dl-wrap-1
+    obj: dl(('a b', 'c d e'))
+    width: 1
+    # I think the 'c' should be wrapped, but that's not how textwrap works.
+    expected:
+      > a b: c
+      >   d
+      >   e
+  -
+    id: dl-wrap-6
+    obj: dl(('a b', 'c d e'))
+    width: 6
+    expected:
+      > a b: c
+      >   d e
+  -
+    id: dl-wrap-7
+    obj: dl(('a b', 'c d e'))
+    width: 7
+    expected:
+      > a b: c
+      >   d e
+  -
+    id: dl-wrap-8
+    obj: dl(('a b', 'c d e'))
+    width: 8
+    expected:
+      > a b: c d
+      >   e
+  -
+    id: dl-wrap-9
+    obj: dl(('a b', 'c d e'))
+    width: 9
+    expected:
+      > a b: c d
+      >   e
+  -
+    id: dl-wrap-10
+    obj: dl(('a b', 'c d e'))
+    width: 10
+    expected:
+      > a b: c d e
+  -
+    id: dl-wrap-inf
+    obj: dl(('a b', 'c d e'))
+    width: inf
+    expected:
+      > a b: c d e
+  -
+    id: dl-args-br
+    obj: dl(('a', 'b'), ('c', 'd'), br='\n\n')
+    width: inf
+    expected:
+      > a: b
+      >
+      > c: d
+  -
+    id: dl-args-prefix
+    obj: dl(('a', 'b'), ('c', 'd'), prefix='{} => ')
+    width: inf
+    expected:
+      > a => b
+      > c => d
+  -
+    id: dl-args-prefix
+    obj: dl(('a', 'b'), ('c', 'd'), prefix='{}:\n')
+    width: inf
+    expected:
+      > a:
+      >   b
+      > c:
+      >   d
+  -
+    id: dl-args-indent
+    obj: dl(('a', 'b c'), ('d', 'e f g h i'), indent='~')
+    width: 4
+    expected:
+      > a: b
+      > ~c
+      > d: e
+      > ~f g
+      > ~h i
+  -
+    id: dl-nested-pl
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', pl('d e f g', 'h i j k')),
+      > )
+    width: 6
+    # Note that paragraphs don't need to be aligned.
+    expected:
+      > a: b
+      > c: d e
+      >   f g
+      >
+      >   h i
+      >   j k
+  -
+    id: dl-nested-ul
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', ul('d', 'e')),
+      > )
+    width: inf
+    expected:
+      > a: b
+      > c: 
+      >   - d
+      >   - e
+  -
+    id: dl-nested-ul
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', ul('d', 'e')),
+      >   indent=3*' ',
+      > )
+    width: inf
+    expected:
+      > a: b
+      > c: - d
+      >    - e
+  -
+    id: dl-nested-ul
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', ul('d', 'e')),
+      >   prefix='{}:\n',
+      >   indent=3*' ',
+      > )
+    width: inf
+    expected:
+      > a:
+      >    b
+      > c:
+      >    - d
+      >    - e
+  -
+    id: dl-nested-ol
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', ol('d', 'e')),
+      > )
+    width: inf
+    expected:
+      > a: b
+      > c: 
+      >   1. d
+      >
+      >   2. e
+  -
+    id: dl-nested-ol
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', ol('d', 'e')),
+      >   indent=3*' ',
+      > )
+    width: inf
+    expected:
+      > a: b
+      > c: 1. d
+      >
+      >    2. e
+  -
+    id: dl-nested-ol
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', ol('d', 'e')),
+      >   prefix='{}:\n',
+      >   indent=3*' ',
+      > )
+    width: inf
+    expected:
+      > a:
+      >    b
+      > c:
+      >    1. d
+      >
+      >    2. e
+  -
+    id: dl-nested-dl
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', dl(('d', 'e'), ('f', 'g'))),
+      > )
+    width: inf
+    expected:
+      > a: b
+      > c: 
+      >   d: e
+      >   f: g
+  -
+    id: dl-nested-dl
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', dl(('d', 'e'), ('f', 'g'))),
+      >   indent=3*' ',
+      > )
+    width: inf
+    expected:
+      > a: b
+      > c: d: e
+      >    f: g
+  -
+    id: dl-nested-dl
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', dl(('d', 'e'), ('f', 'g'))),
+      >   prefix='{}:\n',
+      >   indent=3*' ',
+      > )
+    width: inf
+    expected:
+      > a:
+      >    b
+      > c:
+      >    d: e
+      >    f: g
+  -
+    id: dl-nested-table
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', table([['d', 'e'], ['f', 'g']])),
+      > )
+    width: inf
+    expected:
+      > a: b
+      > c: 
+      >   d  e
+      >   f  g
+  -
+    id: dl-nested-table
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', table([['d', 'e'], ['f', 'g']])),
+      >   indent=3*' ',
+      > )
+    width: inf
+    expected:
+      > a: b
+      > c: d  e
+      >    f  g
+  -
+    id: dl-nested-table
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', table([['d', 'e'], ['f', 'g']])),
+      >   prefix='{}:\n',
+      >   indent=3*' ',
+      > )
+    width: inf
+    expected:
+      > a:
+      >    b
+      > c:
+      >    d  e
+      >    f  g
+  -
+    id: dl-nested-pre
+    obj:
+      > dl(
+      >   ('a', 'b c'),
+      >   ('d', pre('e f')),
+      > )
+    width: 4
+    expected:
+      > a: b
+      >   c
+      > d: e f
+  -
+    id: dl-nested-pre
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', pre('d\ne')),
+      > )
+    width: inf
+    expected:
+      > a: b
+      > c: 
+      >   d
+      >   e
+  -
+    id: dl-nested-pre
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', pre('d\ne')),
+      >   indent=3*' ',
+      > )
+    width: inf
+    expected:
+      > a: b
+      > c: d
+      >    e
+  -
+    id: dl-nested-pre
+    obj:
+      > dl(
+      >   ('a', 'b'),
+      >   ('c', pre('d\ne')),
+      >   prefix='{}:\n',
+      >   indent=3*' ',
+      > )
+    width: inf
+    expected:
+      > a:
+      >    b
+      > c:
+      >    d
+      >    e
+  -
+    id: dl-initial-indent
+    obj: dl(('a', 'b'), ('c', 'd'))
+    width: inf
+    kwargs:
+      initial_indent: '>'
+      subsequent_indent: ''
+    expected:
+      > >
+      > a: b
+      > c: d
+  -
+    id: dl-subsequent-indent
+    obj: dl(('a', 'b'), ('c', 'd'))
+    width: inf
+    kwargs:
+      initial_indent: ''
+      subsequent_indent: '>'
+    expected:
+      >  a: b
+      > >c: d
+  -
+    id: dl-uniform-indent
+    obj: dl(('a', 'b'), ('c', 'd'))
+    width: inf
+    kwargs:
+      initial_indent: '>'
+      subsequent_indent: '>'
+    expected:
+      > >a: b
+      > >c: d
+
+  -
+    id: table-empty
+    obj: table([[]])
+    width: inf
+    expected:
+  -
+    id: table-rows-1
+    obj: table([['a', 'b']])
+    width: inf
+    expected:
+      > a  b
+  -
+    id: table-rows-2
+    obj: table([['a', 'b'], ['c', 'd']])
+    width: inf
+    expected:
+      > a  b
+      > c  d
+  -
+    id: table-args-header
+    obj:
+      > table(
+      >   [['c', 'd'], ['e', 'f']],
+      >   header=['a', 'b'],
+      > )
+    width: inf
+    expected:
+      > a  b
+      > ────
+      > c  d
+      > e  f
+  -
+    id: table-args-footer
+    obj:
+      > table(
+      >   [['a', 'b'], ['c', 'd']],
+      >   footer=['e', 'f'],
+      > )
+    width: inf
+    expected:
+      > a  b
+      > c  d
+      > ────
+      > e  f
+  -
+    id: table-initial-indent
+    obj: table([['a', 'b'], ['c', 'd']])
+    width: inf
+    kwargs:
+      initial_indent: '>'
+      subsequent_indent: ''
+    expected:
+      > >
+      > a  b
+      > c  d
+  -
+    id: table-subsequent-indent
+    obj: table([['a', 'b'], ['c', 'd']])
+    width: inf
+    kwargs:
+      initial_indent: ''
+      subsequent_indent: '>'
+    expected:
+      >  a  b
+      > >c  d
+  -
+    id: table-uniform-indent
+    obj: table([['a', 'b'], ['c', 'd']])
+    width: inf
+    kwargs:
+      initial_indent: '>'
+      subsequent_indent: '>'
+    expected:
+      > >a  b
+      > >c  d
+
+  -
+    id: pre-empty
+    obj: pre("")
+    width: 1
+    expected:
+  -
+    id: pre-char
+    obj: pre("a")
+    width: 1
+    expected:
+      > a
+  -
+    id: pre-space
+    obj: pre("a b")
+    width: 1
+    expected:
+      > a b
+  -
+    id: pre-newline
+    obj: pre("a\nb")
+    width: 1
+    expected:
+      > a
+      > b
+  -
+    id: pre-space-newline
+    obj: pre("a b\nc d")
+    width: 1
+    expected:
+      > a b
+      > c d
+  -
+    id: pre-initial-indent
+    obj: pre('a\nb')
+    width: inf
+    kwargs:
+      initial_indent: '>'
+      subsequent_indent: ''
+    expected:
+      > >
+      > a
+      > b
+  -
+    id: pre-subsequent-indent
+    obj: pre('a\nb')
+    width: inf
+    kwargs:
+      initial_indent: ''
+      subsequent_indent: '>'
+    expected:
+      >  a
+      > >b
+  -
+    id: pre-uniform-indent
+    obj: pre('a\nb')
+    width: inf
+    kwargs:
+      initial_indent: '>'
+      subsequent_indent: '>'
+    expected:
+      > >a
+      > >b
+
+test_replace_text:
+  -
+    id: str-empty
+    obj: ''
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ''
+    n: 0
+  -
+    id: str-sub-0
+    obj: 'a'
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: 'a'
+    n: 0
+  -
+    id: str-sub-1
+    obj: '[1]'
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: '[2]'
+    n: 1
+  -
+    id: str-sub-2
+    obj: '[1] [1]'
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: '[2] [2]'
+    n: 2
+  -
+    id: str-count-1
+    obj: '[1] [1]'
+    pattern: r'\d'
+    repl: '2'
+    count: 1
+    expected: '[2] [1]'
+    n: 1
+  -
+    id: str-count-2
+    obj: '[1] [1]'
+    pattern: r'\d'
+    repl: '2'
+    count: 2
+    expected: '[2] [2]'
+    n: 2
+  -
+    id: str-count-3
+    obj: '[1] [1]'
+    pattern: r'\d'
+    repl: '2'
+    count: 3
+    expected: '[2] [2]'
+    n: 2
+
+  -
+    id: pl-empty
+    obj: pl()
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: pl()
+    n: 0
+  -
+    id: pl-falsy
+    obj: pl('')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: pl('')
+    n: 0
+  -
+    id: pl-falsy
+    obj: pl(None)
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: pl(None)
+    n: 0
+  -
+    id: pl-falsy
+    obj: pl(pl())
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: pl(pl())
+    n: 0
+  -
+    id: pl-sub-0
+    obj: pl('a')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: pl('a')
+    n: 0
+  -
+    id: pl-sub-1
+    obj: pl('[1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: pl('[2]')
+    n: 1
+  -
+    id: pl-sub-2
+    obj: pl('[1]', '[1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: pl('[2]', '[2]')
+    n: 2
+  -
+    id: pl-count-1
+    obj: pl('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 1
+    expected: pl('[2] [1]', '[1] [1]')
+    n: 1
+  -
+    id: pl-count-2
+    obj: pl('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 2
+    expected: pl('[2] [2]', '[1] [1]')
+    n: 2
+  -
+    id: pl-count-3
+    obj: pl('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 3
+    expected: pl('[2] [2]', '[2] [1]')
+    n: 3
+  -
+    id: pl-count-4
+    obj: pl('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 4
+    expected: pl('[2] [2]', '[2] [2]')
+    n: 4
+  -
+    id: pl-count-5
+    obj: pl('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 5
+    expected: pl('[2] [2]', '[2] [2]')
+    n: 4
+  -
+    id: pl-nested
+    obj: pl(pl('[1]'))
+    pattern: r'\d'
+    repl: '2'
+    count: 1
+    expected: pl(pl('[2]'))
+    n: 1
+
+  -
+    id: ul-empty
+    obj: ul()
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ul()
+    n: 0
+  -
+    id: ul-falsy
+    obj: ul('')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ul('')
+    n: 0
+  -
+    id: ul-falsy
+    obj: ul(None)
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ul(None)
+    n: 0
+  -
+    id: ul-falsy
+    obj: ul(ul())
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ul(ul())
+    n: 0
+  -
+    id: ul-sub-0
+    obj: ul('a')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ul('a')
+    n: 0
+  -
+    id: ul-sub-1
+    obj: ul('[1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ul('[2]')
+    n: 1
+  -
+    id: ul-sub-2
+    obj: ul('[1]', '[1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ul('[2]', '[2]')
+    n: 2
+  -
+    id: ul-count-1
+    obj: ul('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 1
+    expected: ul('[2] [1]', '[1] [1]')
+    n: 1
+  -
+    id: ul-count-2
+    obj: ul('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 2
+    expected: ul('[2] [2]', '[1] [1]')
+    n: 2
+  -
+    id: ul-count-3
+    obj: ul('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 3
+    expected: ul('[2] [2]', '[2] [1]')
+    n: 3
+  -
+    id: ul-count-4
+    obj: ul('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 4
+    expected: ul('[2] [2]', '[2] [2]')
+    n: 4
+  -
+    id: pl-count-5
+    obj: pl('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 5
+    expected: pl('[2] [2]', '[2] [2]')
+    n: 4
+  -
+    id: ul-nested
+    obj: ul(ul('[1]'))
+    pattern: r'\d'
+    repl: '2'
+    count: 1
+    expected: ul(ul('[2]'))
+    n: 1
+
+  -
+    id: ol-empty
+    obj: ol()
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ol()
+    n: 0
+  -
+    id: ol-falsy
+    obj: ol('')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ol('')
+    n: 0
+  -
+    id: ol-falsy
+    obj: ol(None)
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ol(None)
+    n: 0
+  -
+    id: ol-falsy
+    obj: ol(ol())
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ol(ol())
+    n: 0
+  -
+    id: ol-sub-0
+    obj: ol('a')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ol('a')
+    n: 0
+  -
+    id: ol-sub-1
+    obj: ol('[1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ol('[2]')
+    n: 1
+  -
+    id: ol-sub-2
+    obj: ol('[1]', '[1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: ol('[2]', '[2]')
+    n: 2
+  -
+    id: ol-count-1
+    obj: ol('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 1
+    expected: ol('[2] [1]', '[1] [1]')
+    n: 1
+  -
+    id: ol-count-2
+    obj: ol('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 2
+    expected: ol('[2] [2]', '[1] [1]')
+    n: 2
+  -
+    id: ol-count-3
+    obj: ol('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 3
+    expected: ol('[2] [2]', '[2] [1]')
+    n: 3
+  -
+    id: ol-count-4
+    obj: ol('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 4
+    expected: ol('[2] [2]', '[2] [2]')
+    n: 4
+  -
+    id: pl-count-5
+    obj: pl('[1] [1]', '[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 5
+    expected: pl('[2] [2]', '[2] [2]')
+    n: 4
+  -
+    id: ol-nested
+    obj: ol(ol('[1]'))
+    pattern: r'\d'
+    repl: '2'
+    count: 1
+    expected: ol(ol('[2]'))
+    n: 1
+
+  -
+    id: dl-empty
+    obj: dl()
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: dl()
+    n: 0
+  -
+    id: dl-falsy
+    obj: dl(('a', ''))
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: dl(('a', ''))
+    n: 0
+  -
+    id: dl-falsy
+    obj: dl(('a', None))
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: dl(('a', None))
+    n: 0
+  -
+    id: dl-falsy
+    obj: dl(('a', dl()))
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: dl(('a', dl()))
+    n: 0
+  -
+    id: dl-sub-0
+    obj: dl(('a', 'b'))
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: dl(('a', 'b'))
+    n: 0
+  -
+    id: dl-sub-1
+    obj: dl(('[1]', 'a'))
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: dl(('[2]', 'a'))
+    n: 1
+  -
+    id: dl-sub-1
+    obj: dl(('a', '[1]'))
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: dl(('a', '[2]'))
+    n: 1
+  -
+    id: dl-sub-2
+    obj: dl(('[1]', '[1]'))
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: dl(('[2]', '[2]'))
+    n: 2
+  -
+    id: dl-sub-2
+    obj: dl(('[1]', 'a'), ('[1]', 'b'))
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: dl(('[2]', 'a'), ('[2]', 'b'))
+    n: 2
+  -
+    id: dl-sub-2
+    obj: dl(('a', '[1]'), ('b', '[1]'))
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: dl(('a', '[2]'), ('b', '[2]'))
+    n: 2
+  -
+    id: dl-count-1
+    obj: dl(('[1]', '[1]'), ('[1]', '[1]'))
+    pattern: r'\d'
+    repl: '2'
+    count: 1
+    expected: dl(('[2]', '[1]'), ('[1]', '[1]'))
+    n: 1
+  -
+    id: dl-count-2
+    obj: dl(('[1]', '[1]'), ('[1]', '[1]'))
+    pattern: r'\d'
+    repl: '2'
+    count: 2
+    expected: dl(('[2]', '[2]'), ('[1]', '[1]'))
+    n: 2
+  -
+    id: dl-count-3
+    obj: dl(('[1]', '[1]'), ('[1]', '[1]'))
+    pattern: r'\d'
+    repl: '2'
+    count: 3
+    expected: dl(('[2]', '[2]'), ('[2]', '[1]'))
+    n: 3
+  -
+    id: dl-count-4
+    obj: dl(('[1]', '[1]'), ('[1]', '[1]'))
+    pattern: r'\d'
+    repl: '2'
+    count: 4
+    expected: dl(('[2]', '[2]'), ('[2]', '[2]'))
+    n: 4
+  -
+    id: dl-count-5
+    obj: dl(('[1]', '[1]'), ('[1]', '[1]'))
+    pattern: r'\d'
+    repl: '2'
+    count: 5
+    expected: dl(('[2]', '[2]'), ('[2]', '[2]'))
+    n: 4
+  -
+    id: dl-nested
+    obj: dl(('a', dl(('b', '[1]'))))
+    pattern: r'\d'
+    repl: '2'
+    count: 1
+    expected: dl(('a', dl(('b', '[2]'))))
+    n: 1
+
+  -
+    id: table-empty
+    obj: table([[]])
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: table([[]])
+    n: 0
+  -
+    id: table-sub-0
+    obj: table([['a', 'b'], ['c', 'd']])
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: table([['a', 'b'], ['c', 'd']])
+    n: 0
+  -
+    id: table-sub-1
+    obj: table([['[1]', 'b'], ['c', 'd']])
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: table([['[2]', 'b'], ['c', 'd']])
+    n: 1
+  -
+    id: table-sub-2
+    obj: table([['[1]', '[1]'], ['c', 'd']])
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: table([['[2]', '[2]'], ['c', 'd']])
+    n: 2
+  -
+    id: table-sub-2
+    obj: table([['[1]', 'b'], ['[1]', 'd']])
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: table([['[2]', 'b'], ['[2]', 'd']])
+    n: 2
+  -
+    id: table-header
+    obj: table([['a', 'b'], ['c', 'd']], header=['[1]', 'f'])
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: table([['a', 'b'], ['c', 'd']], header=['[2]', 'f'])
+    n: 1
+  -
+    id: table-footer
+    obj: table([['a', 'b'], ['c', 'd']], footer=['[1]', 'f'])
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: table([['a', 'b'], ['c', 'd']], footer=['[2]', 'f'])
+    n: 1
+  -
+    id: table-count-1
+    obj:
+      > table(
+      >   [['[1]', '[1]'], ['[1]', '[1]']],
+      >   header=['[1]', '[1]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    pattern: r'\d'
+    repl: '2'
+    count: 1
+    expected:
+      > table(
+      >   [['[1]', '[1]'], ['[1]', '[1]']],
+      >   header=['[2]', '[1]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    n: 1
+  -
+    id: table-count-2
+    obj:
+      > table(
+      >   [['[1]', '[1]'], ['[1]', '[1]']],
+      >   header=['[1]', '[1]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    pattern: r'\d'
+    repl: '2'
+    count: 2
+    expected:
+      > table(
+      >   [['[1]', '[1]'], ['[1]', '[1]']],
+      >   header=['[2]', '[2]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    n: 2
+  -
+    id: table-count-3
+    obj:
+      > table(
+      >   [['[1]', '[1]'], ['[1]', '[1]']],
+      >   header=['[1]', '[1]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    pattern: r'\d'
+    repl: '2'
+    count: 3
+    expected:
+      > table(
+      >   [['[2]', '[1]'], ['[1]', '[1]']],
+      >   header=['[2]', '[2]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    n: 3
+  -
+    id: table-count-4
+    obj:
+      > table(
+      >   [['[1]', '[1]'], ['[1]', '[1]']],
+      >   header=['[1]', '[1]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    pattern: r'\d'
+    repl: '2'
+    count: 4
+    expected:
+      > table(
+      >   [['[2]', '[2]'], ['[1]', '[1]']],
+      >   header=['[2]', '[2]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    n: 4
+  -
+    id: table-count-5
+    obj:
+      > table(
+      >   [['[1]', '[1]'], ['[1]', '[1]']],
+      >   header=['[1]', '[1]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    pattern: r'\d'
+    repl: '2'
+    count: 5
+    expected:
+      > table(
+      >   [['[2]', '[2]'], ['[2]', '[1]']],
+      >   header=['[2]', '[2]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    n: 5
+  -
+    id: table-count-6
+    obj:
+      > table(
+      >   [['[1]', '[1]'], ['[1]', '[1]']],
+      >   header=['[1]', '[1]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    pattern: r'\d'
+    repl: '2'
+    count: 6
+    expected:
+      > table(
+      >   [['[2]', '[2]'], ['[2]', '[2]']],
+      >   header=['[2]', '[2]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    n: 6
+  -
+    id: table-count-7
+    obj:
+      > table(
+      >   [['[1]', '[1]'], ['[1]', '[1]']],
+      >   header=['[1]', '[1]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    pattern: r'\d'
+    repl: '2'
+    count: 7
+    expected:
+      > table(
+      >   [['[2]', '[2]'], ['[2]', '[2]']],
+      >   header=['[2]', '[2]'],
+      >   footer=['[2]', '[1]'],
+      > )
+    n: 7
+  -
+    id: table-count-8
+    obj:
+      > table(
+      >   [['[1]', '[1]'], ['[1]', '[1]']],
+      >   header=['[1]', '[1]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    pattern: r'\d'
+    repl: '2'
+    count: 8
+    expected:
+      > table(
+      >   [['[2]', '[2]'], ['[2]', '[2]']],
+      >   header=['[2]', '[2]'],
+      >   footer=['[2]', '[2]'],
+      > )
+    n: 8
+  -
+    id: table-count-9
+    obj:
+      > table(
+      >   [['[1]', '[1]'], ['[1]', '[1]']],
+      >   header=['[1]', '[1]'],
+      >   footer=['[1]', '[1]'],
+      > )
+    pattern: r'\d'
+    repl: '2'
+    count: 9
+    expected:
+      > table(
+      >   [['[2]', '[2]'], ['[2]', '[2]']],
+      >   header=['[2]', '[2]'],
+      >   footer=['[2]', '[2]'],
+      > )
+    n: 8
+  -
+    id: table-nested
+    obj: table([['a', 'b'], ['c', table([['[1]']])]])
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: table([['a', 'b'], ['c', table([['[2]']])]])
+    n: 1
+
+  -
+    id: pre-empty
+    obj: pre('')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: pre('')
+    n: 0
+  -
+    id: pre-sub-0
+    obj: pre('a')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: pre('a')
+    n: 0
+  -
+    id: pre-sub-1
+    obj: pre('[1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: pre('[2]')
+    n: 1
+  -
+    id: pre-sub-2
+    obj: pre('[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 0
+    expected: pre('[2] [2]')
+    n: 2
+  -
+    id: pre-count-1
+    obj: pre('[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 1
+    expected: pre('[2] [1]')
+    n: 1
+  -
+    id: pre-count-2
+    obj: pre('[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 2
+    expected: pre('[2] [2]')
+    n: 2
+  -
+    id: pre-count-3
+    obj: pre('[1] [1]')
+    pattern: r'\d'
+    repl: '2'
+    count: 3
+    expected: pre('[2] [2]')
+    n: 2
+
+test_step_from_str:
+  -
+    id: step
+    str: a
+    delim: ~
+    wrap: True
+    expected: 'a'
+  -
+    id: step
+    str: a~b
+    delim: ~
+    wrap: True
+    expected: pl('a', ul('b'))
+  -
+    id: step
+    str: a~b~c
+    delim: ~
+    wrap: True
+    expected: pl('a', ul('b', 'c'))
+  -
+    id: step
+    str: a~b~~c
+    delim: ~
+    wrap: True
+    expected: pl('a', ul(pl('b', ul('c'))))
+  -
+    id: step
+    str: a~b~c~~d
+    delim: ~
+    wrap: True
+    expected: pl('a', ul('b', pl('c', ul('d'))))
+  -
+    id: step
+    str: a~b~~c~d
+    delim: ~
+    wrap: True
+    expected: pl('a', ul(pl('b', ul('c')), 'd'))
+  -
+    id: delim
+    str: a~b
+    delim: ;
+    wrap: True
+    expected: 'a~b'
+  -
+    id: delim
+    str: a;b
+    delim: ;
+    wrap: True
+    expected: pl('a', ul('b'))
+  -
+    id: wrap
+    str: a
+    delim: ~
+    wrap: False
+    expected: pre('a')
+  -
+    id: wrap
+    str: a~b
+    delim: ~
+    wrap: False
+    expected: pl(pre('a'), ul(pre('b')))
+  -
+    id: wrap
+    str: a~b~~c
+    delim: ~
+    wrap: False
+    expected:
+      > pl(
+      >   pre('a'),
+      >   ul(
+      >     pl(
+      >       pre('b'),
+      >       ul(
+      >         pre('c'),
+      >       ),
+      >     ),
+      >   ),
+      > )
+
+test_split_by_delim_count:
+  -
+    str:
+    delim: ~
+    count: 1
+    expected: ['']
+  -
+    str: a
+    delim: ~
+    count: 1
+    expected: ['a']
+  -
+    str: ~
+    delim: ~
+    count: 1
+    expected: ['', '']
+  -
+    str: a~
+    delim: ~
+    count: 1
+    expected: ['a', '']
+  -
+    str: ~a
+    delim: ~
+    count: 1
+    expected: ['', 'a']
+  -
+    str: a~b
+    delim: ~
+    count: 1
+    expected: ['a', 'b']
+  -
+    str: ~~
+    delim: ~
+    count: 1
+    expected: ['~~']
+  -
+    str: a~~
+    delim: ~
+    count: 1
+    expected: ['a~~']
+  -
+    str: ~~a
+    delim: ~
+    count: 1
+    expected: ['~~a']
+  -
+    str: a~~b
+    delim: ~
+    count: 1
+    expected: ['a~~b']
+  -
+    str: a~b~~c~~d~e~~f~~g
+    delim: ~
+    count: 1
+    expected: ['a', 'b~~c~~d', 'e~~f~~g']
+  -
+    str:
+    delim: ~
+    count: 2
+    expected: ['']
+  -
+    str: a
+    delim: ~
+    count: 2
+    expected: ['a']
+  -
+    str: ~
+    delim: ~
+    count: 2
+    expected: ['~']
+  -
+    str: a~
+    delim: ~
+    count: 2
+    expected: ['a~']
+  -
+    str: ~a
+    delim: ~
+    count: 2
+    expected: ['~a']
+  -
+    str: a~b
+    delim: ~
+    count: 2
+    expected: ['a~b']
+  -
+    str: ~~
+    delim: ~
+    count: 2
+    expected: ['', '']
+  -
+    str: a~~
+    delim: ~
+    count: 2
+    expected: ['a', '']
+  -
+    str: ~~a
+    delim: ~
+    count: 2
+    expected: ['', 'a']
+  -
+    str: a~~b
+    delim: ~
+    count: 2
+    expected: ['a', 'b']
+  -
+    str: a~b~~c~~d~e~~f~~g
+    delim: ~
+    count: 2
+    expected: ['a~b', 'c', 'd~e', 'f', 'g']
+
+test_oxford_comma:
+  -
+    given: []
+    expected:
+  -
+    given: [1]
+    expected: 1
+  -
+    given: [1, 2]
+    expected: 1 and 2
+  -
+    given: [1, 2, 3]
+    expected: 1, 2, and 3
+  -
+    given: [1, 2, 3, 4]
+    expected: 1, 2, 3, and 4
+  -
+    given: []
+    kwargs:
+      conj: 'or'
+    expected:
+  -
+    given: [1]
+    kwargs:
+      conj: 'or'
+    expected: 1
+  -
+    given: [1, 2]
+    kwargs:
+      conj: 'or'
+    expected: 1 or 2
+  -
+    given: [1, 2, 3]
+    kwargs:
+      conj: 'or'
+    expected: 1, 2, or 3
+  -
+    given: [1, 2, 3, 4]
+    kwargs:
+      conj: 'or'
+    expected: 1, 2, 3, or 4

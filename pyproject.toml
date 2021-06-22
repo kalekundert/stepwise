@@ -32,6 +32,7 @@ tests = [
   'pytest',
   'pytest-cov',
   'coveralls',
+  'parametrize_from_file',
   'rtoml',
   're_assert',
 ]
