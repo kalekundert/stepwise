@@ -1,3 +1,194 @@
+test_stepwise_config:
+  -
+    id: intro
+    files:
+      user/conf.toml:
+        > x = 1
+      site/conf.toml:
+        > x = 2
+      plugin_1/conf.toml:
+        > x = 3
+      plugin_2/conf.toml:
+        > x = 4
+      plugin_3/conf.toml:
+        > x = 5
+      plugin_4/conf.toml:
+        > x = 6
+
+    appdirs:
+      user_dir: user/
+      site_dir: site/
+
+    plugins:
+      stepwise.protocols:
+        -
+          > class MockPlugin:
+          >     config_defaults = 'plugin_1/conf.toml'
+        -
+          > class MockPlugin:
+          >     config_defaults = 'plugin_2/conf.toml'
+
+      stepwise.commands:
+        -
+          > class MockPlugin:
+          >     config_defaults = 'plugin_3/conf.toml'
+        -
+          > class MockPlugin:
+          >     config_defaults = 'plugin_4/conf.toml'
+
+    expected:
+      x: [1, 2, 3, 4, 5, 6]
+
+    config_paths:
+      - user/conf.toml
+      - site/conf.toml
+  -
+    id: class-attrs
+    files:
+      user/conf.toml:
+        > x.y = 1
+
+    appdirs:
+      user_dir: user/
+      site_dir: site/
+
+    config_factory:
+      > class MockConfig(StepwiseConfig):
+      >     root_key = 'x'
+      >     schema = lambda d: {'y': d['y'] + 1}
+
+    expected:
+      y: [2]
+
+    config_paths:
+      - user/conf.toml
+      - site/conf.toml
+  -
+    id: with-options
+    files:
+      user/conf.toml:
+        > x.y = 1
+
+    appdirs:
+      user_dir: user/
+      site_dir: site/
+
+    config_factory:
+      > MockConfig = StepwiseConfig.with_options(
+      >     root_key='x',
+      >     schema=lambda d: {'y': d['y'] + 1},
+      > )
+
+    expected:
+      y: [2]
+
+    config_paths:
+      - user/conf.toml
+      - site/conf.toml
+
+
+
+test_preset_config:
+  -
+    id: defaults
+    obj:
+      > obj = MockObj()
+      > obj.preset = 'a'
+      > obj.presets = [{
+      >     'a': {
+      >         'x': 1,
+      >     },
+      >     'b': {
+      >         'x': 2,
+      >     },
+      > }]
+    key: 'x'
+    expected:
+      - 1
+  -
+    id: getters
+    config_factory:
+      > class MockConfig(PresetConfig):
+      >     presets_getter = attrgetter('my_presets')
+      >     key_getter = attrgetter('my_key')
+    obj:
+      > obj = MockObj()
+      > obj.my_key = 'a'
+      > obj.my_presets = [{
+      >     'a': {
+      >         'x': 1,
+      >     },
+      >     'b': {
+      >         'x': 2,
+      >     },
+      > }]
+    key: 'x'
+    expected:
+      - 1
+  -
+    id: briefs
+    obj:
+      > obj = MockObj()
+      > obj.preset = 'a'
+      > obj.presets = [{
+      >     'a': {
+      >         'x': 1,
+      >         'brief': 'Lorem ipsum.',
+      >     },
+      >     'b': {
+      >         'x': 2,
+      >         'brief': 'Dolor sit amet.',
+      >     },
+      > }]
+    key: 'x'
+    expected:
+      - 1
+    briefs:
+      > a:  Lorem ipsum.
+      > b:  Dolor sit amet.
+  -
+    id: briefs-template
+    obj:
+      > obj = MockObj()
+      > obj.preset = 'a'
+      > obj.presets = [{
+      >     'a': {
+      >         'x': 1,
+      >     },
+      >     'b': {
+      >         'x': 2,
+      >     },
+      > }]
+      > obj.preset_brief_template = 'x={x}'
+    key: 'x'
+    expected:
+      - 1
+    briefs:
+      > a:  x=1
+      > b:  x=2
+  -
+    id: briefs-truncate
+    obj:
+      > obj = MockObj()
+      > obj.preset = 'a'
+      > obj.presets = [{
+      >     'a': {
+      >         'x': 1,
+      >         'brief': '5678',
+      >     },
+      >     'b': {
+      >         'x': 2,
+      >         'brief': '56789',
+      >     },
+      > }]
+      > obj.preset_brief_max_width = 8
+    key: 'x'
+    expected:
+      - 1
+    briefs:
+      > a:  5678
+      > b:  567…
+
 test_presets:
   -
     presets:

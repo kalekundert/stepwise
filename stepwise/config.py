@@ -5,6 +5,7 @@ import appcli
 import autoprop
 
 from .format import tabulate
+from appcli import TomlConfig, unbind_method
 from more_itertools import only, flatten, unique_everseen
 
 class StepwiseCommand:
@@ -21,8 +22,11 @@ class StepwiseConfig(appcli.Config):
     schema = None
     root_key = None
 
-    def __init__(self, obj):
+    def __init__(self, obj, schema=None, root_key=None):
         super().__init__(obj)
+
+        self.schema = schema or unbind_method(self.schema)
+        self.root_key = root_key or self.root_key
 
         self.app_dirs = appcli.AppDirsConfig(obj)
         self.app_dirs.name = 'conf.toml'
@@ -48,14 +52,11 @@ class StepwiseConfig(appcli.Config):
             try: path = plugin.load().config_defaults
             except AttributeError: continue
 
-            layers = TomlConfig.load_from_path(
+            yield from TomlConfig.load_from_path(
                     path,
                     schema=self.schema,
                     root_key=self.root_key,
             )
-            for layer in layers:
-                layer.values = {plugin.name: layer.values}
-                yield layer
 
     def get_dirs(self):
         return self.app_dirs.dirs
@@ -72,24 +73,28 @@ class PresetConfig(appcli.Config):
     presets_getter = lambda obj: obj.presets
     key_getter = lambda obj: obj.preset
     schema = None
-    root_key = None
 
-    class PresetLayer(appcli.Layer):
+    class Layer(appcli.Layer):
 
-        def __init__(self, parent):
-            self.parent = parent
-            self.presets = None
+        def __init__(self, presets_getter, key_getter, schema=None):
+            self.presets_getter = presets_getter
+            self.key_getter = key_getter
+            self.schema = schema
 
         def iter_values(self, key, log):
-            layer_1 = appcli.DictLayer(self.parent.presets)
-            preset = only(layer_1.iter_values(self.parent.key, log))
+            layer_1 = appcli.DictLayer(self.presets_getter())
+            preset = only(layer_1.iter_values(self.key_getter(), log))
 
             if preset is not None:
-                layer_2 = appcli.DictLayer(preset)
+                layer_2 = appcli.DictLayer(preset, schema=self.schema)
                 yield from layer_2.iter_values(key, log)
 
-    def __init__(self, obj):
+    def __init__(self, obj, presets_getter=None, key_getter=None, schema=None):
         super().__init__(obj)
+
+        self.presets_getter = presets_getter or unbind_method(self.presets_getter)
+        self.key_getter = key_getter or unbind_method(self.key_getter)
+        self.schema = schema or self.schema
         self._presets = None
 
     def load(self):
@@ -100,11 +105,15 @@ class PresetConfig(appcli.Config):
         #   Evaluated every time the parameter is accessed.
 
         self._presets = None
-        yield self.PresetLayer(self)
+        yield self.Layer(
+                presets_getter=self.get_presets,
+                key_getter=lambda: self.key_getter(self.obj),
+                schema=self.schema,
+        )
 
     def get_presets(self):
         if self._presets is None:
-            raw_presets = self.__class__.presets_getter(self.obj)
+            raw_presets = self.presets_getter(self.obj)
             self._presets = Presets(raw_presets)
 
         return self._presets
@@ -123,9 +132,6 @@ class PresetConfig(appcli.Config):
             ])
 
         return tabulate(rows, truncate='-x', max_width=max_width)
-
-    def get_key(self):
-        return self.__class__.key_getter(self.obj)
 
 class Presets:
 

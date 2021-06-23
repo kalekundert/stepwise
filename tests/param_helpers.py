@@ -6,7 +6,7 @@ import parametrize_from_file
 import math
 
 from voluptuous import Schema, Invalid, Coerce, And, Or, Optional
-from unittest.mock import MagicMock
+from unittest.mock import Mock, MagicMock
 from contextlib import nullcontext
 from pathlib import Path
 
