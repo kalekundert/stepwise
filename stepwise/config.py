@@ -23,7 +23,7 @@ class StepwiseConfig(appcli.Config):
     schema = None
     root_key = None
 
-    def __init__(self, obj, schema=None, root_key=None):
+    def __init__(self, obj, root_key=None, *, schema=None):
         super().__init__(obj)
 
         self.schema = schema or unbind_method(self.schema)

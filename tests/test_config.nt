@@ -68,7 +68,7 @@ test_stepwise_config:
       - user/conf.toml
       - site/conf.toml
   -
-    id: with-options
+    id: setup-args
     files:
       user/conf.toml:
         > x.y = 1
@@ -78,8 +78,8 @@ test_stepwise_config:
       site_dir: site/
 
     config_factory:
-      > MockConfig = StepwiseConfig.with_options(
-      >     root_key='x',
+      > MockConfig = StepwiseConfig.setup(
+      >     'x',
       >     schema=lambda d: {'y': d['y'] + 1},
       > )
 
@@ -89,8 +89,6 @@ test_stepwise_config:
     config_paths:
       - user/conf.toml
       - site/conf.toml
-
-
 
 test_preset_config:
   -
