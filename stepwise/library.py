@@ -14,6 +14,7 @@ from .protocol import Protocol
 from .printer import format_protocol
 from .format import preformatted
 from .config import StepwiseConfig
+from .utils import load_and_sort_plugins
 from .errors import *
 
 PICKLE_HEADER = pickle.dumps(None)[0]
@@ -92,16 +93,7 @@ class Library:
             add(PathCollection(dir))
 
         # Add directories specified by plugins.
-        from entrypoints import get_group_all
-        plugins = sorted(
-                get_group_all('stepwise.protocols'),
-                key=lambda x: (
-                    x.module_name == 'stepwise',
-                    x.module_name,
-                    x.name
-                ),
-        )
-        for plugin in plugins:
+        for plugin in load_and_sort_plugins('stepwise.protocols'):
             try:
                 add(PluginCollection(plugin))
             except AttributeError as err:
@@ -299,8 +291,8 @@ class PluginCollection(PathCollection):
 
     def __init__(self, plugin):
         super().__init__(
-                root=plugin.load().protocol_dir,
-                name=f'{plugin.module_name}.{plugin.name}',
+                root=plugin.protocol_dir,
+                name=f'{plugin.entry_point.module_name}.{plugin.entry_point.name}',
         )
 
     def _load_entry(self, rel_path):

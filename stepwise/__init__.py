@@ -22,3 +22,4 @@ Inform(stream_policy='header')
 
 class Builtins:
     protocol_dir = Path(__file__).parent / 'builtins'
+    priority = 0

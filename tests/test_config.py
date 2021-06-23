@@ -55,12 +55,13 @@ def test_stepwise_config(files, appdirs, plugins, config_factory, obj, expected,
     class MockEntryPoint:
 
         def __init__(self, plugin):
+            self.name = plugin.config_path.split('/')[0]
             self.plugin = plugin
 
         def load(self):
             return self.plugin
 
-    def get_group_all(group):
+    def get_group_all(group, path=None):
         return map(MockEntryPoint, plugins.get(group, []))
 
     monkeypatch.setattr(entrypoints, 'get_group_all', get_group_all)

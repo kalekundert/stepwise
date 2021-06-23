@@ -3,6 +3,7 @@
 import sys, inspect
 import appcli
 from stepwise import ProtocolIO, StepwiseError, __version__
+from stepwise.utils import load_plugins
 
 class DocoptConfig(appcli.DocoptConfig):
     version = __version__
@@ -61,10 +62,9 @@ Examples:
     force_text = appcli.param('--force-text', default=False)
 
     def __init__(self):
-        from entrypoints import get_group_named
         self.commands = {
-                k: v.load()()
-                for k, v in get_group_named('stepwise.commands').items()
+                p.entry_point.name: p()
+                for p in load_plugins('stepwise.commands')
         }
 
     def main(self):

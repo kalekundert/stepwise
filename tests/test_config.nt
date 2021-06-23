@@ -3,17 +3,17 @@ test_stepwise_config:
     id: intro
     files:
       user/conf.toml:
-        > x = 1
+        > x = 'a'
       site/conf.toml:
-        > x = 2
-      plugin_1/conf.toml:
-        > x = 3
-      plugin_2/conf.toml:
-        > x = 4
-      plugin_3/conf.toml:
-        > x = 5
-      plugin_4/conf.toml:
-        > x = 6
+        > x = 'b'
+      plugin_c/conf.toml:
+        > x = 'c'
+      plugin_d/conf.toml:
+        > x = 'd'
+      plugin_e/conf.toml:
+        > x = 'e'
+      plugin_f/conf.toml:
+        > x = 'f'
 
     appdirs:
       user_dir: user/
@@ -23,21 +23,25 @@ test_stepwise_config:
       stepwise.protocols:
         -
           > class MockPlugin:
-          >     config_defaults = 'plugin_1/conf.toml'
+          >     config_path = 'plugin_f/conf.toml'
+          >     priority = 1
         -
           > class MockPlugin:
-          >     config_defaults = 'plugin_2/conf.toml'
+          >     config_path = 'plugin_d/conf.toml'
+          >     priority = 3
 
       stepwise.commands:
         -
           > class MockPlugin:
-          >     config_defaults = 'plugin_3/conf.toml'
+          >     config_path = 'plugin_c/conf.toml'
+          >     priority = 4
         -
           > class MockPlugin:
-          >     config_defaults = 'plugin_4/conf.toml'
+          >     config_path = 'plugin_e/conf.toml'
+          >     priority = 2
 
     expected:
-      x: [1, 2, 3, 4, 5, 6]
+      x: ['a', 'b', 'c', 'd', 'e', 'f']
 
     config_paths:
       - user/conf.toml

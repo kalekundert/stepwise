@@ -5,6 +5,7 @@ import appcli
 import autoprop
 
 from .format import tabulate
+from .utils import load_plugins, sort_plugins
 from appcli import TomlConfig, unbind_method
 from more_itertools import only, flatten, unique_everseen
 
@@ -42,15 +43,14 @@ class StepwiseConfig(appcli.Config):
         yield from self.app_dirs.load()
 
     def load_plugins(self):
-        from entrypoints import get_group_all
-        plugins = [
-                *get_group_all('stepwise.protocols'),
-                *get_group_all('stepwise.commands'),
-        ]
-
+        plugins = sort_plugins([
+                *load_plugins('stepwise.protocols'),
+                *load_plugins('stepwise.commands', default_priority=1),
+        ])
         for plugin in plugins:
-            try: path = plugin.load().config_defaults
+            try: path = plugin.config_path
             except AttributeError: continue
+
 
             yield from TomlConfig.load_from_path(
                     path,
