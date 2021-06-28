@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.27.0 (2021-06-28)
+### Feature
+* Consider quantities unequal to None ([`fea7d55`](https://github.com/kalekundert/stepwise/commit/fea7d55d658a3af69f03c26fef77ee3ebff6dcf7))
+* Make the StepwiseConfig root key a positional argument ([`1998907`](https://github.com/kalekundert/stepwise/commit/19989071fd5399d4df256560b4e8fe4828e92d46))
+* Sort plugins by priority ([`33dfc6b`](https://github.com/kalekundert/stepwise/commit/33dfc6bf8ad70692408d2da7a19415ec10f906f1))
+* Don't namespace plugin config files ([`dac3bc2`](https://github.com/kalekundert/stepwise/commit/dac3bc2fdeb056491a609603eca740012cdde08a))
+
 ## v0.26.0 (2021-06-17)
 ### Feature
 * Allow preset names to be reused ([`0ca56ed`](https://github.com/kalekundert/stepwise/commit/0ca56ed27568288f56fa7c04da7d4f578eaf20fe))
