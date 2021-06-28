@@ -226,6 +226,8 @@ def test_unary_operators(op, given, expected):
             # https://stackoverflow.com/questions/40780004/returning-notimplemented-from-eq
             (eq,        Q('1 ng'),  Q('2 µL'),      False),
             (ne,        Q('1 ng'),  Q('2 µL'),       True),
+            (eq,        Q('1 ng'),       None,      False),
+            (ne,        Q('1 ng'),       None,       True),
 
             (lt,        Q('2 ng'),  Q('1 ng'),      False),
             (lt,        Q('2 ng'),  Q('2 ng'),      False),

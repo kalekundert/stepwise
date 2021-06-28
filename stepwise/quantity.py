@@ -178,6 +178,9 @@ class Quantity(Real):
                     params = scalar
                 else:
                     return NotImplemented
+
+            except:
+                return NotImplemented
             
             if not validators[params['validate']](self, other):
                 return NotImplemented
