@@ -473,6 +473,7 @@ class ProtocolIO:
 
         def from_file(path, args, name):
             path = Path(path)
+            cmd = str(path), *args
 
             # If the path is a python file, run it without starting a new 
             # process.  Starting new python processes is quite expensive, so 
@@ -481,7 +482,7 @@ class ProtocolIO:
             if path.suffix == '.py':
                 p = _run_python_script(path, args)
                 if p.returncode != 0:
-                    raise LoadError(f"command failed with status {p.returncode}")
+                    raise LoadError(f"command {shlex.join(cmd)!r} failed with status {p.returncode}")
                 return cls.from_bytes(p.stdout)
 
             # If the path is a text file, read it:
@@ -492,10 +493,9 @@ class ProtocolIO:
             try:
                 from subprocess import run, PIPE, DEVNULL
 
-                cmd = str(path), *args
                 p = run(cmd, stdout=PIPE, stdin=DEVNULL)
                 if p.returncode != 0:
-                    raise LoadError(f"command failed with status {p.returncode}")
+                    raise LoadError(f"command {shlex.join(cmd)!r} with status {p.returncode}")
 
                 return cls.from_bytes(p.stdout)
 
