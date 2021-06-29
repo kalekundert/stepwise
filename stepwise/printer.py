@@ -3,10 +3,13 @@
 import sys
 import shlex
 import appcli
+import autoprop
+
 from inform import warn, format_range
 from .config import StepwiseConfig, PresetConfig
 from .errors import *
 
+@autoprop
 class Printer:
     __config__ = [
             PresetConfig,
@@ -46,6 +49,11 @@ class Printer:
     def __init__(self, preset=None):
         self.preset = preset or get_default_printer_name()
 
+    def get_name(self):
+        return self.preset
+
+    def set_name(self, name):
+        self.preset = name
 
     def truncate_lines(self, lines):
         def do_truncate(line):
