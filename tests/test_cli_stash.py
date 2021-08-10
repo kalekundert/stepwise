@@ -53,7 +53,7 @@ stash_dependency_rows = query_helper(
         stash_dependencies.c.downstream_pk,
 )
 
-class UnreadableProtocol(Protocol):
+class MockUnreadableProtocol(Protocol):
 
     def __setstate__(self, state):
         raise ZeroDivisionError
@@ -453,8 +453,8 @@ def test_api_peek(full_db, capsys):
             dict(pk=3, id=13, is_complete=False),
     ])
 
-    peek_protocol(db, 11, force_text=True)
-    assert "1. X" in capsys.readouterr().out
+    row = peek_protocol(db, 11)
+    assert row.protocol.steps == ["X"]
     assert stash_rows(db) == ul([
             dict(pk=1, id=11, is_complete=False),
             dict(pk=2, id=12, is_complete=False),
@@ -469,8 +469,8 @@ def test_api_pop(full_db, capsys):
             dict(pk=3, id=13, is_complete=False),
     ])
 
-    pop_protocol(db, 11, force_text=True)
-    assert "1. X" in capsys.readouterr().out
+    row = pop_protocol(db, 11)
+    assert row.protocol.steps == ["X"]
     assert stash_rows(db) == ul([
             dict(pk=1, id=11, is_complete=True),
             dict(pk=2, id=12, is_complete=False),
@@ -1028,7 +1028,7 @@ def test_api_get_next_id(empty_db):
 def test_api_unreadable_protocol(empty_db, capsys):
     db = empty_db
 
-    p = add_protocol(db, UnreadableProtocol())
+    p = add_protocol(db, MockUnreadableProtocol())
 
     # Force sqlalchemy to pickle and unpickle the protocol.
     db.flush()
@@ -1041,18 +1041,8 @@ def test_api_unreadable_protocol(empty_db, capsys):
 1   !
 """
 
-    with pytest.raises(SystemExit):
-        peek_protocol(db, 1, force_text=True)
-
-    # For some reason I can't get pytest to capture this output from inform.  
-    # I've left the expected output in case I can come back to this and figure 
-    # it out later, but for now I think the above check for SystemExit being 
-    # raised is good enough.
-
-    #stdout = capsys.readouterr()
-    #assert "stepwise error" in stdout
-    #assert "failed to unpickle stashed protocol" in stdout
-    #assert "ZeroDivisionError" in stdout
+    row = peek_protocol(db, 1)
+    assert row.protocol == "failed to unpickle stashed protocol:\nZeroDivisionError: "
 
 
 @pytest.fixture
@@ -1320,6 +1310,36 @@ def test_cli_pop(full_stash):
 
 1\\. X
 ''')
+
+@pytest.mark.slow
+def test_cli_pipe(full_stash):
+    check_command('sw step A | sw stash peek 1 | sw step B', '''\
+{DATE}
+
+\\$ sw step A
+\\$ sw step X
+\\$ sw step B
+
+1\\. A
+
+2\\. X
+
+3\\. B
+''')
+    check_command('sw step A | sw stash pop 1 | sw step B', '''\
+{DATE}
+
+\\$ sw step A
+\\$ sw step X
+\\$ sw step B
+
+1\\. A
+
+2\\. X
+
+3\\. B
+''')
+
 
 @pytest.mark.slow
 def test_cli_drop_restore(full_stash):

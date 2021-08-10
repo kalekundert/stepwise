@@ -2,7 +2,7 @@
 
 import appcli
 from inform import fatal, parse_range
-from stepwise import StepwiseCommand, ProtocolIO
+from stepwise import StepwiseCommand, ProtocolIO, read_merge_write_exit
 
 def parse_id(id):
     if id is None:
@@ -204,18 +204,12 @@ python could corrupt the stash.
                 )
 
             elif self.peek:
-                model.peek_protocol(
-                        db, self.id,
-                        quiet=self.quiet,
-                        force_text=self.force_text,
-                )
+                row = model.peek_protocol(db, self.id)
+                self.show_protocol(row)
 
             elif self.pop:
-                model.pop_protocol(
-                        db, self.id,
-                        quiet=self.quiet,
-                        force_text=self.force_text,
-                )
+                row = model.pop_protocol(db, self.id)
+                self.show_protocol(row)
 
             elif self.drop:
                 model.drop_protocols(db, self.ids)
@@ -248,3 +242,11 @@ python could corrupt the stash.
                             categories=self.categories,
                             dependencies=self.dependencies,
                     )
+
+    def show_protocol(self, row):
+        read_merge_write_exit(
+                row.io,
+                quiet=self.quiet,
+                force_text=self.force_text,
+        )
+

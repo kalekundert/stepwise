@@ -632,6 +632,10 @@ class ProtocolIO:
         """
         if quiet and not self.errors:
             self.protocol.clear_footnotes()
+    
+    def set_current_date(self):
+        if not self.errors:
+            self.protocol.set_current_date()
 
     def to_stdout(self, force_text=False):
         """
@@ -691,6 +695,28 @@ def load_file(path, args=None):
 
 def load_text(text, args=None):
     return ProtocolIO.from_text(text, args)
+
+def read_merge_write_exit(io, *, quiet=False, force_text=False):
+    # It's most performant to load the protocol specified on the CLI before 
+    # trying to read a protocol from stdin.  The reason is subtle, and has to 
+    # do with the way pipes work.  For example, consider the following 
+    # pipeline:
+    #
+    #   sw pcr ... | sw kld ...
+    #
+    # Although the output from `sw pcr` is input for `sw kld`, the two commands 
+    # are started by the shell at the same time and run concurrently.  However, 
+    # `sw kld` will be forced to wait if it tries to read from stdin before `sw 
+    # pcr` has written to stdout.  With this in mind, it make sense for `sw 
+    # kld` to do as much work as possible before reading from stdin.
+
+    io.make_quiet(quiet)
+    io.set_current_date()
+
+    io_stdin = ProtocolIO.from_stdin()
+    io_stdout = ProtocolIO.merge(io_stdin, io)
+    io_stdout.to_stdout(force_text)
+    sys.exit(io_stdout.errors)
 
 
 def _match_tag(tag, name):

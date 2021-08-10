@@ -2,7 +2,7 @@
 
 import sys, inspect
 import appcli
-from stepwise import ProtocolIO, StepwiseError, __version__
+from stepwise import ProtocolIO, StepwiseError, read_merge_write_exit, __version__
 from stepwise.utils import load_plugins
 
 class DocoptConfig(appcli.DocoptConfig):
@@ -84,31 +84,15 @@ Examples:
                 app.main()
 
             else:
-                io_cli = ProtocolIO()
+                io = ProtocolIO()
                 if self.command:
-                    io_cli = ProtocolIO.from_library(self.command, self.args)
+                    io = ProtocolIO.from_library(self.command, self.args)
 
-                if self.quiet and not io_cli.errors:
-                    io_cli.protocol.clear_footnotes()
-
-                # It's more performant to load the protocol specified on the CLI 
-                # before trying to read a protocol from stdin.  The reason is 
-                # subtle, and has to do with the way pipes work.  For example, 
-                # consider the following pipeline:
-                #
-                #   sw pcr ... | sw kld ...
-                #
-                # Although the output from `sw pcr` is input for `sw kld`, the two 
-                # commands are started by the shell at the same time and run 
-                # concurrently.  However, `sw kld` will be forced to wait if it 
-                # tries to read from stdin before `sw pcr` has written to stdout.  
-                # With this in mind, it make sense for `sw kld` to do as much work 
-                # as possible before reading from stdin.
-
-                io_stdin = ProtocolIO.from_stdin()
-                io_stdout = ProtocolIO.merge(io_stdin, io_cli)
-                io_stdout.to_stdout(self.force_text)
-                sys.exit(io_stdout.errors)
+                read_merge_write_exit(
+                        io,
+                        quiet=self.quiet,
+                        force_text=self.force_text,
+                )
 
         except KeyboardInterrupt:
             print()

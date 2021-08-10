@@ -32,7 +32,7 @@ class Protocol:
         self.attachments = []
 
     def __repr__(self):
-        return f'Protocol(date={self.date!r}, commands={self.commands!r}, steps={self.steps!r}, footnotes={self.footnotes!r})'
+        return f'{self.__class__.__name__}(date={self.date!r}, commands={self.commands!r}, steps={self.steps!r}, footnotes={self.footnotes!r})'
 
     def __bool__(self):
         return bool(self.steps)

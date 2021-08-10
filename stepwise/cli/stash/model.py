@@ -51,6 +51,11 @@ class Stash(Base):
     def __repr__(self):
         return f"Stash(id={self.id!r})"
 
+    @property
+    def io(self):
+        return ProtocolIO(self.protocol, errors=isinstance(self.protocol, str))
+
+
 class Category(Base):
     __tablename__ = 'categories'
 
@@ -79,6 +84,9 @@ def open_db(path=None):
     try:
         yield session
         session.commit()
+    except SystemExit:
+        session.commit()
+        raise
     except:
         session.rollback()
         raise
@@ -108,13 +116,13 @@ def list_protocols(db, *, categories=None, dependencies=None, include_dependents
     for row in stash:
         rows.append([
             row.id,
-            '!' if isinstance(row.protocol, pickler.UnreadableProtocol) else '',
+            '!' if row.io.errors else '',
             format_range(
                 x.id
                 for x in row.upstream_deps
                 if not x.is_complete
             ),
-            row.protocol.pick_slug(),
+            row.protocol.pick_slug() if not row.io.errors else '',
             ','.join(x.name for x in sorted(row.categories, key=lambda x: x.pk)),
             row.message or '',
         ])
@@ -193,16 +201,11 @@ def edit_protocol(db, id=None, protocol=None, *, message=None, categories=None, 
         row.protocol = protocol
     return row
 
-def peek_protocol(db, id=None, *, quiet=False, force_text=False):
-    row = get_protocol(db, id)
-    row.protocol.set_current_date()
-    io = ProtocolIO(row.protocol)
-    io.make_quiet(quiet)
-    io.to_stdout(force_text)
-    return row
+def peek_protocol(db, id=None):
+    return get_protocol(db, id)
 
-def pop_protocol(db, id=None, *, quiet=False, force_text=False):
-    row = peek_protocol(db, id, quiet=quiet, force_text=force_text)
+def pop_protocol(db, id=None):
+    row = peek_protocol(db, id)
     row.is_complete = True
     return row
 
