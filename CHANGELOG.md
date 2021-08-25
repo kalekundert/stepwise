@@ -2,6 +2,11 @@
 
 <!--next-version-placeholder-->
 
+## v0.27.2 (2021-08-25)
+### Fix
+* Allow preset config layers to be any iterable ([`0fa087d`](https://github.com/kalekundert/stepwise/commit/0fa087d85adc7b490f468cc175fe0af2f0c1a640))
+* Remove duplicate footnotes ([`6d84a33`](https://github.com/kalekundert/stepwise/commit/6d84a339ffa3901cd2fe844826782790d1b6ffdd))
+
 ## v0.27.1 (2021-08-10)
 ### Fix
 * Correctly read from stdin when using stash peek/pop ([`a8bea7f`](https://github.com/kalekundert/stepwise/commit/a8bea7f5336be028160699371725d8e63b76aae7))
