@@ -136,7 +136,7 @@ class PresetConfig(appcli.Config):
 class Presets:
 
     def __init__(self, layers):
-        self.layers = layers  # List[Dict]
+        self.layers = list(layers)  # List[Dict]
         self.loaded_presets = {}
 
     def __iter__(self):
