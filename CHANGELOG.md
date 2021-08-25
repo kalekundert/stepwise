@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.27.1 (2021-08-10)
+### Fix
+* Correctly read from stdin when using stash peek/pop ([`a8bea7f`](https://github.com/kalekundert/stepwise/commit/a8bea7f5336be028160699371725d8e63b76aae7))
+* Restore name attribute to printer class ([`e664486`](https://github.com/kalekundert/stepwise/commit/e6644867b78242748da57d1dcae4c1cb29db82df))
+* Improve error messages ([`38a130e`](https://github.com/kalekundert/stepwise/commit/38a130ec10ede5ea4687fb6d74f22265a0c19db1))
+
 ## v0.27.0 (2021-06-28)
 ### Feature
 * Consider quantities unequal to None ([`fea7d55`](https://github.com/kalekundert/stepwise/commit/fea7d55d658a3af69f03c26fef77ee3ebff6dcf7))
