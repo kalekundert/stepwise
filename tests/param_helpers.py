@@ -6,6 +6,7 @@ import parametrize_from_file
 import math
 
 from voluptuous import Schema, Invalid, Coerce, And, Or, Optional
+from parametrize_from_file.voluptuous import Namespace
 from unittest.mock import Mock, MagicMock
 from contextlib import nullcontext
 from pathlib import Path
@@ -169,9 +170,18 @@ def error(x):
 
     return expect_error()
 
-eval_stepwise = eval_with(
-        stepwise=stepwise,
+with_stepwise = Namespace(
+        'import stepwise',
+        'from stepwise import *',
         TEST_DIR=TEST_DIR,
-).all(stepwise)
-eval_pytest = eval_with().all(pytest)
-eval_python = eval_with(inf=math.inf)
+)
+with_pytest = Namespace(
+        'from pytest import *',
+)
+with_python = Namespace(
+        inf=math.inf,
+)
+
+eval_stepwise = with_stepwise.eval
+eval_pytest = with_pytest.eval
+eval_python = with_python.eval

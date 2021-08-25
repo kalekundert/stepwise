@@ -65,5 +65,6 @@ Options:
             fatal(f"pattern {pattern!r} not found in protocol.")
 
         p.merge_footnotes()
+        p.deduplicate_footnotes()
 
         io.to_stdout(self.force_text)

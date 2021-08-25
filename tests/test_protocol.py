@@ -6,10 +6,12 @@ from pytest import raises
 from stepwise import Protocol, ProtocolIO, ParseError
 from stepwise import pl, ul, ol, dl, pre, table
 from math import inf
+from functools import partial
 from param_helpers import *
 
 parse = Protocol.parse
 merge = Protocol.merge
+eval_footnotes = partial(eval_stepwise, eval_keys=True)
 
 class MergeParams(Params):
     args = 'inputs, output'
@@ -650,7 +652,7 @@ def test_protocol_iadd():
     assert p.footnotes == {1: "h"}
     assert p[-1] == "H"
 
-@parametrize_from_file(schema=Schema({str: eval_stepwise}))
+@parametrize_from_file(schema=Schema({str: eval_footnotes}))
 def test_protocol_add_footnotes(footnotes_new, footnotes_before, footnotes_after, formatted_ids):
     p = Protocol()
     p.footnotes = footnotes_before
@@ -661,12 +663,12 @@ def test_protocol_add_footnotes(footnotes_new, footnotes_before, footnotes_after
 @parametrize_from_file(
     schema=Schema({
         'steps_before': eval_stepwise,
-        'footnotes_before': eval_stepwise,
-        'footnotes_new': eval_stepwise,
+        'footnotes_before': eval_footnotes,
+        'footnotes_new': eval_footnotes,
         Optional('pattern', default='(?=[.:])'): str,
         **error_or({
             'steps_after': eval_stepwise,
-            'footnotes_after': eval_stepwise,
+            'footnotes_after': eval_footnotes,
         }),
     }),
 )
@@ -687,6 +689,16 @@ def test_protocol_renumber_footnotes(new_ids, steps_before, footnotes_before, st
     p.steps = steps_before
     p.footnotes = footnotes_before
     p.renumber_footnotes(new_ids)
+
+    assert p.steps == steps_after
+    assert p.footnotes == footnotes_after
+
+@parametrize_from_file(schema=Schema({str: eval_footnotes}))
+def test_protocol_deduplicate_footnotes(steps_before, footnotes_before, steps_after, footnotes_after):
+    p = Protocol()
+    p.steps = steps_before
+    p.footnotes = footnotes_before
+    p.deduplicate_footnotes()
 
     assert p.steps == steps_after
     assert p.footnotes == footnotes_after

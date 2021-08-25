@@ -425,6 +425,23 @@ class Protocol:
                 for k,v in self.footnotes.items()
         }
 
+    def deduplicate_footnotes(self):
+        duplicate_ids = {}
+
+        for k, v in self.footnotes.items():
+            note = format_text(v, inf)
+            duplicate_ids.setdefault(note, []).append(k)
+
+        new_ids = {}
+        for ids in duplicate_ids.values():
+            new_id = min(ids)
+
+            for id in ids:
+                assert id not in new_ids
+                new_ids[id] = new_id
+
+        self.renumber_footnotes(new_ids)
+
     def merge_footnotes(self):
         """
         Look for footnotes that appear back to back (e.g. possibly due to 
