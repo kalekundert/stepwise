@@ -69,6 +69,27 @@ def test_reagent_volume_implicit_solvent():
     for reagent in rxn:
         assert reagent.volume == '10 µL'
 
+def test_is_empty():
+    rxn = Reaction()
+
+    rxn['x'].volume = 0, 'µL'
+    assert rxn['x'].is_empty()
+
+    rxn['x'].volume = 0.004, 'µL'
+    assert rxn['x'].is_empty()
+
+    rxn['x'].volume = 0.005, 'µL'
+    assert not rxn['x'].is_empty()
+
+    rxn['x'].volume = 0.04, 'µL'
+    assert rxn['x'].is_empty(precision=1)
+
+    rxn['x'].volume = 0.05, 'µL'
+    assert not rxn['x'].is_empty(precision=1)
+
+    rxn['x'].volume = 1, 'µL'
+    assert not rxn['x'].is_empty()
+
 @pytest.mark.parametrize(
         'given,expected', [
             (Q('1 ng/µL'), Q('1 ng/µL')),
@@ -459,6 +480,23 @@ def test_reaction_iter_sorting_solvent():
     rxn['x'].order = 1
     assert as_list(rxn) == ['x', 'w']
 
+@parametrize_from_file(
+        schema=Schema({
+            'volumes_uL': {str: Coerce(float)},
+            'expected': [str],
+        }),
+)
+def test_reaction_iter_nonzero(volumes_uL, expected):
+    as_list = lambda rxn: [x.name for x in rxn]
+
+    rxn = Reaction()
+    del rxn['water']
+
+    for k, v in volumes_uL.items():
+        rxn[k].volume = v, 'µL'
+
+    assert as_list(rxn.iter_nonzero_reagents()) == expected
+
 def test_reaction_iter_non_solvent():
     as_list = lambda rxn: [x.name for x in rxn]
 
@@ -492,7 +530,6 @@ def test_reaction_iter_by_flag():
     assert as_list(rxn.iter_reagents_by_flag('a')) == ['x']
     rxn['x'].flags.remove('a')
     assert as_list(rxn.iter_reagents_by_flag('a')) == []
-
 
 def test_reaction_len_contains():
     rxn = Reaction()
@@ -552,6 +589,49 @@ def test_reaction_delitem():
     del rxn['w']
     assert 'w' not in rxn
     assert rxn.solvent == None
+
+def test_reaction_copy_reagent():
+    rxn = Reaction()
+    rxn['x'].name = 'X'
+    rxn['x'].volume = 1, 'µL'
+    rxn['x'].stock_conc = 2, 'ng/µL'
+    rxn['x'].master_mix = 3
+    rxn['x'].flags = {4}
+    rxn['x'].catalog_num = 5
+
+    rxn.copy_reagent('x', 'y')
+
+    # Make sure all attributes were copied:
+    assert len(rxn) == 3
+    assert rxn['y'].name == 'X'
+    assert rxn['y'].stock_conc == (2, 'ng/µL')
+    assert rxn['y'].master_mix == 3
+    assert rxn['y'].flags == {4}
+    assert rxn['y'].catalog_num == 5
+
+    # Make sure attributes were deep/shallow copied, as appropriate:
+
+    rxn['x'].flags.add(6)
+    rxn['y'].flags.add(7)
+
+    assert rxn['y'].reaction is rxn['x'].reaction
+    assert rxn['x'].flags == {4, 6}
+    assert rxn['y'].flags == {4, 7}
+
+def test_reaction_copy_reagent_err_solvent():
+    rxn = Reaction()
+    rxn.solvent = 'w'
+
+    with pytest.raises(UsageError, match="can't copy the solvent"):
+        rxn.copy_reagent('w', 'x')
+
+def test_reaction_copy_reagent_err_existing():
+    rxn = Reaction()
+    rxn['x'].name = 'X'
+    rxn['y'].name = 'Y'
+
+    with pytest.raises(UsageError, match="can't overwrite existing reagent"):
+        rxn.copy_reagent('x', 'y')
 
 @pytest.mark.parametrize(
         'given,expected', [

@@ -115,7 +115,10 @@ class MasterMix:
         return deepcopy(self)
 
     def iter_master_mix_reagents(self):
-        yield from [x for x in self if x.master_mix]
+        yield from (
+                x for x in self.iter_nonzero_reagents()
+                if x.master_mix
+        )
 
     def get_master_mix_volume(self):
         v = 0
@@ -145,10 +148,7 @@ class MasterMix:
 
     def format_text(self, width=inf, **kwargs):
         # Leave out reagents that round to 0 volume.
-        reagents = [
-                x for x in self
-                if f'{abs(x.volume.value):.2f}' != '0.00'
-        ]
+        reagents = list(self.iter_nonzero_reagents())
         show_master_mix = not any([
                 # Nothing in the master mix:
                 sum(x.master_mix for x in reagents) <= 1,
@@ -480,6 +480,9 @@ class Reaction:
                 key=by_order,
         )
 
+    def iter_nonzero_reagents(self, precision=2):
+        yield from (x for x in self if not x.is_empty(precision))
+
     def iter_non_solvent_reagents(self):
         for reagent in self:
             if reagent.key != self._solvent:
@@ -551,6 +554,17 @@ class Reaction:
                 self._reagents[key] = Reagent(self, key)
 
         return self._reagents[key]
+
+    def copy_reagent(self, old_key, new_key):
+        if old_key == self.solvent:
+            raise UsageError("can't copy the solvent")
+        if new_key in self:
+            raise UsageError("can't overwrite existing reagent")
+
+        memo = {id(self): self}
+        new_reagent = deepcopy(self._reagents[old_key], memo)
+        new_reagent._key = new_key
+        self._reagents[new_key] = new_reagent
 
     @property
     def hold_ratios(self):
@@ -674,6 +688,10 @@ class Reagent:
 
     def del_volume(self, volume):
         self._volume = None
+
+    def is_empty(self, precision=2):
+        self.require_volume()
+        return rounds_to_zero(self.volume.value, precision)
 
     def get_conc(self):
         self.require_volume()
@@ -917,6 +935,9 @@ class Solvent:
     def set_volume(self, volume):
         raise NotImplementedError("cannot directly set solvent volume, set the reaction volume instead.")
 
+    def is_empty(self, precision=2):
+        return rounds_to_zero(self.volume.value, precision)
+
     def get_stock_conc(self):
         return self._stock_conc
 
@@ -925,4 +946,8 @@ class Solvent:
 
     def require_volume(self):
         self._reaction.require_volume()
+
+
+def rounds_to_zero(x, precision=2):
+    return f'{abs(x):.{precision}f}' == f'{0:.{precision}f}'
 

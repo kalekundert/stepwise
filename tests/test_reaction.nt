@@ -30,3 +30,40 @@ test_fix_volumes:
     acceptor_before: 1
     acceptor_after: 1
 
+test_reaction_iter_nonzero:
+  -
+    volumes_uL:
+      {}
+    expected:
+      []
+  -
+    volumes_uL:
+      x: 1
+    expected:
+      [x]
+  -
+    volumes_uL:
+      x: 1
+      y: 1
+    expected:
+      [x, y]
+  -
+    volumes_uL:
+      x: 1
+      y: 0
+    expected:
+      [x]
+  -
+    volumes_uL:
+      x: 1
+      y: 0.005
+    expected:
+      [x, y]
+  -
+    volumes_uL:
+      x: 1
+      y: 0.004
+    expected:
+      [x]
+
+
