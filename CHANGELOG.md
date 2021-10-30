@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.28.0 (2021-10-30)
+### Feature
+* Copy reagents, ignore 0-volume reagents ([`10574e6`](https://github.com/kalekundert/stepwise/commit/10574e643e1967a7c46b3c71822d66618927eb86))
+
 ## v0.27.2 (2021-08-25)
 ### Fix
 * Allow preset config layers to be any iterable ([`0fa087d`](https://github.com/kalekundert/stepwise/commit/0fa087d85adc7b490f468cc175fe0af2f0c1a640))

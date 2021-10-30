@@ -4,7 +4,7 @@
 Wetlab protocols that follow the Unix philosophy.
 """
 
-__version__ = '0.27.2'
+__version__ = '0.28.0'
 
 from .protocol import *
 from .reaction import *
