@@ -39,6 +39,7 @@ class MasterMix:
         self.extra_volume = 0
         self.extra_min_volume = 0  # Minimum volume of any reagent.
         self.show_1x = True
+        self.show_concs = False
         self.show_master_mix = None
         self.show_totals = True
 
@@ -167,9 +168,12 @@ class MasterMix:
             cols = list(cols)
 
             if not show_master_mix:
-                del cols[3]
+                del cols[4]
             if not self.show_1x:
+                del cols[3]
+            if not self.show_concs:
                 del cols[2]
+
             return cols
 
         def scale_header():
@@ -184,6 +188,7 @@ class MasterMix:
         header = cols(
                 "Reagent",
                 "Stock",
+                "Final",
                 "Volume",
                 scale_header(),
         )
@@ -191,6 +196,7 @@ class MasterMix:
                 cols(
                     x.name,
                     x.stock_conc or '',
+                    x.conc_or_none or '',
                     f'{x.volume:.2f}',
                     f'{x.volume * self.scale:.2f}' if x.master_mix else '',
                 )
@@ -199,10 +205,11 @@ class MasterMix:
         footer = None if not self.show_totals else cols(
                 '',
                 '',
+                '',
                 f'{self.volume:.2f}',
                 f'{self.master_mix_volume:.2f}',
         )
-        align = cols(*'<>>>')
+        align = cols(*'<>>>>')
 
         table = tabulate(rows, header, footer, align=align)
 
@@ -335,6 +342,11 @@ class Reaction:
         either booleans or the strings "yes", "y", "no", or "n".  The values in 
         the "Flags" column should be a comma-separated list of keywords.
         """
+
+        # TODO: specify concentrations
+        # - Need at least one volume.
+        # - If "to xx µL", use that as total volume
+        # - Otherwise, add up all volumes and solve algebra
 
         # Use consistent column names:
 
@@ -701,6 +713,12 @@ class Reagent:
         ratio = self._volume / self._reaction.volume
         return self._stock_conc * ratio
 
+    def get_conc_or_none(self):
+        try:
+            return self.conc
+        except ValueError:
+            return None
+
     def get_stock_conc(self):
         return self._stock_conc
 
@@ -937,6 +955,12 @@ class Solvent:
 
     def is_empty(self, precision=2):
         return rounds_to_zero(self.volume.value, precision)
+
+    def get_conc(self):
+        raise ValueError("solvents cannot have concentrations")
+
+    def get_conc_or_none(self):
+        return None
 
     def get_stock_conc(self):
         return self._stock_conc
