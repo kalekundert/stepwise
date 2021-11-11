@@ -755,210 +755,25 @@ def test_reaction_hold_ratios_no_solvent():
     assert rxn['x'].volume == '2 µL'
     assert rxn['y'].volume == '4 µL'
 
-@pytest.mark.parametrize(
-        'cols,volume,reagents', [(
-
-        # Solvent only:
-            {
-                'reagent': ['w'],
-                'stock_conc': [''],
-                'volume': ['to 5 µL'],
-                'master_mix': ['y'],
-            },
-            '5 µL', {
-                'w': ('5 µL', ..., True),
-            },
-        ), (
-
-        # Reagent only:
-            {
-                'reagent': ['x'],
-                'stock_conc': ['2x'],
-                'volume': ['3 µL'],
-                'master_mix': ['y'],
-            },
-            '3 µL', {
-                'x': ('3 µL', '2x', True),
-            },
-        ), (
-
-        # Solvent and reagent:
-            {
-                'reagent': ['w', 'x'],
-                'stock_conc': ['', '2x'],
-                'volume': ['to 8 µL', '3 µL'],
-                'master_mix': ['y', 'n'],
-            },
-            *wx,
-        ), (
-
-        # Column aliases:
-            {
-                'Reagent': ['w', 'x'],
-                'Stock': ['', '2x'],
-                'Volume': ['to 8 µL', '3 µL'],
-                'MM?': ['y', 'n'],
-            },
-            *wx,
-        ), (
-
-        # Extra columns:
-            {
-                'reagent': ['w', 'x'],
-                'stock_conc': ['', '2x'],
-                'volume': ['to 8 µL', '3 µL'],
-                'master_mix': ['y', 'n'],
-                'note': ['lorem', 'ipsum'],
-            },
-            *wx,
-        ), (
-
-        # Optional columns:
-            {
-                'reagent': ['w', 'x'],
-                'stock_conc': ['', '2x'],
-                'volume': ['to 8 µL', '3 µL'],
-            },
-            '8 µL', {
-                'w': ('5 µL',  ..., True),
-                'x': ('3 µL', '2x', True),
-            }
-        ), (
-
-        # Default values:
-            {
-                'reagent': ['w', 'x'],
-                'stock_conc': ['', ''],
-                'volume': ['to 8 µL', '3 µL'],
-                'master_mix': ['y', 'n'],
-            },
-            '8 µL', {
-                'w': ('5 µL',  ..., True),
-                'x': ('3 µL', None, False),
-            }
-        ), (
-            {
-                'reagent': ['w', 'x'],
-                'stock_conc': ['', '2x'],
-                'volume': ['to 8 µL', '3 µL'],
-                'master_mix': ['n', 'n'],
-            },
-            '8 µL', {
-                'w': ('5 µL',  ..., False),
-                'x': ('3 µL', '2x', False),
-            }
-        ), (
-
-        # Whitespace:
-            {
-                'reagent': [' w ', ' x '],
-                'stock_conc': ['  ', ' 2x '],
-                'volume': [' to 8 µL ', ' 3 µL '],
-                'master_mix': [' y ', ' n '],
-            },
-            '8 µL', {
-                'w': ('5 µL',  ..., True),
-                'x': ('3 µL', '2x', False),
-            },
-
-        )]
+@parametrize_from_file(
+        schema=Schema({
+            'cols': {str: [str]},
+            **with_stepwise.error_or({
+                'volume': str,
+                'expected': with_python.eval,
+            })
+        }),
 )
-def test_reaction_from_cols(cols, volume, reagents):
-    rxn = Reaction.from_cols(cols)
+def test_reaction_from_cols(cols, volume, expected, error):
+    with error:
+        rxn = Reaction.from_cols(cols)
 
-    assert len(rxn) == len(reagents)
-    assert rxn.volume == volume
+        assert len(rxn) == len(expected)
+        assert rxn.volume == volume
 
-    for name, expected in reagents.items():
-        volume, stock_conc, master_mix = expected
-        if volume != ...:     assert rxn[name].volume == volume
-        if stock_conc != ...: assert rxn[name].stock_conc == stock_conc
-        if master_mix != ...: assert rxn[name].master_mix == master_mix
-
-@pytest.mark.parametrize(
-        'cols,err', [(
-            {
-                'reagent': [],
-                'stock_conc': [],
-                'volume': [],
-                'master_mix': [],
-            },
-            "at least one reagent",
-        ), (
-            {
-                'reagent': ['w', 'x'],
-                'Reagent': ['w', 'x'],
-                'stock_conc': ['', '2x'],
-                'volume': ['to 8 µL', '3 µL'],
-                'master_mix': ['y', 'n'],
-            },
-            "multiple 'reagent' columns found: 'Reagent', 'reagent'",
-        ), (
-            {
-                'stock_conc': ['', '2x'],
-                'volume': ['to 5 µL', '3 µL'],
-                'master_mix': ['y', 'n'],
-            },
-            "no 'reagent' column",
-        ), (
-            {
-                'reagent': ['w', 'x'],
-                'volume': ['to 5 µL', '3 µL'],
-                'master_mix': ['y', 'n'],
-            },
-            "no 'stock_conc' column",
-        ), (
-            {
-                'reagent': ['w', 'x'],
-                'stock_conc': ['', '2x'],
-                'master_mix': ['y', 'n'],
-            },
-            "no 'volume' column",
-        ), (
-            {
-                'reagent': ['w'],
-                'stock_conc': ['', '2x'],
-                'volume': ['to 5 µL', '3 µL'],
-                'master_mix': ['y', 'n'],
-            },
-            "different numbers of rows: 1, 2"
-        ), (
-            {
-                'reagent': ['', 'x'],
-                'stock_conc': ['', '2x'],
-                'volume': ['to 5 µL', '3 µL'],
-                'master_mix': ['y', 'n'],
-            },
-            "missing names",
-        ), (
-            {
-                'reagent': ['w', 'x'],
-                'stock_conc': ['', '2x'],
-                'volume': ['', '3 µL'],
-                'master_mix': ['y', 'n'],
-            },
-            "missing volumes",
-        ), (
-            {
-                'reagent': ['w', 'x'],
-                'stock_conc': ['', '2x'],
-                'volume': ['to 8 µL', 'to 8 µL'],
-                'master_mix': ['y', 'n'],
-            },
-            "multiple solvents specified",
-        ), (
-            {
-                'reagent': ['w', 'x'],
-                'stock_conc': ['', '2x'],
-                'volume': ['to 8 µL', '3 µL'],
-                'master_mix': ['maybe', 'n'],
-            },
-            "expected 'yes' or 'no', got 'maybe'",
-        )]
-)
-def test_reaction_from_cols_raises(cols, err):
-    with pytest.raises(UsageError, match=err):
-        Reaction.from_cols(cols)
+        for name, attrs in expected.items():
+            for attr, value in attrs.items():
+                assert getattr(rxn[name], attr) == value
 
 @pytest.mark.parametrize(
         'text,volume,reagents', [(

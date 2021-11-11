@@ -66,6 +66,461 @@ test_reaction_iter_nonzero:
     expected:
       [x]
 
+test_reaction_from_cols:
+  -
+    id: solvent-only
+    cols:
+      reagent:
+        - w
+      stock_conc:
+        -
+      volume:
+        - to 5 µL
+      master_mix:
+        - y
+
+    volume: 5 µL
+    expected:
+      w:
+        volume: '5 µL'
+        master_mix: True
+  -
+    id: reagent-only
+    cols:
+      reagent:
+        - x
+      stock_conc:
+        - 2x
+      volume:
+        - 3 µL
+      master_mix:
+        - y
+
+    volume: 3 µL
+    expected:
+      x:
+        volume: '3 µL'
+        stock_conc: '2x'
+        master_mix: True
+  -
+    id: solvent-and-reagent
+    cols:
+      reagent:
+        - w
+        - x
+      stock_conc:
+        -
+        - 2x
+      volume:
+        - to 8 µL
+        - 3 µL
+      master_mix:
+        - y
+        - n
+
+    volume: 8 µL
+    expected:
+      w:
+        volume: '5 µL'
+        master_mix: True
+      x:
+        volume: '3 µL'
+        stock_conc: '2x'
+        master_mix: False
+  -
+    id: stock-with-solvent
+    cols:
+      reagent:
+        - w
+        - x
+      stock_conc:
+        -
+        - 2x
+      volume:
+        - to 8 µL
+        - 3 µL
+      master_mix:
+        - y
+        - n
+
+    volume: 8 µL
+    expected:
+      w:
+        volume: '5 µL'
+        master_mix: True
+      x:
+        volume: '3 µL'
+        stock_conc: '2x'
+        master_mix: False
+  -
+    id: conc-with-solvent
+    cols:
+      reagent:
+        - w
+        - x
+      stock_conc:
+        -
+        - 4x
+      conc:
+        -
+        - 1x
+      volume:
+        - to 8 µL
+        -
+
+    volume: 8 µL
+    expected:
+      w:
+        volume: '6 µL'
+      x:
+        volume: '2 µL'
+        stock_conc: '4x'
+        conc: '1x'
+  -
+    id: conc-without-solvent
+    cols:
+      reagent:
+        - x
+        - y
+      stock_conc:
+        -
+        - 4x
+      conc:
+        -
+        - 1x
+      volume:
+        - 6 µL
+        -
+
+    volume: 8 µL
+    expected:
+      x:
+        volume: '6 µL'
+      y:
+        volume: '2 µL'
+        stock_conc: '4x'
+        conc: '1x'
+  -
+    id: column-aliases
+    cols:
+      Reagent:
+        - w
+        - x
+      Stock:
+        -
+        - 2x
+      Volume:
+        - to 8 µL
+        - 3 µL
+      MM?:
+        - y
+        - n
+
+    volume: 8 µL
+    expected:
+      w:
+        volume: '5 µL'
+        master_mix: True
+      x:
+        volume: '3 µL'
+        stock_conc: '2x'
+        master_mix: False
+  -
+    id: extra-columns
+    cols:
+      reagent:
+        - w
+        - x
+      stock_conc:
+        -
+        - 2x
+      volume:
+        - to 8 µL
+        - 3 µL
+      master_mix:
+        - y
+        - n
+      note:
+        - lorem
+        - ipsum
+
+    volume: 8 µL
+    expected:
+      w:
+        volume: '5 µL'
+        master_mix: True
+      x:
+        volume: '3 µL'
+        stock_conc: '2x'
+        master_mix: False
+  -
+    id: assume-master-mix-if-col-missing
+    cols:
+      reagent:
+        - w
+        - x
+      stock_conc:
+        -
+        - 2x
+      volume:
+        - to 8 µL
+        - 3 µL
+
+    volume: 8 µL
+    expected:
+      w:
+        volume: '5 µL'
+        master_mix: True
+      x:
+        volume: '3 µL'
+        stock_conc: '2x'
+        master_mix: True
+  -
+    id: default-values
+    cols:
+      reagent:
+        - w
+        - x
+      stock_conc:
+        -
+        -
+      volume:
+        - to 8 µL
+        - 3 µL
+      master_mix:
+        - y
+        - n
+
+    volume: 8 µL
+    expected:
+      w:
+        volume: '5 µL'
+        master_mix: True
+      x:
+        volume: '3 µL'
+        stock_conc: None
+        master_mix: False
+  -
+    id: default-values
+    cols:
+      reagent:
+        - w
+        - x
+      stock_conc:
+        -
+        - 2x
+      volume:
+        - to 8 µL
+        - 3 µL
+      master_mix:
+        - n
+        - n
+
+    volume: 8 µL
+    expected:
+      w:
+        volume: '5 µL'
+        master_mix: False
+      x:
+        volume: '3 µL'
+        stock_conc: '2x'
+        master_mix: False
+  -
+    id: whitespace
+    cols:
+      reagent:
+        -  w 
+        -  x 
+      stock_conc:
+        -  
+        -  2x 
+      volume:
+        -  to 8 µL 
+        -  3 µL 
+      master_mix:
+        -  y 
+        -  n 
+
+    volume: 8 µL
+    expected:
+      w:
+        volume: '5 µL'
+        master_mix: True
+      x:
+        volume: '3 µL'
+        stock_conc: '2x'
+        master_mix: False
+
+  -
+    id: err-no-reagents
+    cols:
+      reagent:
+        []
+      stock_conc:
+        []
+      volume:
+        []
+      master_mix:
+        []
+    error:
+      type: UsageError
+      message: at least one reagent
+  -
+    id: err-duplicate-cols
+    cols:
+      reagent:
+        - w
+        - x
+      Reagent:
+        - w
+        - x
+      stock_conc:
+        -
+        - 2x
+      volume:
+        - to 8 µL
+        - 3 µL
+      master_mix:
+        - y
+        - n
+    error:
+      type: UsageError
+      message: multiple 'reagent' columns found: 'Reagent', 'reagent'
+  -
+    id: err-no-reagent-col
+    cols:
+      stock_conc:
+        -
+        - 2x
+      volume:
+        - to 5 µL
+        - 3 µL
+      master_mix:
+        - y
+        - n
+    error:
+      type: UsageError
+      message: no 'reagent' column
+  -
+    id: err-no-stock-col
+    cols:
+      reagent:
+        - w
+        - x
+      volume:
+        - to 5 µL
+        - 3 µL
+      master_mix:
+        - y
+        - n
+    error:
+      type: UsageError
+      message: no 'stock_conc' column
+  -
+    id: err-no-volume-col
+    cols:
+      reagent:
+        - w
+        - x
+      stock_conc:
+        -
+        - 2x
+      master_mix:
+        - y
+        - n
+    error:
+      type: UsageError
+      message: no 'volume' column
+  -
+    id: err-inconsistent-rows
+    cols:
+      reagent:
+        - w
+      stock_conc:
+        -
+        - 2x
+      volume:
+        - to 5 µL
+        - 3 µL
+      master_mix:
+        - y
+        - n
+    error:
+      type: UsageError
+      message: different numbers of rows: 1, 2
+  -
+    id: err-missing-names
+    cols:
+      reagent:
+        -
+        - x
+      stock_conc:
+        -
+        - 2x
+      volume:
+        - to 5 µL
+        - 3 µL
+      master_mix:
+        - y
+        - n
+    error:
+      type: UsageError
+      message: missing names
+  -
+    id: err-missing-vol
+    cols:
+      reagent:
+        - w
+        - x
+      stock_conc:
+        -
+        - 2x
+      volume:
+        -
+        - 3 µL
+      master_mix:
+        - y
+        - n
+    error:
+      type: UsageError
+      message: must specify either volume or concentration for 'w'
+  -
+    id: err-two-solvents
+    cols:
+      reagent:
+        - w
+        - x
+      stock_conc:
+        -
+        - 2x
+      volume:
+        - to 8 µL
+        - to 8 µL
+      master_mix:
+        - y
+        - n
+    error:
+      type: UsageError
+      message: multiple solvents specified: 'w', 'x'
+  -
+    id: err-parse-bool
+    cols:
+      reagent:
+        - w
+        - x
+      stock_conc:
+        -
+        - 2x
+      volume:
+        - to 8 µL
+        - 3 µL
+      master_mix:
+        - maybe
+        - n
+    error:
+      type: UsageError
+      message: expected 'yes' or 'no', got 'maybe'
+
 test_master_mix_format_text:
   -
     id: num_reactions=1

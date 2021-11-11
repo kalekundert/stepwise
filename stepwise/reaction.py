@@ -287,6 +287,7 @@ class Reaction:
         - "Reagent"
         - "Stock" or "Stock Conc"
         - "Volume"
+        - "Conc", "Final", or "Final Conc"
         - "Master Mix" or "MM?"
         - "Flags"
         - "Catalog #" or "Cat"
@@ -294,9 +295,9 @@ class Reaction:
         Extra columns will be ignored.  The columns are delineated by looking 
         for breaks of at least 2 spaces in the underline below the header.  
         Either '=' or '-' can be used for the underline.  The values in the 
-        "Stock Conc" and "Volume" columns must have units.  The values in the 
-        "Master Mix" column must be either "yes", "no", or "" (which means 
-        "no").
+        "Stock Conc", "Conc", and "Volume" columns must have units.  The values 
+        in the "Master Mix" column must be either "yes", "no", "+", "-", or "" 
+        (which means "no").
         """
         lines = text.rstrip().splitlines()
 
@@ -351,15 +352,20 @@ class Reaction:
         # Use consistent column names:
 
         column_aliases = {
-                'volume': {
-                    'Volume',
-                },
                 'reagent': {
                     'Reagent',
                 },
                 'stock_conc': {
                     'Stock Conc',
                     'Stock',
+                },
+                'conc': {
+                    'Final Conc',
+                    'Final',
+                    'Conc',
+                },
+                'volume': {
+                    'Volume',
                 },
                 'master_mix': {
                     'Master Mix',
@@ -419,20 +425,19 @@ class Reaction:
                 too_long=UsageError(f"columns have different numbers of rows: {', '.join(map(str, x))}"),
         )
         if num_rows == 0:
-            raise UsageError("reaction must have at least one reagent.")
+            raise UsageError("reaction must have at least one reagent")
 
         def optional_column(key, default=''):
             if key not in cols:
                 cols[key] = num_rows * [default]
         
+        optional_column('conc')
         optional_column('master_mix', 'y')
         optional_column('catalog_num')
         optional_column('flags')
 
         if not all(cols['reagent']):
-            raise UsageError("some reagents are missing names.")
-        if not all(cols['volume']):
-            raise UsageError("some reagents are missing volumes.")
+            raise UsageError("some reagents are missing names")
 
         # Configure the reaction:
 
@@ -449,12 +454,17 @@ class Reaction:
         def parse_comma_set(x):
             return set(x.split(','))
 
+        conc_rows = []
+        has_solvent = False
+
         for i in range(num_rows):
             is_solvent = cols['volume'][i].startswith('to')
 
             if is_solvent:
+                has_solvent = True
+
                 if rxn.solvent:
-                    raise UsageError("multiple solvents specified: {rxn.solvent!r}, {cols['reagent'][i]!r}")
+                    raise UsageError(f"multiple solvents specified: {rxn.solvent!r}, {cols['reagent'][i]!r}")
 
                 # Have to set the solvent before adding the reagent, because 
                 # reagents can't be turned into solvents.
@@ -468,8 +478,42 @@ class Reaction:
 
             if (x := cols['stock_conc'][i]):
                 reagent.stock_conc = x
+
             if not is_solvent:
-                reagent.volume = cols['volume'][i]
+                volume_str = cols['volume'][i]
+                conc_str = cols['conc'][i]
+
+
+                if volume_str and conc_str:
+                    raise UsageError(f"cannot specify volume ({volume_str!r}) and concentration ({conc_str!r}) for {reagent.name!r}")
+                elif volume_str:
+                    reagent.volume = cols['volume'][i]
+                elif conc_str:
+                    conc_rows.append((reagent, conc_str))
+                else:
+                    raise UsageError(f"must specify either volume or concentration for {reagent.name!r}")
+
+        # Convert concentrations to volumes in a second pass.
+
+        if has_solvent:
+            for reagent, conc_str in conc_rows:
+                reagent.hold_stock_conc.conc = conc_str
+
+        else:
+            known_volumes = [x.volume or 0 for x in rxn]
+            if not known_volumes:
+                raise UsageError("must specify at least one volume")
+
+            dilution_factors = []
+            for reagent, conc_str in conc_rows:
+                reagent.require_stock_conc()
+                dilution_factors.append(conc_str / reagent.stock_conc)
+
+            coeff = 1 - sum(dilution_factors)
+            v = sum(known_volumes) / coeff
+
+            for (reagent, _), factor in zip(conc_rows, dilution_factors):
+                reagent.volume = v * factor
 
         return rxn
 
