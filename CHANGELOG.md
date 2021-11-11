@@ -2,6 +2,11 @@
 
 <!--next-version-placeholder-->
 
+## v0.29.0 (2021-11-11)
+### Feature
+* Accept "conc" column in MasterMix.from_text() ([`b2727e7`](https://github.com/kalekundert/stepwise/commit/b2727e73c7ffe21ab983e7e080dd199b0c673819))
+* Show concentrations in reaction tables ([`4afca87`](https://github.com/kalekundert/stepwise/commit/4afca87177476a7d649cce12f63daff98583bef5))
+
 ## v0.28.0 (2021-10-30)
 ### Feature
 * Copy reagents, ignore 0-volume reagents ([`10574e6`](https://github.com/kalekundert/stepwise/commit/10574e643e1967a7c46b3c71822d66618927eb86))
