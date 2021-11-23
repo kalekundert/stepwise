@@ -153,7 +153,7 @@ class Printer:
         ).encode()
         print_cmd = ' | '.join([
                 f'paps {self.paps_flags}',
-                f'lpr {self.lpr_flags}',
+                f'lpr -P {self.preset} {self.lpr_flags}',
         ])
         lpr = Popen(print_cmd, shell=True, stdin=PIPE)
         lpr.communicate(input=document)
