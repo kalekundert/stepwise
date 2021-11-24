@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.29.1 (2021-11-24)
+### Fix
+* Print to the specified printer ([`77eea75`](https://github.com/kalekundert/stepwise/commit/77eea7574d0659a598e3d3eff8e7b05cf336ac8a))
+
 ## v0.29.0 (2021-11-11)
 ### Feature
 * Accept "conc" column in MasterMix.from_text() ([`b2727e7`](https://github.com/kalekundert/stepwise/commit/b2727e73c7ffe21ab983e7e080dd199b0c673819))
