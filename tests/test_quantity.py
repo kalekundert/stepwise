@@ -4,6 +4,7 @@ import pytest
 from stepwise import Quantity, Q
 from math import *
 from operator import *
+from fractions import Fraction
 
 @pytest.mark.parametrize(
         'value,unit,err', [
@@ -21,6 +22,7 @@ def test_init_err(value, unit, err):
         'given,expected', [
             (Quantity(1, 'ng'), "Quantity(1, 'ng')"),
             (Quantity(1, '%'),  "Quantity(1, '%')"),
+            (Quantity(Fraction(1,2), 'x'), "Quantity(Fraction(1, 2), 'x')"),
 ])
 def test_repr(given, expected):
     assert repr(given) == expected
@@ -28,7 +30,8 @@ def test_repr(given, expected):
 @pytest.mark.parametrize(
         'given,expected', [
             (Quantity(1, 'ng'), '1 ng'),
-            (Quantity(1, '%'),    '1%'),
+            (Quantity(1, '%'), '1%'),
+            (Quantity(Fraction(1,2), 'x'), '1/2x'),
 ])
 def test_str(given, expected):
     assert str(given) == expected
@@ -139,6 +142,7 @@ def test_from_string_or_float(value, default_unit, expected):
             ((1, 'µL'), Quantity(1, 'µL')),
             ((1, '%'),  Quantity(1, '%')),
             (('1', 'ng'), Quantity(1, 'ng')),
+            ((Fraction(1,2), 'x'), Quantity(Fraction(1,2), 'x')),
 ])
 def test_from_tuple(given, expected):
     assert Quantity.from_tuple(given) == expected

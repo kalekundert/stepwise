@@ -61,7 +61,10 @@ class Quantity(Real):
 
 
     def __init__(self, value, unit):
-        self._value = float(value)
+        if not isinstance(value, Real):
+            value = float(value)
+
+        self._value = value
         self._unit = unit
 
         if not re.fullmatch(self.UNIT_REGEX, unit):
@@ -73,7 +76,7 @@ class Quantity(Real):
         self._unit = unit.replace('\u03bc', 'µ')
 
     def __repr__(self):
-        return f'Quantity({self.value:g}, {self.unit!r})'
+        return f'Quantity({self.value!r}, {self.unit!r})'
 
     def __str__(self):
         return self.format()
@@ -97,8 +100,10 @@ class Quantity(Real):
         return self._value, self._unit
 
     def format(self, spec=''):
+        if not spec and isinstance(self.value, float):
+            spec = 'g'
         padding = '' if self.unit in self.NO_PADDING else ' '
-        return f'{self.value:{spec or "g"}}{padding}{self.unit}'
+        return f'{self.value:{spec}}{padding}{self.unit}'
 
     def convert_unit(self, new_unit, conversion_factors):
         """
