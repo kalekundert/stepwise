@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.30.0 (2022-03-11)
+### Feature
+* Allow quantity values to be any Real type ([`a25074b`](https://github.com/kalekundert/stepwise/commit/a25074bf730dd0b0db235a03efe96afcf9480d4a))
+
 ## v0.29.1 (2021-11-24)
 ### Fix
 * Print to the specified printer ([`77eea75`](https://github.com/kalekundert/stepwise/commit/77eea7574d0659a598e3d3eff8e7b05cf336ac8a))
