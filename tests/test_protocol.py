@@ -11,7 +11,7 @@ from param_helpers import *
 
 parse = Protocol.parse
 merge = Protocol.merge
-eval_footnotes = partial(eval_stepwise, eval_keys=True)
+eval_footnotes = partial(eval_stepwise, keys=True)
 
 class MergeParams(Params):
     args = 'inputs, output'
