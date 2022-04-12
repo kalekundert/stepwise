@@ -439,6 +439,87 @@ test_main:
     stderr: ^$
     return_code: 0
   -
+    id: sub
+    cmd: sw step A | sw sub A B
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      >
+      > 1\. B
+    stderr: ^$
+    return_code: 0
+  -
+    id: sub-reverse-order-between-steps
+    cmd: sw step A | sw step A | sw sub A B
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      > \$ sw step A
+      >
+      > 1\. A
+      >
+      > 2\. B
+    stderr: ^$
+    return_code: 0
+  -
+    id: sub-forward-order-within-step
+    cmd: sw step AA | sw sub A B
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step AA
+      >
+      > 1\. BA
+    stderr: ^$
+    return_code: 0
+  -
+    id: sub-skip-step
+    cmd: sw step A | sw step B | sw sub A C
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      > \$ sw step B
+      >
+      > 1\. C
+      >
+      > 2\. B
+    stderr: ^$
+    return_code: 0
+  -
+    id: sub-count-within-step
+    cmd: sw step AA | sw sub A B -n 2
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step AA
+      >
+      > 1\. BB
+    stderr: ^$
+    return_code: 0
+  -
+    id: sub-count-between-steps
+    cmd: sw step AA | sw step AA | sw sub A B -n 3
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step AA
+      > \$ sw step AA
+      >
+      > 1\. BA
+      > 
+      > 2\. BB
+    stderr: ^$
+    return_code: 0
+  -
+    id: sub-not-found
+    cmd: sw step B | sw sub A B
+    stdout: ^$
+    stderr: .*error.*: pattern 'A' not found in protocol
+    return_code: 1
+  -
     id: which
     cmd: sw which a
     stdout: .*/dummy_home/protocols/a.txt$
