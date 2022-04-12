@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.31.0 (2022-04-12)
+### Feature
+* Add the 'sub' command ([`a334c52`](https://github.com/kalekundert/stepwise/commit/a334c52d40f63ef579519f5e4daa62e1b03e121e))
+
 ## v0.30.0 (2022-03-11)
 ### Feature
 * Allow quantity values to be any Real type ([`a25074b`](https://github.com/kalekundert/stepwise/commit/a25074bf730dd0b0db235a03efe96afcf9480d4a))
