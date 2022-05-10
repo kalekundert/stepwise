@@ -2,6 +2,11 @@
 
 <!--next-version-placeholder-->
 
+## v0.32.0 (2022-05-10)
+### Feature
+* Upgrade to BYOC ([`86bd330`](https://github.com/kalekundert/stepwise/commit/86bd3300dc20ccc904dd60659c9df926ca23b150))
+* Add option to ignore local config ([`a92727d`](https://github.com/kalekundert/stepwise/commit/a92727d6b266d93115b7cc2d79284c6d77fcd246))
+
 ## v0.31.0 (2022-04-12)
 ### Feature
 * Add the 'sub' command ([`a334c52`](https://github.com/kalekundert/stepwise/commit/a334c52d40f63ef579519f5e4daa62e1b03e121e))
