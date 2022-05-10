@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys
+import sys, os
 import appcli
 import autoprop
 
@@ -40,6 +40,8 @@ class StepwiseConfig(appcli.Config):
         yield from self.load_plugins()
 
     def load_app_dirs(self):
+        if os.getenv('STEPWISE_IGNORE_LOCAL_CONFIG') == '1':
+            return
         yield from self.app_dirs.load()
 
     def load_plugins(self):
