@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-import appcli
+import byoc
 import subprocess as subp
 from stepwise import StepwiseCommand, Library
 
@@ -13,13 +13,13 @@ Usage:
     stepwise edit <protocol>
 """
     __config__ = [
-            appcli.DocoptConfig,
+            byoc.DocoptConfig,
     ]
-    protocol = appcli.param('<protocol>')
+    protocol = byoc.param('<protocol>')
 
 
     def main(self):
-        appcli.load(self)
+        byoc.load(self)
 
         library = Library()
         entry = library.find_entry(self.protocol)

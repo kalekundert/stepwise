@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import appcli
+import byoc
 from stepwise import StepwiseCommand
 
 class Metric(StepwiseCommand):
@@ -11,11 +11,11 @@ Usage:
     stepwise metric
 """
     __config__ = [
-            appcli.DocoptConfig,
+            byoc.DocoptConfig,
     ]
     
     def main(self):
-        appcli.load(self)
+        byoc.load(self)
         print("""\
 yotta  Y  10²⁴
 zetta  Z  10²¹

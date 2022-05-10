@@ -2,7 +2,7 @@
 
 import sys
 import shlex
-import appcli
+import byoc
 import autoprop
 
 from inform import warn, format_range
@@ -16,32 +16,32 @@ class Printer:
             StepwiseConfig,
     ]
 
-    presets = appcli.param(
+    presets = byoc.param(
             StepwiseConfig,
             default_factory=dict,
             pick=list,
     )
-    page_height = appcli.param(
+    page_height = byoc.param(
             PresetConfig,
             default=56,
     )
-    page_width = appcli.param(
+    page_width = byoc.param(
             PresetConfig,
             default=78,
     )
-    content_width = appcli.param(
+    content_width = byoc.param(
             PresetConfig,
             default=53,
     )
-    margin_width = appcli.param(
+    margin_width = byoc.param(
             PresetConfig,
             default=10,
     )
-    paps_flags = appcli.param(
+    paps_flags = byoc.param(
             PresetConfig,
             default='--font "FreeMono 12" --paper letter --left-margin 0 --right-margin 0 --top-margin 12 --bottom-margin 12',
     )
-    lpr_flags = appcli.param(
+    lpr_flags = byoc.param(
             PresetConfig,
             default='-o sides=one-sided',
     )

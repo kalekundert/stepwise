@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys, os, re, pickle, shlex, functools
-import appcli
+import byoc
 import inform
 from pathlib import Path
 from contextlib import contextmanager
@@ -47,18 +47,18 @@ class Library:
     """
     __config__ = [StepwiseConfig]
 
-    ignore_globs = appcli.param(
-            'search.ignore',
+    ignore_globs = byoc.param(
+            ('search', 'ignore'),
             cast=Schema([str]),
             default=[],
     )
-    local_paths = appcli.param(
-            'search.find',
+    local_paths = byoc.param(
+            ('search', 'find'),
             cast=Schema([str]),
             default=['protocols'],
     )
-    global_paths = appcli.param(
-            'search.path',
+    global_paths = byoc.param(
+            ('search', 'path'),
             cast=Schema([str]),
             default=[],
     )

@@ -2,6 +2,7 @@
 
 import pytest
 from stepwise import Presets
+from byoc.errors import Log
 from more_itertools import one, flatten
 from operator import attrgetter
 from param_helpers import *
@@ -76,7 +77,7 @@ def test_stepwise_config(files, appdirs, plugins, config_factory, obj, expected,
 
     for key, values in expected.items():
         actual = flatten(
-                layer.iter_values(key, Mock())
+                layer.iter_values(key, Log())
                 for layer in config.load()
         )
         assert list(actual) == values
@@ -96,7 +97,7 @@ def test_stepwise_config(files, appdirs, plugins, config_factory, obj, expected,
 def test_preset_config(config_factory, obj, key, expected, briefs):
     config = config_factory(obj)
     layer = one(config.load())
-    values = layer.iter_values(key, Mock())
+    values = layer.iter_values(key, Log())
 
     assert list(values) == expected
 

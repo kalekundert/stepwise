@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import sys
-import appcli
+import byoc
 from pathlib import Path
 from inform import fatal
 from stepwise import ProtocolIO, Printer, get_default_printer_name, format_protocol, print_protocol
 from stepwise.config import StepwiseCommand, StepwiseConfig
-from appcli import Key, DocoptConfig
+from byoc import Key, DocoptConfig
 from operator import not_
 
 class Go(StepwiseCommand):
@@ -66,30 +66,30 @@ Configuration:
             StepwiseConfig,
     ]
 
-    output_path = appcli.param(
+    output_path = byoc.param(
             Key(DocoptConfig, '--output'),
             default=None,
     )
-    send_to_file = appcli.param(
+    send_to_file = byoc.param(
             Key(DocoptConfig, '--no-file', cast=not_),
             default=True,
     )
-    send_to_printer = appcli.param(
+    send_to_printer = byoc.param(
             Key(DocoptConfig, '--no-print', cast=not_),
             default=True,
     )
-    overwrite_file = appcli.param(
+    overwrite_file = byoc.param(
             Key(DocoptConfig, '--force'),
             default=False,
     )
-    printer_name = appcli.param(
+    printer_name = byoc.param(
             Key(DocoptConfig, '--printer'),
             Key(StepwiseConfig, 'go.printer'),
             default_factory=get_default_printer_name,
     )
 
     def main(self):
-        appcli.load(self)
+        byoc.load(self)
 
         io = ProtocolIO.from_stdin()
         io.make_quiet(self.quiet)

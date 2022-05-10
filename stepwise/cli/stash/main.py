@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import appcli
+import byoc
 from inform import fatal, parse_range
 from stepwise import StepwiseCommand, ProtocolIO, read_merge_write_exit
 
@@ -136,49 +136,49 @@ python could corrupt the stash.
 """
 
     __config__ = [
-            appcli.DocoptConfig,
+            byoc.DocoptConfig,
     ]
 
-    add = appcli.param(default=None)
-    ls = appcli.param(default=None)
-    edit = appcli.param(default=None)
-    peek = appcli.param(default=None)
-    pop = appcli.param(default=None)
-    drop = appcli.param(default=None)
-    restore = appcli.param(default=None)
-    clear = appcli.param(default=None)
-    reset = appcli.param(default=None)
+    add = byoc.param(default=None)
+    ls = byoc.param(default=None)
+    edit = byoc.param(default=None)
+    peek = byoc.param(default=None)
+    pop = byoc.param(default=None)
+    drop = byoc.param(default=None)
+    restore = byoc.param(default=None)
+    clear = byoc.param(default=None)
+    reset = byoc.param(default=None)
 
-    id = appcli.param(
+    id = byoc.param(
             '<id>',
             default=None,
             cast=parse_id,
     )
-    ids = appcli.param(
+    ids = byoc.param(
             '<ids>',
             default=[],
             cast=parse_ids,
     )
-    message = appcli.param(
+    message = byoc.param(
             '--message',
             default=None,
     )
-    categories = appcli.param(
+    categories = byoc.param(
             '--categories',
             default=[],
             cast=parse_categories,
     )
-    dependencies = appcli.param(
+    dependencies = byoc.param(
             '--dependencies',
             default=[],
             cast=parse_dependencies,
     )
-    show_dependents = appcli.param('--show-dependents', default=False)
-    show_all = appcli.param('--all', default=False)
-    explicit = appcli.param('--explicit', default=False)
+    show_dependents = byoc.param('--show-dependents', default=False)
+    show_all = byoc.param('--all', default=False)
+    explicit = byoc.param('--explicit', default=False)
 
     def main(self):
-        appcli.load(self)
+        byoc.load(self)
 
         # Defer importing `sqlalchemy`.
         from . import model

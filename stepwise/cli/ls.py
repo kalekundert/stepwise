@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import appcli
+import byoc
 from itertools import groupby
 from operator import not_
 from stepwise import StepwiseCommand, Library
@@ -21,15 +21,15 @@ Options:
         Don't organize paths by directory.
 """
     __config__ = [
-            appcli.DocoptConfig,
+            byoc.DocoptConfig,
     ]
 
-    protocol = appcli.param('<protocol>', default=None)
-    dirs_only = appcli.param('--dirs', default=False)
-    organize_by_dir = appcli.param('--paths', cast=not_, default=True)
+    protocol = byoc.param('<protocol>', default=None)
+    dirs_only = byoc.param('--dirs', default=False)
+    organize_by_dir = byoc.param('--paths', cast=not_, default=True)
 
     def main(self):
-        appcli.load(self)
+        byoc.load(self)
 
         library = Library()
         entries = library.find_entries(self.protocol)

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import sys, inspect
-import appcli
+import byoc
 from stepwise import ProtocolIO, StepwiseError, read_merge_write_exit, __version__
 from stepwise.utils import load_plugins
 
-class DocoptConfig(appcli.DocoptConfig):
+class DocoptConfig(byoc.DocoptConfig):
     version = __version__
     options_first = True
 
@@ -56,10 +56,10 @@ Examples:
 """
     __config__ = [DocoptConfig]
 
-    command = appcli.param('<command>', default=None)
-    args = appcli.param('<args>', default_factory=list)
-    quiet = appcli.param('--quiet', default=False)
-    force_text = appcli.param('--force-text', default=False)
+    command = byoc.param('<command>', default=None)
+    args = byoc.param('<args>', default_factory=list)
+    quiet = byoc.param('--quiet', default=False)
+    force_text = byoc.param('--force-text', default=False)
 
     def __init__(self):
         self.commands = {
@@ -68,7 +68,7 @@ Examples:
         }
 
     def main(self):
-        appcli.load(self)
+        byoc.load(self)
 
         try:
             

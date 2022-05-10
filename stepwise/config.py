@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
 import sys, os
-import appcli
+import byoc
 import autoprop
 
 from .format import tabulate
 from .utils import load_plugins, sort_plugins
-from appcli import TomlConfig, unbind_method
+from byoc import TomlConfig, unbind_method
 from more_itertools import only, flatten, unique_everseen
 
 class StepwiseCommand:
-    brief = appcli.config_attr()
-    dirs = appcli.config_attr()
+    brief = byoc.config_attr()
+    dirs = byoc.config_attr()
     usage_io = sys.stderr
 
     def __init__(self):
@@ -19,7 +19,7 @@ class StepwiseCommand:
         self.force_text = False
 
 @autoprop
-class StepwiseConfig(appcli.Config):
+class StepwiseConfig(byoc.Config):
     schema = None
     root_key = None
 
@@ -29,7 +29,7 @@ class StepwiseConfig(appcli.Config):
         self.schema = schema or unbind_method(self.schema)
         self.root_key = root_key or self.root_key
 
-        self.app_dirs = appcli.AppDirsConfig(obj)
+        self.app_dirs = byoc.AppDirsConfig(obj)
         self.app_dirs.name = 'conf.toml'
         self.app_dirs.slug = 'stepwise'
         self.app_dirs.schema = self.schema
@@ -67,16 +67,16 @@ class StepwiseConfig(appcli.Config):
         return self.app_dirs.config_paths
 
 @autoprop
-class PresetConfig(appcli.Config):
+class PresetConfig(byoc.Config):
     """
     The presets should be a list of dicts.  If loading the presets using 
-    appcli, you can do this by specifying `pick=list`.
+    BYOC, you can do this by specifying `pick=list`.
     """
     presets_getter = lambda obj: obj.presets
     key_getter = lambda obj: obj.preset
     schema = None
 
-    class Layer(appcli.Layer):
+    class Layer(byoc.Layer):
 
         def __init__(self, presets_getter, key_getter, schema=None):
             self.presets_getter = presets_getter
@@ -84,11 +84,11 @@ class PresetConfig(appcli.Config):
             self.schema = schema
 
         def iter_values(self, key, log):
-            layer_1 = appcli.DictLayer(self.presets_getter())
+            layer_1 = byoc.DictLayer(self.presets_getter())
             preset = only(layer_1.iter_values(self.key_getter(), log))
 
             if preset is not None:
-                layer_2 = appcli.DictLayer(preset, schema=self.schema)
+                layer_2 = byoc.DictLayer(preset, schema=self.schema)
                 yield from layer_2.iter_values(key, log)
 
     def __init__(self, obj, presets_getter=None, key_getter=None, schema=None):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys, re, textwrap
-import appcli
+import byoc
 from inform import fatal
 from operator import not_
 from stepwise import StepwiseCommand, ProtocolIO, pre
@@ -39,15 +39,15 @@ Options:
         `printer.default.content_width` configuration option.
 """
     __config__ = [
-            appcli.DocoptConfig,
+            byoc.DocoptConfig,
     ]
 
-    text = appcli.param('<footnote>')
-    where = appcli.param('<where>', default=None)
-    wrap = appcli.param('--no-wrap', cast=not_, default=True)
+    text = byoc.param('<footnote>')
+    where = byoc.param('<where>', default=None)
+    wrap = byoc.param('--no-wrap', cast=not_, default=True)
 
     def main(self):
-        appcli.load(self)
+        byoc.load(self)
 
         io = ProtocolIO.from_stdin()
         if io.errors:

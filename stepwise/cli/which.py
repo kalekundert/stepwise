@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import appcli
+import byoc
 from stepwise import StepwiseCommand, Library
 
 class Which(StepwiseCommand):
@@ -11,12 +11,12 @@ Usage:
     stepwise which <protocol>
 """
     __config__ = [
-            appcli.DocoptConfig,
+            byoc.DocoptConfig,
     ]
-    protocol = appcli.param('<protocol>')
+    protocol = byoc.param('<protocol>')
 
     def main(self):
-        appcli.load(self)
+        byoc.load(self)
 
         library = Library()
         entries = library.find_entries(self.protocol)

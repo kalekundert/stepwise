@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import appcli
+import byoc
 from stepwise import StepwiseCommand, ProtocolIO, replace_text
 from inform import fatal
 
@@ -25,15 +25,15 @@ Options:
         The maximum number of replacements to make.
 """
     __config__ = [
-            appcli.DocoptConfig,
+            byoc.DocoptConfig,
     ]
 
-    pattern = appcli.param('<pattern>')
-    replace = appcli.param('<replace>', default=None)
-    n = appcli.param('-n', cast=int)
+    pattern = byoc.param('<pattern>')
+    replace = byoc.param('<replace>', default=None)
+    n = byoc.param('-n', cast=int)
 
     def main(self):
-        appcli.load(self)
+        byoc.load(self)
 
         io = ProtocolIO.from_stdin()
         if io.errors:
