@@ -284,6 +284,9 @@ class Protocol:
             elif isinstance(obj, str):
                 protocol = cls(steps=[obj])
 
+            elif hasattr(obj, 'protocol'):
+                protocol = obj.protocol
+
             # The interface specified by `format.Formatter()`:
             elif hasattr(obj, 'format_text') and hasattr(obj, 'replace_text'):
                 protocol = cls(steps=[obj])

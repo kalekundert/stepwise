@@ -13,6 +13,12 @@ parse = Protocol.parse
 merge = Protocol.merge
 eval_footnotes = partial(eval_stepwise, keys=True)
 
+class MockObj:
+
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+
 class MergeParams(Params):
     args = 'inputs, output'
 
@@ -139,6 +145,18 @@ class MergeParams(Params):
             ####################################
             ([
                 pl('Step 1')
+            ],
+                Protocol(
+                    steps=[pl('Step 1')],
+                ),
+            ),
+            ####################################
+            ([
+                MockObj(
+                    protocol=Protocol(
+                        steps=[pl('Step 1')],
+                    ),
+                ),
             ],
                 Protocol(
                     steps=[pl('Step 1')],
