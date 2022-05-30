@@ -3,6 +3,7 @@
 from .format import Formatter, replace_text, _align_indents_if_possible
 from .lists import paragraph_list, unordered_list
 from more_itertools import mark_ends
+from reprfunc import repr_from_init
 
 class preformatted(Formatter):
     """
@@ -13,9 +14,6 @@ class preformatted(Formatter):
 
     def __init__(self, content):
         self.content = str(content)
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}({self.content!r})'
 
     def __eq__(self, other):
         return type(self) == type(other) and self.content == other.content
@@ -46,6 +44,8 @@ class preformatted(Formatter):
     def replace_text(self, pattern, repl, **kwargs):
         # This could mess up the formatting.
         self.content = replace_text(self.content, pattern, repl, **kwargs)
+
+    __repr__ = repr_from_init(cls='pre', positional=['content'])
 
 def step_from_str(step_str, delim, *, wrap=True, level=1):
     fields = split_by_delim_count(step_str, delim, count=level)

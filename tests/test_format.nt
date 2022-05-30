@@ -1,3 +1,29 @@
+test_repr:
+  -
+    obj: pl('a', 'b')
+    expected: pl('a', 'b')
+  -
+    obj: pl('a', 'b', br='\n')
+    expected: pl('a', 'b', br='\n')
+  -
+    obj: ul('a', 'b')
+    expected: ul('a', 'b')
+  -
+    obj: ol('a', 'b')
+    expected: ol('a', 'b')
+  -
+    obj: dl(('a', 'b'), ('c', 'd'))
+    expected: dl(('a', 'b'), ('c', 'd'))
+  -
+    obj: dl(('a', 'b'), ('c', 'd'), prefix='{}; ')
+    expected: dl(('a', 'b'), ('c', 'd'), prefix='{}; ')
+  -
+    obj: dl(('a', 'b'), ('c', 'd'), indent=' ')
+    expected: dl(('a', 'b'), ('c', 'd'), indent=' ')
+  -
+    obj: pre('a')
+    expected: pre('a')
+
 test_format_text:
   -
     id: str-empty
@@ -2044,19 +2070,19 @@ test_step_from_str:
     str: a~b~~c
     delim: ~
     wrap: True
-    expected: pl('a', ul(pl('b', ul('c'))))
+    expected: pl('a', ul(pl('b', ul('c'), br='\n')))
   -
     id: step
     str: a~b~c~~d
     delim: ~
     wrap: True
-    expected: pl('a', ul('b', pl('c', ul('d'))))
+    expected: pl('a', ul('b', pl('c', ul('d'), br='\n')))
   -
     id: step
     str: a~b~~c~d
     delim: ~
     wrap: True
-    expected: pl('a', ul(pl('b', ul('c')), 'd'))
+    expected: pl('a', ul(pl('b', ul('c'), br='\n'), 'd'))
   -
     id: delim
     str: a~b
@@ -2095,6 +2121,7 @@ test_step_from_str:
       >       ul(
       >         pre('c'),
       >       ),
+      >       br='\n',
       >     ),
       >   ),
       > )

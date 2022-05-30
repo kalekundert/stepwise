@@ -5,6 +5,7 @@ from textwrap import shorten
 from shutil import get_terminal_size
 from itertools import repeat, zip_longest
 from more_itertools import only
+from reprfunc import repr_from_init
 from inform import plural
 from .format import Formatter
 from .lists import _replace_list
@@ -40,11 +41,17 @@ class table(Formatter):
         self.style = style
 
     def __eq__(self, other):
+        def eq_or_empty(a, b):
+            if a == b:
+                return True
+            if not a and not b:
+                return True
+
         return (
             type(self) == type(other) and
-            self.rows == other.rows and
-            self.header == other.header and
-            self.footer == other.footer and
+            eq_or_empty(self.rows, other.rows) and
+            eq_or_empty(self.header, other.header) and
+            eq_or_empty(self.footer, other.footer) and
             self.format == other.format and
             self.align == other.align and
             self.truncate == other.truncate and
@@ -81,6 +88,13 @@ class table(Formatter):
         if self.footer:
             self.footer = replace_row(self.footer)
 
+    __repr__ = repr_from_init(
+            positional=['rows'],
+            predicates={
+                'header': lambda self, x: x,
+                'footer': lambda self, x: x,
+            },
+    )
 
 def tabulate(
         rows,

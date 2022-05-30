@@ -193,6 +193,154 @@ test_main:
       >                    10.00 µL   8.00 µL/rxn
     stderr: ^$
     return_code: 0
+  -
+    id: builtin-future-reaction
+    cmd: sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL'
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL'
+      >
+      > 1. Setup 1 reaction:
+      >
+      >    Reagent  Stock    Volume
+      >    ────────────────────────
+      >    A                9.00 µL
+      >    B          10x   1.00 µL
+      >    ────────────────────────
+      >                    10.00 µL
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-future-reaction-combos
+    cmd: sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' 'C;5x;1x;' -C C -c c1 -c c2
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' 'C;5x;1x;' -C C -c c1 -c c2
+      > 
+      > 1. Setup 2 reactions:
+      > 
+      >    - Use the following reagents:
+      >
+      >      C: c1, c2
+      > 
+      >    - Make master mix:
+      > 
+      >      Reagent  Stock   Volume      2.2x
+      >      ─────────────────────────────────
+      >      A               7.00 µL  15.40 µL
+      >      B          10x  1.00 µL   2.20 µL
+      >      ─────────────────────────────────
+      >                      8.00 µL  17.60 µL
+      > 
+      >    - Add the remaining reagents:
+      > 
+      >      Reagent     Stock    Volume
+      >      ───────────────────────────
+      >      master mix          8.00 µL
+      >      C              5x   2.00 µL
+      >      ───────────────────────────
+      >                         10.00 µL
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-future-reaction-mixes
+    cmd: sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' 'C;5x;1x;' -C C -c c1 -c c2 -m A,B,C
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' 'C;5x;1x;' -C C -c c1 -c c2 -m A,B,C
+      > 
+      > 1. Setup 2 reactions:
+      > 
+      >    - Use the following reagents:
+      >
+      >      C: c1, c2
+      > 
+      >    - Mix the reactions:
+      > 
+      >      Reagent  Stock    Volume
+      >      ────────────────────────
+      >      A                7.00 µL
+      >      B          10x   1.00 µL
+      >      C           5x   2.00 µL
+      >      ────────────────────────
+      >                      10.00 µL
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-future-reaction-extra
+    cmd: sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' 'C;5x;1x;' -C C -c c1 -c c2 -x 20
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' 'C;5x;1x;' -C C -c c1 -c c2 -x 20
+      > 
+      > 1. Setup 2 reactions:
+      > 
+      >    - Use the following reagents:
+      >
+      >      C: c1, c2
+      > 
+      >    - Make master mix:
+      > 
+      >      Reagent  Stock   Volume      2.4x
+      >      ─────────────────────────────────
+      >      A               7.00 µL  16.80 µL
+      >      B          10x  1.00 µL   2.40 µL
+      >      ─────────────────────────────────
+      >                      8.00 µL  19.20 µL
+      > 
+      >    - Add the remaining reagents:
+      > 
+      >      Reagent     Stock    Volume
+      >      ───────────────────────────
+      >      master mix          8.00 µL
+      >      C              5x   2.00 µL
+      >      ───────────────────────────
+      >                         10.00 µL
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-future-step
+    cmd: sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' -S 'Prepare {n:# {kind}}:' -s 'buffer/s'
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' -S 'Prepare \{{n:# \{{kind\}}\}}:' -s buffer/s
+      >
+      > 1. Prepare 1 buffer:
+      >
+      >    Reagent  Stock    Volume
+      >    ────────────────────────
+      >    A                9.00 µL
+      >    B          10x   1.00 µL
+      >    ────────────────────────
+      >                    10.00 µL
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-future-instructions
+    cmd: sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' -i C -i D
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' -i C -i D
+      >
+      > 1. Setup 1 reaction:
+      >
+      >    Reagent  Stock    Volume
+      >    ────────────────────────
+      >    A                9.00 µL
+      >    B          10x   1.00 µL
+      >    ────────────────────────
+      >                    10.00 µL
+      >
+      >    - C
+      >    - D
+    stderr: ^$
+    return_code: 0
 
 
 ###############################################################################

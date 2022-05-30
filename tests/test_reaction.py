@@ -2,14 +2,109 @@
 
 import pytest, re
 from io import StringIO
-from stepwise import MasterMix, Reaction, Reagent, Solvent, Quantity, Q
-from stepwise import UsageError
+from stepwise import *
+from funcy import autocurry
+from math import inf
 from param_helpers import *
+from pytest_unordered import unordered
 
 wx = '8 µL', {
         'w': ('5 µL',  ..., True),
         'x': ('3 µL', '2x', False),
 }
+
+def eval_mix_wrappers(mix_dicts):
+    return [MixWrapper(**x) for x in mix_dicts]
+
+@autocurry
+def exec_reactions(x, defer=False):
+
+    def from_str(x):
+        return with_sw.exec(x, get='rxns', defer=defer)
+
+    def from_dict(d):
+
+        def factory():
+            with_mix = with_sw.fork(Mix=Reactions.Mix)
+            schema = Schema({
+                'base': eval_reaction,
+                'combos': [dict],
+                Optional('mixes'): [with_mix.eval],
+
+                # Default extra to 0 for testing, because calculating it by 
+                # hand adds complexity and isn't usually relevant.
+                Optional('extra', default={}): Or(
+                    And(dict, lambda x: Extra(**with_py.eval(x))),
+                    And(str, with_sw.eval),
+                ),
+
+                Optional('exec'): str,
+            })
+            kw = schema(d)
+            exec = kw.pop('exec', None)
+            rxns = Reactions(kw.pop('base'), kw.pop('combos'), **kw)
+
+            if exec:
+                with_sw.fork(rxns=rxns).exec(exec)
+
+            return rxns
+
+
+        if defer:
+            factory.exec = factory
+            return factory
+        else:
+            return factory()
+
+    schema = Or(
+            And(str, from_str),
+            And(dict, from_dict),
+    )
+    return schema(x)
+
+def eval_reaction(x):
+    schema = Or(
+        And(str, Reaction.from_text),
+        And(dict, Reaction.from_cols),
+    )
+    return schema(x)
+
+class MixWrapper:
+    schema = {
+            'name': str,
+            'reagents': And(Coerce(set), {str}),
+            'reaction': Or(Reaction, eval_reaction),
+            'scale': Coerce(float),
+            'num_reactions': Coerce(int),
+    }
+
+    def __init__(self, **kwargs):
+        kwargs = Schema(self.schema)(kwargs)
+        self.__dict__.update(kwargs)
+
+    def __repr__(self):
+        return f'MixWrapper(reagents={self.reagents!r})'
+
+    def __eq__(self, other):
+        if not isinstance(other, Reactions.Mix):
+            raise AssertionError(f"expected 'Reactions.Mix', got {other!r}")
+
+        if hasattr(self, 'name') and self.name != other.name:
+            raise AssertionError(f"expected name={self.name!r}, got {other.name!r}")
+
+        if self.reagents != other.reagents:
+            raise AssertionError(f"expected reagents={self.reagents!r}, got {other.reagents!r}")
+
+        if self.reaction != other.reaction:
+            raise AssertionError(f"expected reaction={self.reaction!r}, got {other.reaction!r}")
+
+        if self.num_reactions != other.num_reactions:
+            raise AssertionError(f"expected num_reactions={self.num_reactions!r}, got {other.num_reactions!r}")
+
+        if approx(self.scale) != other.scale:
+            raise AssertionError(f"expected scale={self.scale!r}, got {other.scale!r}")
+
+        return True
 
 def test_reagent_repr():
     rxn = Reaction()
@@ -691,6 +786,45 @@ def test_reaction_solvent():
     assert rxn['w'].master_mix == False
     assert rxn['w'].order == 1
 
+def test_reaction_solvent_pin_volumes():
+    rxn = Reaction()
+    rxn.solvent = 'w'
+    rxn.volume = '4 µL'
+
+    assert rxn.volume == '4 µL'
+    assert rxn['w'].volume == '4 µL'
+    assert rxn['w'].is_pinned == False
+
+    rxn['x'].volume = '1 µL'
+
+    assert rxn.volume == '4 µL'
+    assert rxn['w'].volume == '3 µL'
+    assert rxn['w'].is_pinned == False
+
+    rxn.pin_volumes()
+
+    assert rxn.volume == '4 µL'
+    assert rxn['w'].volume == '3 µL'
+    assert rxn['w'].is_pinned == True
+
+    rxn['x'].volume = '2 µL'
+
+    assert rxn.volume == '5 µL'
+    assert rxn['w'].volume == '3 µL'
+    assert rxn['w'].is_pinned == True
+
+    rxn.unpin_volumes()
+
+    assert rxn.volume == '5 µL'
+    assert rxn['w'].volume == '3 µL'
+    assert rxn['w'].is_pinned == False
+
+    rxn['x'].volume = '1 µL'
+
+    assert rxn.volume == '5 µL'
+    assert rxn['w'].volume == '4 µL'
+    assert rxn['w'].is_pinned == False
+
 @pytest.mark.parametrize(
         'v1,r1,v2,r2', [
             ('5 µL', {}, '10 µL', {}),
@@ -870,7 +1004,7 @@ def test_reaction_from_text_catalog_num():
             x           2x     3 µL   no  101
     """)
 
-    assert rxn['w'].catalog_num == ''
+    assert rxn['w'].catalog_num == None
     assert rxn['x'].catalog_num == '101'
 
 @parametrize('solvent', ['water', 'acceptor', 'donor'])
@@ -1089,4 +1223,150 @@ water                    9.00 µL
 extra long name    10x   1.00 µL
 ────────────────────────────────
                         10.00 µL"""
+
+
+@parametrize_from_file
+def test_reactions_protocol(reactions, expected):
+    rxns = exec_reactions(reactions)
+    expected = with_sw.eval(expected)
+    assert rxns.protocol.steps == expected
+
+@parametrize_from_file
+def test_reactions_combo_step(reactions, expected):
+    rxns = exec_reactions(reactions)
+    expected = with_sw.eval(expected)
+    assert rxns.combo_step == expected
+
+@parametrize_from_file(
+        schema=Schema({
+            'combos': list,
+            **with_sw.error_or({
+                'expected': dict,
+            }),
+        }),
+)
+def test_reactions_combo_reagents(combos, expected, error):
+    rxn = Reaction()
+    rxns = Reactions(rxn, combos)
+
+    with error:
+        assert rxns.combo_reagents == expected
+
+@parametrize_from_file
+def test_reactions_combo_reagents_in_order_of_appearance(reactions, expected):
+    rxns = exec_reactions(reactions)
+    assert rxns.combo_reagents_in_order_of_appearance == expected
+
+@parametrize_from_file
+def test_reactions_combo_table(reactions, expected):
+    rxns = exec_reactions(reactions)
+    expected = with_sw.eval(expected)
+    assert rxns.combo_table == expected
+
+@parametrize_from_file
+def test_reactions_all_combos_dl(reactions, expected):
+    rxns = exec_reactions(reactions)
+    expected = with_sw.eval(expected)
+    assert rxns.all_combos_dl == expected
+
+@parametrize_from_file(
+    schema=Schema({
+        'reactions': exec_reactions(defer=True),
+        **with_sw.error_or({
+            'expected': [MixWrapper.schema],
+        }),
+    }),
+)
+def test_reactions_mixes(reactions, expected, error):
+    rxns = reactions.exec()
+    expected = eval_mix_wrappers(expected)
+
+    with error:
+        assert rxns.mixes == expected
+
+
+@parametrize_from_file(
+        schema=Schema({
+            'extra': str,
+            'scale': Coerce(float),
+            Optional('reaction', default=''): Or(str, dict),
+            'expected': Coerce(float),
+            Optional('expected_repr', default=''): str,
+        }),
+)
+def test_extra(extra, scale, reaction, expected, expected_repr):
+    if not expected_repr:
+        expected_repr = extra
+
+    extra = with_sw.eval(extra)
+
+    if reaction:
+        rxn = eval_reaction(reaction)
+    else:
+        rxn = Reaction()
+        rxn.volume = '1 µL'
+
+    assert repr(extra) == expected_repr
+    assert extra.increase_scale(scale, rxn) == approx(expected)
+
+@parametrize_from_file
+def test_drop_fixed_reagents(combos, expected):
+    assert drop_fixed_reagents(combos) == expected
+
+@parametrize_from_file(
+        schema=Schema({
+            Optional('penalty', default=0): Coerce(int),
+            str: object,
+        }),
+)
+def test_minimize_pipetting(combos, penalty, graph, groups):
+    debug(penalty)
+    g = make_pipetting_graph(combos, penalty)
+
+    actual_edges = [
+            {'start': a, 'end': b, **data}
+            for a, b, data in g.edges.data()
+    ]
+    expected_edges = unordered(with_py.eval(graph))
+    assert actual_edges == expected_edges
+
+    actual_groups = minimize_pipetting(g)
+    expected_groups = [set(x) for x in groups]
+    assert actual_groups == expected_groups
+
+@parametrize_from_file(
+        schema=Schema({
+            'args': dict,
+            **with_sw.error_or({
+                'expected': str,
+            }),
+        }),
+)
+def test_reaction_from_docopt(args, expected, error):
+    with error:
+        assert reaction_from_docopt(args) == eval_reaction(expected)
+
+@parametrize_from_file(
+        schema=Schema({
+            'args': dict,
+            **with_sw.error_or({
+                'expected': list,
+            }),
+        }),
+)
+def test_combos_from_docopt(args, expected, error):
+    with error:
+        assert combos_from_docopt(args) == expected
+
+@parametrize_from_file(
+        schema=Schema({
+            'args': dict,
+            **with_sw.error_or({
+                'expected': str,
+            }),
+        }),
+)
+def test_extra_from_docopt(args, expected, error):
+    with error:
+        assert extra_from_docopt(args) == with_sw.eval(expected)
 

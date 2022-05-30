@@ -5,6 +5,56 @@ from .format import (
 )
 from itertools import repeat
 from more_itertools import repeat_last, mark_ends, interleave, chunked
+from reprfunc import repr_from_init
+
+def _format_list(items, indents, width, br, force_alignment=True, **kwargs):
+        if force_alignment:
+            # This function modifies `kwargs`, so it must called before any 
+            # of those values are read.
+            force_alignment = not _align_indents_if_possible(kwargs)
+
+        item_indent_iter = (
+                (item, indent)
+                for item, indent in zip(items, indents)
+                if item
+        )
+        kwargs_indent_iter = repeat_last((
+                kwargs.get('initial_indent', ''),
+                kwargs.get('subsequent_indent', ''),
+        ))
+
+        def next_kwargs(indent):
+            initial_indent, subsequent_indent = indent
+            return {
+                    **kwargs,
+                    'initial_indent': \
+                        next(kwargs_indent_iter) + initial_indent,
+                    'subsequent_indent': \
+                        next(kwargs_indent_iter) + subsequent_indent,
+            }
+
+        list_str = ''
+
+        if force_alignment:
+            list_str += next(kwargs_indent_iter) + '\n'
+
+        for is_first, is_last, (item, indent) in mark_ends(item_indent_iter):
+            list_str += format_text(item, width, **next_kwargs(indent))
+            list_str += br * (not is_last)
+
+        return list_str
+
+def _replace_list(objs, pattern, repl, **kwargs):
+    return [
+            replace_text(x, pattern, repl, **kwargs) if x else x
+            for x in objs
+    ]
+
+def _abbreviate_cls_name(abbrevs):
+    def cls(self):
+        cls_name = self.__class__.__name__
+        return abbrevs.get(cls_name, cls_name)
+    return cls
 
 class List(Formatter):
     """
@@ -20,11 +70,12 @@ class List(Formatter):
         self._items = list(items)
         self.br = br or self.default_br
 
-    def __repr__(self):
-        return f'{self.__class__.__name__}({", ".join(repr(x) for x in self._items)})'
-
     def __eq__(self, other):
-        return type(self) == type(other) and self._items == other._items
+        return (
+                type(self) == type(other) and
+                self._items == other._items and
+                self.br == other.br
+        )
 
     def __iter__(self):
         yield from self._items
@@ -57,13 +108,26 @@ class List(Formatter):
                 self._items, pattern, repl, **kwargs,
         )
 
+    __repr__ = repr_from_init(
+            cls=_abbreviate_cls_name({
+                'paragraph_list': 'pl',
+                'unordered_list': 'ul',
+                'ordered_list': 'ol',
+            }),
+            attrs={
+                'items': '_items',
+            },
+            predicates={
+                'br': lambda self, br: br != self.default_br,
+            },
+    )
 
 class paragraph_list(List):
     default_br = '\n\n'
     force_alignment = False
 
-    def __init__(self, *items, **kwargs):
-        super().__init__(*items, **kwargs)
+    def __init__(self, *items, br=None):
+        super().__init__(*items, br=br)
 
     def format_text(self, width, **kwargs):
         return self._format_items(
@@ -75,8 +139,8 @@ class paragraph_list(List):
 class unordered_list(List):
     default_br = '\n'
 
-    def __init__(self, *items, prefix='- ', **kwargs):
-        super().__init__(*items, **kwargs)
+    def __init__(self, *items, prefix='- ', br=None):
+        super().__init__(*items, br=br)
         self.prefix = prefix
 
     def format_text(self, width, **kwargs):
@@ -89,8 +153,8 @@ class unordered_list(List):
 class ordered_list(List):
     default_br = '\n\n'
 
-    def __init__(self, *items, start=1, indices=None, prefix="{}. ", **kwargs):
-        super().__init__(*items, **kwargs)
+    def __init__(self, *items, start=1, indices=None, prefix="{}. ", br=None):
+        super().__init__(*items, br=br)
         self.prefix = prefix
         self.start = start
         self.indices = indices
@@ -125,9 +189,6 @@ class definition_list(Formatter):
         self._prefix = prefix
         self._indent = indent
         self.br = br
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}({", ".join(repr(x) for x in self)})'
 
     def __eq__(self, other):
         return (
@@ -196,45 +257,14 @@ class definition_list(Formatter):
     def indent(self):
         return self._indent
 
-def _format_list(items, indents, width, br, force_alignment=True, **kwargs):
-        if force_alignment:
-            # This function modifies `kwargs`, so it must called before any 
-            # of those values are read.
-            force_alignment = not _align_indents_if_possible(kwargs)
+    __repr__ = repr_from_init(
+            cls=_abbreviate_cls_name({
+                'definition_list': 'dl',
+            }),
+            attrs={
+                'items': lambda self: self,
+                'prefix': '_prefix',
+                'indent': '_indent',
+            },
+    )
 
-        item_indent_iter = (
-                (item, indent)
-                for item, indent in zip(items, indents)
-                if item
-        )
-        kwargs_indent_iter = repeat_last((
-                kwargs.get('initial_indent', ''),
-                kwargs.get('subsequent_indent', ''),
-        ))
-
-        def next_kwargs(indent):
-            initial_indent, subsequent_indent = indent
-            return {
-                    **kwargs,
-                    'initial_indent': \
-                        next(kwargs_indent_iter) + initial_indent,
-                    'subsequent_indent': \
-                        next(kwargs_indent_iter) + subsequent_indent,
-            }
-
-        list_str = ''
-
-        if force_alignment:
-            list_str += next(kwargs_indent_iter) + '\n'
-
-        for is_first, is_last, (item, indent) in mark_ends(item_indent_iter):
-            list_str += format_text(item, width, **next_kwargs(indent))
-            list_str += br * (not is_last)
-
-        return list_str
-
-def _replace_list(objs, pattern, repl, **kwargs):
-    return [
-            replace_text(x, pattern, repl, **kwargs) if x else x
-            for x in objs
-    ]

@@ -17,6 +17,7 @@ requires = [
   'entrypoints',
   'inform',
   'more_itertools',
+  'reprfunc',
   'sqlalchemy',
   'voluptuous',
   'pandas>=1.2',

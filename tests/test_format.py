@@ -7,6 +7,15 @@ from param_helpers import *
 @parametrize_from_file(
         schema=Schema({
             'obj': eval_stepwise,
+            'expected': str,
+        }),
+)
+def test_repr(obj, expected):
+    assert repr(obj) == expected
+
+@parametrize_from_file(
+        schema=Schema({
+            'obj': eval_stepwise,
             'width': eval_python,
             Optional('kwargs', default={}): {str: eval_python},
             'expected': str,
