@@ -21,6 +21,7 @@ requires = [
   'sqlalchemy',
   'voluptuous',
   'pandas>=1.2',
+  'networkx',
   'openpyxl',
 ]
 classifiers = [

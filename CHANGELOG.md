@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.33.0 (2022-05-13)
+### Feature
+* Treat objects with protocol attrs as protocols. ([`953536d`](https://github.com/kalekundert/stepwise/commit/953536d7493e23e41aab62a3570652683b8bb847))
+
 ## v0.32.0 (2022-05-10)
 ### Feature
 * Upgrade to BYOC ([`86bd330`](https://github.com/kalekundert/stepwise/commit/86bd3300dc20ccc904dd60659c9df926ca23b150))
