@@ -24,7 +24,6 @@ test_library_find_entries:
     tag: proto
     expected:
       - protocol_a
-      - subdir/protocol_b
   -
     id: 2-a
     collections:
@@ -69,7 +68,6 @@ test_library_find_entries:
     tag: proto
     expected:
       - protocol_a
-      - subdir/protocol_b
       - protocol_z
 
 test_collection_is_unique:
@@ -232,15 +230,15 @@ test_match_tag:
   -
     tag: ab
     name: ab
-    expected: [3]
+    expected: [3, 0]
   -
     tag: a
     name: ab
-    expected: [2]
+    expected: [2, 0]
   -
     tag: b
     name: ab
-    expected: [1]
+    expected: [1, 0]
   -
     tag: z
     name: abc
@@ -253,7 +251,7 @@ test_match_tag:
   -
     tag: cd
     name: ab/cd
-    expected: [3]
+    expected: [3, -1]
   -
     tag: a
     name: ab/cd
@@ -265,11 +263,11 @@ test_match_tag:
   -
     tag: c
     name: ab/cd
-    expected: [2]
+    expected: [2, -1]
   -
     tag: d
     name: ab/cd
-    expected: [1]
+    expected: [1, -1]
   -
     tag: z
     name: ab/cd
@@ -277,15 +275,15 @@ test_match_tag:
   -
     tag: ab/cd
     name: ab/cd
-    expected: [3, 3]
+    expected: [3, 3, 0]
   -
     tag: ab/c
     name: ab/cd
-    expected: [2, 3]
+    expected: [2, 3, 0]
   -
     tag: ab/d
     name: ab/cd
-    expected: [1, 3]
+    expected: [1, 3, 0]
   -
     tag: ab/z
     name: ab/cd
@@ -293,15 +291,15 @@ test_match_tag:
   -
     tag: a/cd
     name: ab/cd
-    expected: [3, 2]
+    expected: [3, 2, 0]
   -
     tag: a/c
     name: ab/cd
-    expected: [2, 2]
+    expected: [2, 2, 0]
   -
     tag: a/d
     name: ab/cd
-    expected: [1, 2]
+    expected: [1, 2, 0]
   -
     tag: a/z
     name: ab/cd
@@ -309,15 +307,15 @@ test_match_tag:
   -
     tag: b/cd
     name: ab/cd
-    expected: [3, 1]
+    expected: [3, 1, 0]
   -
     tag: b/c
     name: ab/cd
-    expected: [2, 1]
+    expected: [2, 1, 0]
   -
     tag: b/d
     name: ab/cd
-    expected: [1, 1]
+    expected: [1, 1, 0]
   -
     tag: b/z
     name: ab/cd
@@ -350,11 +348,11 @@ test_match_tag:
   -
     tag: a/c
     name: a/b/c
-    expected: [3, 0, 3]
+    expected: [3, 0, 3, 0]
   -
     tag: b/c
     name: a/b/c
-    expected: [3, 3]
+    expected: [3, 3, -1]
 
   -
     tag: a
@@ -363,15 +361,15 @@ test_match_tag:
   -
     tag: b
     name: ab/bc
-    expected: [2]
+    expected: [2, -1]
   -
     tag: c
     name: ab/bc
-    expected: [1]
+    expected: [1, -1]
   -
     tag: a/b
     name: ab/bc
-    expected: [2, 2]
+    expected: [2, 2, 0]
   -
     tag: b/a
     name: ab/bc
@@ -379,11 +377,11 @@ test_match_tag:
   -
     tag: b/b
     name: ab/bc
-    expected: [2, 1]
+    expected: [2, 1, 0]
   -
     tag: b/c
     name: ab/bc
-    expected: [1, 1]
+    expected: [1, 1, 0]
   -
     tag: c/b
     name: ab/bc

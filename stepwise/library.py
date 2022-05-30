@@ -759,6 +759,10 @@ def _match_tag(tag, name):
       matched.  For example, the tag `a` matches `a` better than `ab`, and `ab` 
       better than `ba`.
 
+    - The full name has fewer parts.  For example, the tag 'c' matches 'b/c' 
+      better than 'a/b/c'.  The idea is that longer names can be distinguished 
+      by adding more detail.
+
     Arguments:
         tag (str): The tag.  If `None`, every name will match.
         name (str): The name to compare the tag against.
@@ -777,9 +781,9 @@ def _match_tag(tag, name):
     Examples:
         >>> from stepwise import _match_tag
         >>> _match_tag('pcr', '/home/rfranklin/pcr')
-        (3)
+        (3, -2)
         >>> _match_tag('rf/pcr', '/home/rfranklin/pcr')
-        (3, 2)
+        (3, 2, -1)
         >>> _match_tag('rf', '/home/rfranklin/pcr')
         ()
     """
@@ -791,7 +795,7 @@ def _match_tag(tag, name):
         return (0,)
 
     def match_parts(name_parts, tag_parts, scores=(), required=False):
-        if not tag_parts: return scores
+        if not tag_parts: return (*scores, -len(name_parts))
         if not name_parts: return ()
 
         name_part = name_parts[-1]
