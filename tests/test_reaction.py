@@ -1320,7 +1320,6 @@ def test_drop_fixed_reagents(combos, expected):
         }),
 )
 def test_minimize_pipetting(combos, penalty, graph, groups):
-    debug(penalty)
     g = make_pipetting_graph(combos, penalty)
 
     actual_edges = [
