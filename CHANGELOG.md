@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.34.0 (2022-05-30)
+### Feature
+* Support multi-step master mixes ([`c6b2b00`](https://github.com/kalekundert/stepwise/commit/c6b2b0087690f64b4566ad12c82cff8dfe88952b))
+
+### Fix
+* Favor shorter names when matching tags. ([`dce601f`](https://github.com/kalekundert/stepwise/commit/dce601fb738d2cad2f22d8f9eb3901e1f86e2c61))
+
 ## v0.33.0 (2022-05-13)
 ### Feature
 * Treat objects with protocol attrs as protocols. ([`953536d`](https://github.com/kalekundert/stepwise/commit/953536d7493e23e41aab62a3570652683b8bb847))
