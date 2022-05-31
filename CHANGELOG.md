@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.35.0 (2022-05-31)
+### Feature
+* Mix manually- and automatically-specified master mixes ([`816406a`](https://github.com/kalekundert/stepwise/commit/816406a1f979bcdb78d714b1a5873de4a8cb90db))
+
 ## v0.34.0 (2022-05-30)
 ### Feature
 * Support multi-step master mixes ([`c6b2b00`](https://github.com/kalekundert/stepwise/commit/c6b2b0087690f64b4566ad12c82cff8dfe88952b))
