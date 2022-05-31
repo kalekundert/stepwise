@@ -25,7 +25,10 @@ def exec_reactions(x, defer=False):
     def from_dict(d):
 
         def factory():
-            with_mix = with_sw.fork(Mix=Reactions.Mix)
+            with_mix = with_sw.fork(
+                    Mix=Reactions.Mix,
+                    AutoMix=Reactions.AutoMix,
+            )
             schema = Schema({
                 'base': eval_reaction,
                 'combos': [dict],
@@ -1315,12 +1318,13 @@ def test_drop_fixed_reagents(combos, expected):
 
 @parametrize_from_file(
         schema=Schema({
+            Optional('order', default=None): object,
             Optional('penalty', default=0): Coerce(int),
             str: object,
         }),
 )
-def test_minimize_pipetting(combos, penalty, graph, groups):
-    g = make_pipetting_graph(combos, penalty)
+def test_minimize_pipetting(combos, order, penalty, graph, groups):
+    g = make_pipetting_graph(combos, order, penalty)
 
     actual_edges = [
             {'start': a, 'end': b, **data}

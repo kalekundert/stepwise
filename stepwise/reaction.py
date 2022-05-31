@@ -396,7 +396,7 @@ class Reactions(byoc.App):
 
         def __init__(self, reagents, *, name=None, extra=None):
             self.reagents = set(reagents)
-            self._name = name
+            self.name = name
             self.extra = extra
 
             # Filled in by `Reactions.get_mixes()`:
@@ -404,14 +404,30 @@ class Reactions(byoc.App):
             self.num_reactions = None
             self.scale = None
 
-        def get_name(self):
-            return self._name or f"{'/'.join(self.reagents)}"
+        __repr__ = repr_from_init(
+                positional=['reagents'],
+        )
 
-        def set_name(self, name):
-            self._name = name
+    class AutoMix:
+
+        def __init__(self, reagents, *, name=None, extra=None):
+            self.reagents = set(reagents)
+            self.name = name
+            self.extra = extra
+
+        def get_name(self, reagents):
+            if callable(self.name):
+                return self.name(reagents)
+            else:
+                return self.name
+
+        def get_extra(self, reagents):
+            if callable(self.extra):
+                return self.extra(reagents)
+            else:
+                return self.extra
 
         __repr__ = repr_from_init(
-                attrs={'name': '_name'},
                 positional=['reagents'],
         )
 
@@ -544,8 +560,9 @@ class Reactions(byoc.App):
         if self._user_mixes:
             mixes = self._init_mixes_from_user()
         else:
-            mixes = self._init_mixes_from_combos()
+            mixes = self._init_mixes_from_combos(self.combos)
 
+        self._set_mix_names(mixes)
         self._add_missing_reagents(mixes)
         self._set_mix_reactions(mixes)
         self._set_mix_scales(mixes)
@@ -577,30 +594,44 @@ class Reactions(byoc.App):
         """
         Check that the mixes include all of the reagents being varied.
         """
+
+        mixes = []
         reagents = set()
 
         for mix in self._user_mixes:
-            mix.reagents = set(mix.reagents)
 
+            # Automatically calculate master mixes as requested:
+            if isinstance(mix, self.AutoMix):
+                keys = itemgetter(mix.reagents)
+                combos = [
+                        {k: combo[k] for k in mix.reagents}
+                        for combo in self.combos
+                ]
+                mixes += self._init_mixes_from_combos(combos)
+
+            else:
+                mixes.append(mix)
+
+            # Check for duplicates:
             dups = reagents & mix.reagents
             if dups:
                 raise UsageError(f"{', '.join(map(repr, dups))} included in multiple master mixes")
-
             reagents |= mix.reagents
 
         for reagent, values in self.combo_reagents.items():
             if reagent not in reagents and len(values) > 1:
                 raise UsageError(f"{reagent!r} not included in any master mix.\nThe following reagents are included: {', '.join(map(repr, reagents))}")
 
-        return self._user_mixes
+        return mixes
 
-    def _init_mixes_from_combos(self):
+    def _init_mixes_from_combos(self, combos):
         """
         Infer a reasonable set of master mixes based on the requested reagent 
         combinations.
         """
-        combos = drop_fixed_reagents(self.combos)
-        graph = make_pipetting_graph(combos, self.master_mix_penalty)
+        combos = drop_fixed_reagents(combos)
+        ideal_order = [x.name for x in self.base_reaction]
+        graph = make_pipetting_graph(combos, ideal_order, self.master_mix_penalty)
         groups = minimize_pipetting(graph)
         return [self.Mix(x) for x in groups]
 
@@ -642,6 +673,15 @@ class Reactions(byoc.App):
         else:
             mix = self.Mix(missing_reagents, name='master')
             mixes.insert(0, mix)
+
+    @autoprop.ignore
+    def _set_mix_names(self, mixes):
+        order_map = {x.name: i for i, x in enumerate(self.base_reaction)}
+        by_order = lambda x: order_map[x]
+
+        for mix in mixes:
+            if not mix.name:
+                mix.name = '/'.join(sorted(mix.reagents, key=by_order))
 
     @autoprop.ignore
     def _set_mix_reactions(self, mixes):
@@ -1907,7 +1947,7 @@ def drop_fixed_reagents(combos):
             for combo in combos
     ]
 
-def make_pipetting_graph(combos, split_penalty=0):
+def make_pipetting_graph(combos, ideal_order=None, split_penalty=0):
     """
     Create a graph where the nodes are reagents and the edge weights are the 
     number of pipetting steps required to created every desired combination of 
@@ -1928,6 +1968,9 @@ def make_pipetting_graph(combos, split_penalty=0):
         return g
 
     g.add_nodes_from(combos[0].keys())
+
+    if ideal_order:
+        order_map = {k: i for i, k in enumerate(ideal_order)}
     
     for a, b in permutations(g.nodes, 2):
         ab_combos = sorted(map(itemgetter(a, b), combos))
@@ -1940,7 +1983,12 @@ def make_pipetting_graph(combos, split_penalty=0):
         weight = min(merge_weight, split_weight)
         split = split_weight < merge_weight
 
-        g.add_edge(a, b, weight=weight, split=split)
+        if ideal_order:
+            order = (order_map[b] - order_map[a] != 1)
+        else:
+            order = 0
+
+        g.add_edge(a, b, weight=weight, order=order, split=split)
 
     return g
     
@@ -1962,17 +2010,21 @@ def minimize_pipetting(g):
     if not g:
         return []
 
-    best_weight = inf
+    best_weight = inf,
     best_tour = None
 
     def weights(g, tour):
+        weight = itemgetter('weight', 'order')
         yield from (
-                g.edges[a, b]['weight']
+                weight(g.edges[a, b])
                 for a, b in pairwise(tour)
         )
 
+    def tuple_sum(xs):
+        return tuple(map(sum, zip(*xs)))
+
     for tour in permutations(g.nodes):
-        weight = sum(weights(g, tour))
+        weight = tuple_sum(weights(g, tour))
 
         if weight < best_weight:
             best_weight = weight
@@ -1989,5 +2041,4 @@ def minimize_pipetting(g):
 
 def rounds_to_zero(x, precision=2):
     return f'{abs(x):.{precision}f}' == f'{0:.{precision}f}'
-
 

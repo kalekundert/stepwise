@@ -1889,6 +1889,121 @@ test_reactions_mixes:
         scale: 1
         num_reactions: 4
   -
+    id: init-user-automix
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > a           1 µL
+        > b           2 µL
+        > c           3 µL
+      combos:
+        -
+          a: 1
+          b: 1
+        -
+          a: 1
+          b: 2
+        -
+          a: 2
+          b: 1
+        -
+          a: 2
+          b: 2
+      mixes:
+        - AutoMix(['a', 'b'])
+    expected:
+      -
+        reagents:
+          - c
+          - a
+        reaction:
+          > Reagent     Volume
+          > ==========  ======
+          > a             1 µL
+          > c             3 µL
+        scale: 2
+        num_reactions: 2
+      -
+        reagents:
+          - b
+        reaction:
+          > Reagent     Volume
+          > ==========  ======
+          > a mix         4 µL
+          > b             2 µL
+        scale: 1
+        num_reactions: 4
+  -
+    id: init-user-automix
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > a           1 µL
+        > b           2 µL
+        > c           3 µL
+        > d           4 µL
+
+      # Left to it's own devices, 'b' and 'c' would be grouped together because 
+      # they have correlated values.  See:
+      #   test_minimize_pipetting:1122-1122-1234
+      #
+      # Here we force them into different groups, while still having 'a' and 
+      # 'b' be grouped automatically.
+      combos:
+        -
+          a: 1
+          b: 1
+          c: 1
+        -
+          a: 1
+          b: 2
+          c: 2
+        -
+          a: 2
+          b: 1
+          c: 1
+        -
+          a: 2
+          b: 2
+          c: 2
+      mixes:
+        - AutoMix(['a', 'b'])
+        - Mix(['c'])
+    expected:
+      -
+        reagents:
+          - a
+          - d
+        reaction:
+          > Reagent     Volume
+          > ==========  ======
+          > a             1 µL
+          > d             4 µL
+        scale: 2
+        num_reactions: 2
+      -
+        reagents:
+          - b
+        reaction:
+          > Reagent     Volume
+          > ==========  ======
+          > a mix         5 µL
+          > b             2 µL
+        scale: 1
+        num_reactions: 4
+      -
+        reagents:
+          - c
+        reaction:
+          > Reagent     Volume
+          > ==========  ======
+          > b mix         7 µL
+          > c             3 µL
+        scale: 1
+        num_reactions: 4
+  -
     id: init-user-missing-reagent
     reactions:
       base:
@@ -2733,13 +2848,15 @@ test_minimize_pipetting:
     id: 11
     combos:
       -
-        a: 1
         b: 1
+        a: 1
+    order:
+      [a, b]
     graph:
       -
-        {start: 'a', end: 'b', weight: 2, split: False}
+        {start: 'a', end: 'b', weight: 2, order: 0, split: False}
       -
-        {start: 'b', end: 'a', weight: 2, split: False}
+        {start: 'b', end: 'a', weight: 2, order: 1, split: False}
     groups:
       -
         [a, b]
@@ -2747,16 +2864,18 @@ test_minimize_pipetting:
     id: 11-11
     combos:
       -
-        a: 1
         b: 1
+        a: 1
       -
-        a: 1
         b: 1
+        a: 1
+    order:
+      [a, b]
     graph:
       -
-        {start: 'a', end: 'b', weight: 2, split: False}
+        {start: 'a', end: 'b', weight: 2, order: 0, split: False}
       -
-        {start: 'b', end: 'a', weight: 2, split: False}
+        {start: 'b', end: 'a', weight: 2, order: 1, split: False}
     groups:
       -
         [a, b]
@@ -2764,16 +2883,18 @@ test_minimize_pipetting:
     id: 12-12
     combos:
       -
-        a: 1
         b: 1
+        a: 1
       -
-        a: 2
         b: 2
+        a: 2
+    order:
+      [a, b]
     graph:
       -
-        {start: 'a', end: 'b', weight: 4, split: False}
+        {start: 'a', end: 'b', weight: 4, order: 0, split: False}
       -
-        {start: 'b', end: 'a', weight: 4, split: False}
+        {start: 'b', end: 'a', weight: 4, order: 1, split: False}
     groups:
       -
         [a, b]
@@ -2781,16 +2902,18 @@ test_minimize_pipetting:
     id: 11-12
     combos:
       -
-        a: 1
         b: 1
-      -
         a: 1
+      -
         b: 2
+        a: 1
+    order:
+      [a, b]
     graph:
       -
-        {start: 'a', end: 'b', weight: 3, split: True}
+        {start: 'a', end: 'b', weight: 3, order: 0, split: True}
       -
-        {start: 'b', end: 'a', weight: 4, split: False}
+        {start: 'b', end: 'a', weight: 4, order: 1, split: False}
     groups:
       -
         [a]
@@ -2800,16 +2923,18 @@ test_minimize_pipetting:
     id: 11-21
     combos:
       -
+        b: 1
         a: 1
-        b: 1
       -
-        a: 2
         b: 1
+        a: 2
+    order:
+      [a, b]
     graph:
       -
-        {start: 'a', end: 'b', weight: 4, split: False}
+        {start: 'a', end: 'b', weight: 4, order: 0, split: False}
       -
-        {start: 'b', end: 'a', weight: 3, split: True}
+        {start: 'b', end: 'a', weight: 3, order: 1, split: True}
     groups:
       -
         [b]
@@ -2819,19 +2944,21 @@ test_minimize_pipetting:
     id: 111-112
     combos:
       -
-        a: 1
         b: 1
-      -
         a: 1
+      -
         b: 1
-      -
         a: 1
+      -
         b: 2
+        a: 1
+    order:
+      [a, b]
     graph:
       -
-        {start: 'a', end: 'b', weight: 3, split: True}
+        {start: 'a', end: 'b', weight: 3, order: 0, split: True}
       -
-        {start: 'b', end: 'a', weight: 4, split: False}
+        {start: 'b', end: 'a', weight: 4, order: 1, split: False}
     groups:
       -
         [a]
@@ -2841,22 +2968,24 @@ test_minimize_pipetting:
     id: 1122-1212
     combos:
       -
-        a: 1
         b: 1
-      -
         a: 1
-        b: 2
       -
-        a: 2
+        b: 2
+        a: 1
+      -
         b: 1
-      -
         a: 2
+      -
         b: 2
+        a: 2
+    order:
+      [a, b]
     graph:
       -
-        {start: 'a', end: 'b', weight: 6, split: True}
+        {start: 'a', end: 'b', weight: 6, order: 0, split: True}
       -
-        {start: 'b', end: 'a', weight: 6, split: True}
+        {start: 'b', end: 'a', weight: 6, order: 1, split: True}
     groups:
       -
         [a]
@@ -2866,23 +2995,25 @@ test_minimize_pipetting:
     id: 1122-1212-penalty
     combos:
       -
-        a: 1
         b: 1
-      -
         a: 1
-        b: 2
       -
-        a: 2
+        b: 2
+        a: 1
+      -
         b: 1
-      -
         a: 2
+      -
         b: 2
+        a: 2
+    order:
+      [a, b]
     penalty: 2
     graph:
       -
-        {start: 'a', end: 'b', weight: 8, split: False}
+        {start: 'a', end: 'b', weight: 8, order: 0, split: False}
       -
-        {start: 'b', end: 'a', weight: 8, split: False}
+        {start: 'b', end: 'a', weight: 8, order: 1, split: False}
     groups:
       -
         [a, b]
@@ -2890,22 +3021,24 @@ test_minimize_pipetting:
     id: 1212-1122
     combos:
       -
-        a: 1
         b: 1
-      -
-        a: 2
-        b: 1
-      -
         a: 1
-        b: 2
       -
+        b: 1
         a: 2
+      -
         b: 2
+        a: 1
+      -
+        b: 2
+        a: 2
+    order:
+      [a, b]
     graph:
       -
-        {start: 'a', end: 'b', weight: 6, split: True}
+        {start: 'a', end: 'b', weight: 6, order: 0, split: True}
       -
-        {start: 'b', end: 'a', weight: 6, split: True}
+        {start: 'b', end: 'a', weight: 6, order: 1, split: True}
     groups:
       -
         [a]
@@ -2915,22 +3048,24 @@ test_minimize_pipetting:
     id: 1234-1122
     combos:
       -
+        b: 1
         a: 1
-        b: 1
       -
+        b: 1
         a: 2
-        b: 1
       -
+        b: 2
         a: 3
-        b: 2
       -
-        a: 4
         b: 2
+        a: 4
+    order:
+      [a, b]
     graph:
       -
-        {start: 'a', end: 'b', weight: 8, split: False}
+        {start: 'a', end: 'b', weight: 8, order: 0, split: False}
       -
-        {start: 'b', end: 'a', weight: 6, split: True}
+        {start: 'b', end: 'a', weight: 6, order: 1, split: True}
     groups:
       -
         [b]
@@ -2940,22 +3075,24 @@ test_minimize_pipetting:
     id: 1122-1234
     combos:
       -
-        a: 1
         b: 1
-      -
         a: 1
+      -
         b: 2
+        a: 1
       -
-        a: 2
         b: 3
-      -
         a: 2
+      -
         b: 4
+        a: 2
+    order:
+      [a, b]
     graph:
       -
-        {start: 'a', end: 'b', weight: 6, split: True}
+        {start: 'a', end: 'b', weight: 6, order: 0, split: True}
       -
-        {start: 'b', end: 'a', weight: 8, split: False}
+        {start: 'b', end: 'a', weight: 8, order: 1, split: False}
     groups:
       -
         [a]
@@ -2965,34 +3102,36 @@ test_minimize_pipetting:
     id: 1122-1122-1234
     combos:
       -
-        a: 1
-        b: 1
         c: 1
-      -
-        a: 1
         b: 1
+        a: 1
+      -
         c: 2
+        b: 1
+        a: 1
       -
-        a: 2
-        b: 2
         c: 3
-      -
-        a: 2
         b: 2
+        a: 2
+      -
         c: 4
+        b: 2
+        a: 2
+    order:
+      [a, b, c]
     graph:
       -
-        {start: 'a', end: 'b', weight: 4, split: False}
+        {start: 'a', end: 'b', weight: 4, order: 0, split: False}
       -
-        {start: 'b', end: 'a', weight: 4, split: False}
+        {start: 'b', end: 'a', weight: 4, order: 1, split: False}
       -
-        {start: 'a', end: 'c', weight: 6, split: True}
+        {start: 'a', end: 'c', weight: 6, order: 1, split: True}
       -
-        {start: 'c', end: 'a', weight: 8, split: False}
+        {start: 'c', end: 'a', weight: 8, order: 1, split: False}
       -
-        {start: 'b', end: 'c', weight: 6, split: True}
+        {start: 'b', end: 'c', weight: 6, order: 0, split: True}
       -
-        {start: 'c', end: 'b', weight: 8, split: False}
+        {start: 'c', end: 'b', weight: 8, order: 1, split: False}
     groups:
       -
         [a,b]
@@ -3017,19 +3156,21 @@ test_minimize_pipetting:
         {a: 2, b: 2, c: 1}
       -
         {a: 2, b: 2, c: 2}
+    order:
+      [a, b, c]
     graph:
       -
-        {start: 'a', end: 'b', weight: 6, split: True}
+        {start: 'a', end: 'b', weight: 6, order: 0, split: True}
       -
-        {start: 'b', end: 'a', weight: 6, split: True}
+        {start: 'b', end: 'a', weight: 6, order: 1, split: True}
       -
-        {start: 'a', end: 'c', weight: 6, split: True}
+        {start: 'a', end: 'c', weight: 6, order: 1, split: True}
       -
-        {start: 'c', end: 'a', weight: 6, split: True}
+        {start: 'c', end: 'a', weight: 6, order: 1, split: True}
       -
-        {start: 'b', end: 'c', weight: 6, split: True}
+        {start: 'b', end: 'c', weight: 6, order: 0, split: True}
       -
-        {start: 'c', end: 'b', weight: 6, split: True}
+        {start: 'c', end: 'b', weight: 6, order: 1, split: True}
     groups:
       -
         [a]
