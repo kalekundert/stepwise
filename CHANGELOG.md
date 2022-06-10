@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.36.0 (2022-06-10)
+### Feature
+* Make reactions intrinsically ordered ([`2e5a5ae`](https://github.com/kalekundert/stepwise/commit/2e5a5aec17384bae4f05c1c9b98fb4634b0634ad))
+
 ## v0.35.0 (2022-05-31)
 ### Feature
 * Mix manually- and automatically-specified master mixes ([`816406a`](https://github.com/kalekundert/stepwise/commit/816406a1f979bcdb78d714b1a5873de4a8cb90db))
