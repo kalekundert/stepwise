@@ -66,6 +66,10 @@ class List(Formatter):
     default_br = '\n'
     force_alignment = True
 
+    @classmethod
+    def from_iterable(cls, items, **kwargs):
+        return cls(*items, **kwargs)
+
     def __init__(self, *items, br=None):
         self._items = list(items)
         self.br = br or self.default_br

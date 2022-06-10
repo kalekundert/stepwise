@@ -130,6 +130,9 @@ class Quantity(Real):
         >>> q.convert_unit('mg', dict(g=1, mg=1000))
         Quantity(2000, 'mg')
         """
+        if new_unit == self.unit:
+            return self
+
         f = conversion_factors
 
         try:

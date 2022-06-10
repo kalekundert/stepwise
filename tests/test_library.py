@@ -26,13 +26,7 @@ def test_library_singleton():
     lib2 = DummyLibrary.from_singleton()
     assert lib1 is lib2
 
-@parametrize_from_file(
-        schema=Schema({
-            'collections': empty_ok([str]),
-            'tag': str,
-            'expected': empty_ok([str]),
-        }),
-)
+@parametrize_from_file
 def test_library_find_entries(collections, tag, expected):
     collection_map = {
             '1': stepwise.PathCollection(COLLECT1_DIR),
@@ -56,17 +50,11 @@ def test_library_find_entries(collections, tag, expected):
     else:
         assert library.find_entry(tag).name == path(expected[0])
 
-@parametrize_from_file(
-        schema=Schema({
-            'name': str,
-            'names': empty_ok([str]),
-            'expected': eval_python,
-        }),
-)
+@parametrize_from_file
 def test_collection_is_unique(name, names, expected):
     collection = stepwise.Collection(name)
     collections = [stepwise.Collection(x) for x in names]
-    assert collection.is_unique(collections) == expected
+    assert collection.is_unique(collections) == with_py.eval(expected)
 
 def test_path_collection_is_available():
     collection = stepwise.PathCollection(COLLECT1_DIR)
@@ -75,12 +63,7 @@ def test_path_collection_is_available():
     collection = stepwise.PathCollection(COLLECT1_DIR / 'nonexistant')
     assert not collection.is_available()
 
-@parametrize_from_file(
-        schema=Schema({
-            'tag': str,
-            'expected': empty_ok([str]),
-        }),
-)
+@parametrize_from_file
 def test_path_collection_find_entries(tag, expected):
     collection = stepwise.PathCollection(COLLECT1_DIR)
     entries = list(x.name for _, x in collection.find_entries(tag))
@@ -88,12 +71,7 @@ def test_path_collection_find_entries(tag, expected):
     assert collection.is_available()
     assert entries == paths(expected)
 
-@parametrize_from_file(
-        schema=Schema({
-            'tag': str,
-            'expected': empty_ok([str]),
-        }),
-)
+@parametrize_from_file
 def test_cwd_collection_find_entries(tag, expected):
     import os
 
@@ -119,13 +97,7 @@ def test_entry_full_name(collection_name, entry_name, full_name):
     assert entry.full_name == path(full_name)
 
 @parametrize_from_file(
-        schema=Schema({
-            'relpath': str,
-            Optional('args', default=[]): empty_ok([str]),
-            'steps': empty_ok([str]),
-            Optional('attachments', default=[]): empty_ok([str]),
-            Optional('skip_windows', default=''): str,
-        }),
+        schema=defaults(args=[], attachments=[], skip_windows=''),
 )
 def test_path_entry_load_protocol(disable_capture, relpath, args, steps, attachments, skip_windows):
     if skip_windows and sys.platform == 'win32':
@@ -150,25 +122,13 @@ def test_path_entry_load_protocol(disable_capture, relpath, args, steps, attachm
         stepwise.Library._singleton = None
 
 
-@parametrize_from_file(
-        schema=Schema({
-            'tag': str,
-            'name': str,
-            'expected': eval_python,
-        }),
-)
+@parametrize_from_file
 def test_match_tag(tag, name, expected):
     from stepwise.library import _match_tag
-    assert _match_tag(tag or None, name) == tuple(expected)
+    assert _match_tag(tag or None, name) == tuple(with_py.eval(expected))
 
 @parametrize_from_file(
-        schema=Schema({
-            'scripts': {str: str},
-            Optional('args', default=[]): [str],
-            Optional('stdout', default=''): str,
-            Optional('stderr', default=''): str,
-            Optional('return_code', default=0): Coerce(int),
-        }),
+        schema=defaults(args=[], stdout='', stderr='', return_code=0),
 )
 def test_run_python_script(tmp_path, scripts, args, stdout, stderr, return_code):
     import sys, pickle
@@ -207,7 +167,7 @@ pickle.dump(p, sys.stdout.buffer)
     print(p1.stdout)
     print(p1.stderr, file=sys.stderr)
 
-    assert p2.returncode == return_code
+    assert p2.returncode == int(return_code)
     assert p2.stdout.decode() == stdout
     assert stderr in p1.stderr.decode()
 

@@ -11,7 +11,14 @@ from param_helpers import *
 
 parse = Protocol.parse
 merge = Protocol.merge
-eval_footnotes = partial(eval_stepwise, keys=True)
+
+def eval_steps_footnotes(d):
+    for k in d:
+        if k.startswith('steps'):
+            d[k] = with_sw.eval(d[k])
+        if k.startswith('footnotes'):
+            d[k] = with_sw.eval(d[k], keys=True)
+    return d
 
 class MockObj:
 
@@ -670,7 +677,7 @@ def test_protocol_iadd():
     assert p.footnotes == {1: "h"}
     assert p[-1] == "H"
 
-@parametrize_from_file(schema=Schema({str: eval_footnotes}))
+@parametrize_from_file(schema=Schema({str: with_sw.eval(keys=True)}))
 def test_protocol_add_footnotes(footnotes_new, footnotes_before, footnotes_after, formatted_ids):
     p = Protocol()
     p.footnotes = footnotes_before
@@ -679,16 +686,11 @@ def test_protocol_add_footnotes(footnotes_new, footnotes_before, footnotes_after
     assert p.footnotes == footnotes_after
 
 @parametrize_from_file(
-    schema=Schema({
-        'steps_before': eval_stepwise,
-        'footnotes_before': eval_footnotes,
-        'footnotes_new': eval_footnotes,
-        Optional('pattern', default='(?=[.:])'): str,
-        **error_or({
-            'steps_after': eval_stepwise,
-            'footnotes_after': eval_footnotes,
-        }),
-    }),
+    schema=[
+        with_sw.error_or('steps_after', 'footnotes_after'),
+        defaults(pattern='(?=[.:])'),
+        eval_steps_footnotes,
+    ],
 )
 def test_protocol_insert_footnotes(steps_before, footnotes_before, footnotes_new, pattern, steps_after, footnotes_after, error):
     p = Protocol()
@@ -701,7 +703,12 @@ def test_protocol_insert_footnotes(steps_before, footnotes_before, footnotes_new
         assert p.steps == steps_after
         assert p.footnotes == footnotes_after
 
-@parametrize_from_file(schema=Schema({str: eval_stepwise}))
+@parametrize_from_file(
+        schema=[
+            cast(new_ids=with_sw.eval),
+            eval_steps_footnotes,
+        ],
+)
 def test_protocol_renumber_footnotes(new_ids, steps_before, footnotes_before, steps_after, footnotes_after):
     p = Protocol()
     p.steps = steps_before
@@ -711,7 +718,7 @@ def test_protocol_renumber_footnotes(new_ids, steps_before, footnotes_before, st
     assert p.steps == steps_after
     assert p.footnotes == footnotes_after
 
-@parametrize_from_file(schema=Schema({str: eval_footnotes}))
+@parametrize_from_file(schema=eval_steps_footnotes)
 def test_protocol_deduplicate_footnotes(steps_before, footnotes_before, steps_after, footnotes_after):
     p = Protocol()
     p.steps = steps_before
@@ -721,14 +728,14 @@ def test_protocol_deduplicate_footnotes(steps_before, footnotes_before, steps_af
     assert p.steps == steps_after
     assert p.footnotes == footnotes_after
 
-@parametrize_from_file(schema=Schema({str: eval_stepwise}))
+@parametrize_from_file(schema=eval_steps_footnotes)
 def test_protocol_merge_footnotes(steps_before, steps_after):
     p = Protocol()
     p.steps = steps_before
     p.merge_footnotes()
     assert p.steps == steps_after
 
-@parametrize_from_file(schema=Schema({str: eval_stepwise}))
+@parametrize_from_file(schema=eval_steps_footnotes)
 def test_protocol_prune_footnotes(steps_before, footnotes_before, steps_after, footnotes_after):
     p = Protocol()
     p.steps = steps_before
@@ -738,7 +745,7 @@ def test_protocol_prune_footnotes(steps_before, footnotes_before, steps_after, f
     assert p.steps == steps_after
     assert p.footnotes == footnotes_after
 
-@parametrize_from_file(schema=Schema({str: eval_stepwise}))
+@parametrize_from_file(schema=eval_steps_footnotes)
 def test_protocol_clear_footnotes(steps_before, steps_after, footnotes_before):
     p = Protocol()
     p.steps = steps_before
@@ -749,11 +756,10 @@ def test_protocol_clear_footnotes(steps_before, steps_after, footnotes_before):
     assert p.footnotes == {}
 
 @parametrize_from_file(
-        schema=Schema({
-            Optional('date', default=None): Or(None, arrow.get),
-            Optional('commands', default=[]): [str],
-            'expected': str,
-        }),
+        schema=[
+            cast(date=arrow.get),
+            defaults(date=None, commands=[]),
+        ],
 )
 def test_protocol_pick_slug(date, commands, expected):
     p = Protocol(date=date, commands=commands)
@@ -776,23 +782,13 @@ def test_protocol_format_commands(commands, expected):
     p.commands = commands
     assert p.format_text(inf) == expected.rstrip()
 
-@parametrize_from_file(
-        schema=Schema({
-            'steps': eval_stepwise,
-            'expected': str,
-        }),
-)
+@parametrize_from_file(schema=eval_steps_footnotes)
 def test_protocol_format_steps(steps, expected):
     p = Protocol()
     p.steps = steps
     assert p.format_text(inf) == expected.rstrip()
 
-@parametrize_from_file(
-        schema=Schema({
-            'footnotes': eval_stepwise,
-            'expected': str,
-        }),
-)
+@parametrize_from_file(schema=eval_steps_footnotes)
 def test_protocol_format_footnotes(footnotes, expected):
     p = Protocol()
     p.footnotes = footnotes
@@ -837,12 +833,7 @@ def test_protocol_parse_date(text, date):
     assert p.date == arrow.get(date)
 
 @parametrize_from_file(
-        schema=Schema({
-            'text': str,
-            **error_or({
-                'commands': [str],
-            }),
-        }),
+        schema=with_sw.error_or('commands'),
 )
 def test_protocol_parse_commands(text, commands, error):
     with error:
@@ -850,12 +841,7 @@ def test_protocol_parse_commands(text, commands, error):
         assert p.commands == commands
 
 @parametrize_from_file(
-        schema=Schema({
-            'text': str,
-            **error_or({
-                'steps': [str],
-            }),
-        }),
+        schema=with_sw.error_or('steps'),
 )
 def test_protocol_parse_steps(text, steps, error):
     with error:
@@ -863,12 +849,10 @@ def test_protocol_parse_steps(text, steps, error):
         assert p.steps == [pre(x) for x in steps]
 
 @parametrize_from_file(
-        schema=Schema({
-            'text': str,
-            **error_or({
-                'footnotes': empty_ok({Coerce(int): str}),
-            }),
-        }),
+        schema=[
+            cast(footnotes=Schema({Coerce(int): str})),
+            with_sw.error_or('footnotes'),
+        ],
 )
 def test_protocol_parse_footnotes(text, footnotes, error):
     with error:

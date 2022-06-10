@@ -1,34 +1,1958 @@
-test_fix_volumes:
+test_reagent_volume:
   -
-    donor_before: 0
-    donor_after: 0
-    acceptor_before: 0
-    acceptor_after: 0
+    given: Quantity(1, 'µL')
+    expected: 1 µL
   -
-    donor_before: 0
-    donor_after: -1
-    acceptor_before: -1
-    acceptor_after: 0
+    given: 2, 'µL'
+    expected: 2 µL
   -
-    donor_before: 0
-    donor_after: 0
-    acceptor_before: 1
-    acceptor_after: 1
+    given: '3 µL'
+    expected: 3 µL
+
+test_reagent_is_empty:
   -
-    donor_before: 1
-    donor_after: 1
-    acceptor_before: 0
-    acceptor_after: 0
+    volume_uL: 0
+    expected: True
   -
-    donor_before: 1
-    donor_after: 0
-    acceptor_before: -1
-    acceptor_after: 0
+    volume_uL: 0.004
+    expected: True
   -
-    donor_before: 1
-    donor_after: 1
-    acceptor_before: 1
-    acceptor_after: 1
+    volume_uL: 0.005
+    expected: False
+  -
+    volume_uL: 0.04
+    kwargs:
+      precision: 1
+    expected: True
+  -
+    volume_uL: 0.05
+    kwargs:
+      precision: 1
+    expected: False
+  -
+    volume_uL: 1
+    expected: False
+
+test_reagent_stock_conc:
+  -
+    given: Quantity(1, 'ng/µL')
+    expected: 1 ng/µL
+  -
+    given: 2, 'ng/µL'
+    expected: 2 ng/µL
+  -
+    given: '3 ng/µL'
+    expected: 3 ng/µL
+
+test_reagent_conc:
+  -
+    volume: 1 µL
+    stock_conc: 10 ng/µL
+    rxn_volume: 5 µL
+    expected: 2 ng/µL
+  -
+    volume:
+    stock_conc: 10 ng/µL
+    rxn_volume: 5 µL
+    error:
+      type: ValueError
+      message: no volume specified for 'x'
+  -
+    volume: 1 µL
+    stock_conc:
+    rxn_volume: 5 µL
+    error:
+      type: ValueError
+      message: no stock concentration specified for 'x'
+  -
+    volume: 1 µL
+    stock_conc: 10 ng/µL
+    rxn_volume:
+    error:
+      type: ValueError
+      message: no reaction volume specified
+
+test_reagent_hold_conc:
+  -
+    v1: 1 µL
+    s1: 10 ng/µL
+    v2: 1 µL
+    s2: 10 ng/µL
+  -
+    v1: 1 µL
+    s1: 10 ng/µL
+    v2: 2 µL
+    s2: 5 ng/µL
+
+test_reagent_hold_volume:
+  -
+    rxn_volume: 10 µL
+    v1: 1 µL
+    s1: 10 ng/µL
+    c1: 1 ng/µL
+    s2: 10 ng/µL
+    c2: 1 ng/µL
+  -
+    rxn_volume: 10 µL
+    v1: 1 µL
+    s1: 10 ng/µL
+    c1: 1 ng/µL
+    s2: 20 ng/µL
+    c2: 2 ng/µL
+
+test_reagent_hold_stock_conc:
+  -
+    rxn_volume: 10 µL
+    s1: 10 ng/µL
+    v1: 1 µL
+    c1: 1 ng/µL
+    v2: 1 µL
+    c2: 1 ng/µL
+  -
+    rxn_volume: 10 µL
+    s1: 10 ng/µL
+    v1: 1 µL
+    c1: 1 ng/µL
+    v2: 2 µL
+    c2: 2 ng/µL
+
+test_reaction_setup:
+  -
+    id: append
+    reaction:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.append_reagent('y')
+    expected:
+      reagents:
+        -
+          class: Reagent
+          key: 'x'
+        -
+          class: Reagent
+          key: 'y'
+  -
+    id: append-err-dup
+    reaction:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.append_reagent('x')
+    error:
+      type: UsageError
+      message: 'x' is already a reagent
+  -
+    id: prepend
+    reaction:
+      > rxn = Reaction()
+      > rxn.prepend_reagent('x')
+      > rxn.prepend_reagent('y')
+    expected:
+      reagents:
+        -
+          class: Reagent
+          key: 'y'
+        -
+          class: Reagent
+          key: 'x'
+  -
+    id: prepend-err-dup
+    reaction:
+      > rxn = Reaction()
+      > rxn.prepend_reagent('x')
+      > rxn.prepend_reagent('x')
+    error:
+      type: UsageError
+      message: 'x' is already a reagent
+  -
+    id: insert
+    reaction:
+      > rxn = Reaction()
+      > rxn.insert_reagent('x', 0)
+      > rxn.insert_reagent('y', 1)
+      > rxn.insert_reagent('z', 1)
+    expected:
+      reagents:
+        -
+          class: Reagent
+          key: 'x'
+        -
+          class: Reagent
+          key: 'z'
+        -
+          class: Reagent
+          key: 'y'
+  -
+    id: insert-before
+    reaction:
+      > rxn = Reaction()
+      > rxn.insert_reagent('x', 0)
+      > rxn.insert_reagent('y', before('x'))
+    expected:
+      reagents:
+        -
+          class: Reagent
+          key: 'y'
+        -
+          class: Reagent
+          key: 'x'
+  -
+    id: insert-after
+    reaction:
+      > rxn = Reaction()
+      > rxn.insert_reagent('x', 0)
+      > rxn.insert_reagent('y', after('x'))
+    expected:
+      reagents:
+        -
+          class: Reagent
+          key: 'x'
+        -
+          class: Reagent
+          key: 'y'
+  -
+    id: insert-err-dup
+    reaction:
+      > rxn = Reaction()
+      > rxn.insert_reagent('x', 0)
+      > rxn.insert_reagent('x', 0)
+    error:
+      type: UsageError
+      message: 'x' is already a reagent
+  -
+    id: remove
+    reaction:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.remove_reagent('x')
+    expected:
+      reagents:
+        []
+  -
+    id: remove
+    reaction:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.append_reagent('y')
+      > rxn.remove_reagent('y')
+    expected:
+      reagents:
+        -
+          class: Reagent
+          key: 'x'
+  -
+    id: remove
+    reaction:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.append_reagent('y')
+      > rxn.remove_reagent('x')
+    expected:
+      reagents:
+        -
+          class: Reagent
+          key: 'y'
+  -
+    id: remove-solvent
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].volume = 'to 5 µL'
+      > rxn['x'].volume = '1 µL'
+      > rxn.remove_reagent('w')
+    expected:
+      volume: '1 µL'
+      solvent: None
+      reagents:
+        -
+          class: Reagent
+          key: 'x'
+          volume: Q('1 µL')
+  -
+    id: remove-err-not-found
+    reaction:
+      > rxn = Reaction()
+      > rxn.remove_reagent('x')
+    error:
+      type: UsageError
+      message: 'x' is not a reagent
+  -
+    id: getitem
+    reaction:
+      > rxn = Reaction()
+      > rxn['x'].volume = '1 µL'
+      > rxn['y'].volume = '2 µL'
+    expected:
+      reagents:
+        -
+          class: Reagent
+          key: 'x'
+          volume: Q('1 µL')
+        -
+          class: Reagent
+          key: 'y'
+          volume: Q('2 µL')
+  -
+    id: getitem-solvent
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['x'].volume = '2 µL'
+      > rxn.volume = '5 µL'
+    expected:
+      volume: Q('5 µL')
+      solvent: 'w'
+      reagents:
+        -
+          class: Solvent
+          key: 'w'
+          volume: Q('3 µL')
+        -
+          class: Reagent
+          key: 'x'
+          volume: Q('2 µL')
+  -
+    id: getitem-solvent-copy-attrs
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].flags = {'a'}
+      > rxn['w'].catalog_num = 'b'
+      > rxn['w'].misc_attr = 'c'
+      > rxn['w'].set_as_solvent()
+      > rxn['x'].volume = '2 µL'
+      > rxn.volume = '5 µL'
+    expected:
+      volume: Q('5 µL')
+      solvent: 'w'
+      reagents:
+        -
+          class: Solvent
+          key: 'w'
+          volume: Q('3 µL')
+          flags: {'a'}
+          catalog_num: 'b'
+          misc_attr: 'c'
+        -
+          class: Reagent
+          key: 'x'
+          volume: Q('2 µL')
+  -
+    id: getitem-solvent-err-dup
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['v'].set_as_solvent()
+    error:
+      type: UsageError
+      message: cannot set 'v' as solvent; 'w' is already the solvent
+  -
+    id: getitem-solvent-err-volume
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].volume = '3 µL'
+      > rxn['w'].set_as_solvent()
+    error:
+      type: UsageError
+      message: 'w' has a volume (3 µL); cannot set as solvent
+  -
+    id: getitem-solvent-err-stock
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].stock_conc = '1 µM'
+      > rxn['w'].set_as_solvent()
+    error:
+      type: UsageError
+      message: 'w' has a stock concentration (1 µM); cannot set as solvent
+  -
+    id: getitem-solvent-volume-str
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].volume = 'to 5 µL'
+      > rxn['x'].volume = '2 µL'
+    expected:
+      volume: Q('5 µL')
+      solvent: 'w'
+      reagents:
+        -
+          class: Solvent
+          key: 'w'
+          volume: Q('3 µL')
+        -
+          class: Reagent
+          key: 'x'
+          volume: Q('2 µL')
+  -
+    id: getitem-solvent-volume-to
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].volume = To(Quantity(5, 'µL'))
+      > rxn['x'].volume = '2 µL'
+    expected:
+      volume: Q('5 µL')
+      solvent: 'w'
+      reagents:
+        -
+          class: Solvent
+          key: 'w'
+          volume: Q('3 µL')
+        -
+          class: Reagent
+          key: 'x'
+          volume: Q('2 µL')
+  -
+    id: setitem-reagent-intra
+    reaction:
+      > rxn = Reaction()
+      > rxn['x'].name = 'x*'
+      > rxn['x'].volume = '1 µL'
+      > rxn['x'].stock_conc = '1 µM'
+      > rxn['x'].flags = {'a'}
+      > rxn['x'].catalog_num = 'b'
+      > rxn['x'].user_attr = 1
+      > rxn['x'].user_mutable_attr = []
+      >
+      > # Make sure changes don't affect 'x' or 'z'.
+      > rxn['y'] = rxn['x']
+      > rxn['y'].name = 'y*'
+      > rxn['y'].volume = '2 µL'
+      > rxn['y'].stock_conc = '2 µM'
+      > rxn['y'].flags.add('b')
+      > rxn['y'].catalog_num = 'c'
+      > rxn['y'].user_attr = 2
+      > rxn['y'].user_mutable_attr.append(1)
+      >
+      > # Make sure 'x' is copied faithfully.
+      > rxn['z'] = rxn['x']
+    expected:
+      reagents:
+        -
+          key: 'x'
+          name: 'x*'
+          volume: Q('1 µL')
+          stock_conc: Q('1 µM')
+          flags: {'a'}
+          catalog_num: 'b'
+          user_attr: 1
+          user_mutable_attr: []
+        -
+          key: 'y'
+          name: 'y*'
+          volume: Q('2 µL')
+          stock_conc: Q('2 µM')
+          flags: {'a', 'b'}
+          catalog_num: 'c'
+          user_attr: 2
+          user_mutable_attr: [1]
+        -
+          key: 'z'
+          name: 'x*'
+          volume: Q('1 µL')
+          stock_conc: Q('1 µM')
+          flags: {'a'}
+          catalog_num: 'b'
+          user_attr: 1
+          user_mutable_attr: []
+  -
+    id: setitem-reagent-intra-overwrite-reagent
+    reaction:
+      > rxn = Reaction()
+      > rxn['x'].volume = '1 µL'
+      > rxn['y'].volume = '2 µL'
+      > rxn['y'] = rxn['x']
+    expected:
+      reagents:
+        -
+          key: 'x'
+          volume: Q('1 µL')
+        -
+          key: 'y'
+          volume: Q('1 µL')
+  -
+    id: setitem-reagent-intra-overwrite-solvent
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].volume = 'to 5 µL'
+      > rxn['x'].volume = '1 µL'
+      > rxn['x'].stock_conc = '1 µM'
+      > rxn['w'] = rxn['x']
+      > rxn['w'].volume = '2 µL'
+    expected:
+      solvent: None
+      volume: Q('3 µL')
+      reagents:
+        -
+          class: Reagent
+          key: 'w'
+          volume: Q('2 µL')
+          stock_conc: '1 µM'
+        -
+          class: Reagent
+          key: 'x'
+          volume: Q('1 µL')
+          stock_conc: '1 µM'
+  -
+    id: setitem-reagent-inter
+    reaction:
+      > rxns = Reaction(), Reaction()
+      > rxns[0]['x'].name = 'x*'
+      > rxns[0]['x'].volume = '1 µL'
+      > rxns[0]['x'].stock_conc = '1 µM'
+      > rxns[0]['x'].flags = {'a'}
+      > rxns[0]['x'].catalog_num = 'b'
+      > rxns[0]['x'].user_attr = 1
+      > rxns[0]['x'].user_mutable_attr = []
+      >
+      > # Make sure changes don't affect 'x' or 'z'.
+      > rxns[1]['y'] = rxns[0]['x']
+      > rxns[1]['y'].name = 'y*'
+      > rxns[1]['y'].volume = '2 µL'
+      > rxns[1]['y'].stock_conc = '2 µM'
+      > rxns[1]['y'].flags.add('b')
+      > rxns[1]['y'].catalog_num = 'c'
+      > rxns[1]['y'].user_attr = 2
+      > rxns[1]['y'].user_mutable_attr.append(1)
+      >
+      > # Make sure 'x' is copied faithfully.
+      > rxns[1]['z'] = rxns[0]['x']
+    expected:
+      -
+        reagents:
+          -
+            key: 'x'
+            name: 'x*'
+            volume: Q('1 µL')
+            stock_conc: Q('1 µM')
+            flags: {'a'}
+            catalog_num: 'b'
+            user_attr: 1
+            user_mutable_attr: []
+      -
+        reagents:
+          -
+            key: 'y'
+            name: 'y*'
+            volume: Q('2 µL')
+            stock_conc: Q('2 µM')
+            flags: {'a', 'b'}
+            catalog_num: 'c'
+            user_attr: 2
+            user_mutable_attr: [1]
+          -
+            key: 'z'
+            name: 'x*'
+            volume: Q('1 µL')
+            stock_conc: Q('1 µM')
+            flags: {'a'}
+            catalog_num: 'b'
+            user_attr: 1
+            user_mutable_attr: []
+  -
+    id: setitem-reagent-inter-overwrite-reagent
+    reaction:
+      > rxns = Reaction(), Reaction()
+      > rxns[0]['x'].volume = '1 µL'
+      > rxns[1]['y'].volume = '2 µL'
+      > rxns[1]['y'] = rxns[0]['x']
+    expected:
+      -
+        reagents:
+          -
+            key: 'x'
+            volume: Q('1 µL')
+      -
+        reagents:
+          -
+            key: 'y'
+            volume: Q('1 µL')
+  -
+    id: setitem-reagent-inter-overwrite-solvent
+    reaction:
+      > rxns = Reaction(), Reaction()
+      > rxns[0]['x'].volume = '1 µL'
+      > rxns[0]['x'].stock_conc = '1 µM'
+      > rxns[1]['w'].volume = 'to 5 µL'
+      > rxns[1]['w'] = rxns[0]['x']
+      > rxns[1]['w'].volume = '2 µL'
+    expected:
+      -
+        solvent: None
+        volume: Q('1 µL')
+        reagents:
+          -
+            class: Reagent
+            key: 'x'
+            volume: Q('1 µL')
+            stock_conc: '1 µM'
+      -
+        solvent: None
+        volume: Q('2 µL')
+        reagents:
+          -
+            class: Reagent
+            key: 'w'
+            volume: Q('2 µL')
+            stock_conc: '1 µM'
+  -
+    id: setitem-solvent-intra
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['v'] = rxn['w']
+    error:
+      type: UsageError
+      message: cannot make 'v' the solvent; 'w' is already the solvent
+  -
+    id: setitem-solvent-intra-overwrite-reagent
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['v'].volume = '1 µL'
+      > rxn['v'] = rxn['w']
+    error:
+      type: UsageError
+      message: cannot make 'v' the solvent; 'w' is already the solvent
+  -
+    id: setitem-solvent-inter
+    reaction:
+      > rxns = Reaction(), Reaction(), Reaction()
+      > rxns[0]['w'].name = 'w*'
+      > rxns[0]['w'].volume = 'to 5 µL'
+      > rxns[0]['w'].flags = {'a'}
+      > rxns[0]['w'].catalog_num = 'b'
+      > rxns[0]['w'].user_attr = 1
+      > rxns[0]['w'].user_mutable_attr = []
+      >
+      > # Make sure changes don't affect 'w' or 'u'.
+      > rxns[1]['v'] = rxns[0]['w']
+      > rxns[1]['v'].name = 'v*'
+      > rxns[1]['v'].flags.add('b')
+      > rxns[1]['v'].catalog_num = 'c'
+      > rxns[1]['v'].user_attr = 2
+      > rxns[1]['v'].user_mutable_attr.append(1)
+      > rxns[1].volume = '4 µL'
+      >
+      > # Make sure 'w' is copied faithfully.
+      > rxns[2]['u'] = rxns[0]['w']
+    expected:
+      -
+        volume: Q('5 µL')
+        reagents:
+          -
+            key: 'w'
+            name: 'w*'
+            volume: Q('5 µL')
+            flags: {'a'}
+            catalog_num: 'b'
+            user_attr: 1
+            user_mutable_attr: []
+      -
+        volume: Q('4 µL')
+        reagents:
+          -
+            key: 'v'
+            name: 'v*'
+            volume: Q('4 µL')
+            flags: {'a', 'b'}
+            catalog_num: 'c'
+            user_attr: 2
+            user_mutable_attr: [1]
+      -
+        volume: None
+        reagents:
+          -
+            key: 'u'
+            name: 'w*'
+            flags: {'a'}
+            catalog_num: 'b'
+            user_attr: 1
+            user_mutable_attr: []
+  -
+    id: setitem-solvent-inter-overwrite-reagent
+    reaction:
+      > rxns = Reaction(), Reaction()
+      > rxns[0]['w'].set_as_solvent()
+      > rxns[0]['w'].attr_keep = 1
+      > rxns[0]['w'].attr_change = 1
+      >
+      > rxns[1]['v'].volume = '1 µL'
+      > rxns[1]['v'] = rxns[0]['w']
+      > rxns[1]['v'].attr_change = 2
+    expected:
+      -
+        reagents:
+          -
+            class: Solvent
+            key: 'w'
+            attr_keep: 1
+            attr_change: 1
+      -
+        reagents:
+          -
+            class: Solvent
+            key: 'v'
+            attr_keep: 1
+            attr_change: 2
+  -
+    id: setitem-solvent-inter-overwrite-solvent
+    reaction:
+      > rxns = Reaction(), Reaction()
+      >
+      > rxns[0]['w'].volume = 'to 5 µL'
+      > rxns[0]['w'].attr_keep = 1
+      > rxns[0]['w'].attr_change = 1
+      >
+      > rxns[1]['v'].volume = 'to 3 µL'
+      > rxns[1]['v'] = rxns[0]['w']
+      > rxns[1]['v'].attr_change = 2
+    expected:
+      -
+        solvent: 'w'
+        volume: Q('5 µL')
+        reagents:
+          -
+            class: Solvent
+            key: 'w'
+            volume: Q('5 µL')
+            attr_keep: 1
+            attr_change: 1
+      -
+        solvent: 'v'
+        # The volume isn't copied with the solvent.
+        volume: Q('3 µL')
+        reagents:
+          -
+            class: Solvent
+            key: 'v'
+            volume: Q('3 µL')
+            attr_keep: 1
+            attr_change: 2
+  -
+    id: delitem
+    # The `remove` tests thoroughly exercise this functionality.  This test 
+    # just makes sure that `__delitem__` is hooked up correctly.
+    reaction:
+      > rxn = Reaction()
+      > rxn['x'].volume = '1 µL'
+      > del rxn['x']
+    expected:
+      reagents:
+        []
+  -
+    id: copy
+    reaction:
+      > rxns = [Reaction()]
+      >
+      > rxns[0]['w'].name = 'w*'
+      > rxns[0]['w'].volume = 'to 5 µL'
+      > rxns[0]['w'].flags = {'a'}
+      > rxns[0]['w'].catalog_num = 'b'
+      > rxns[0]['w'].user_attr = 1
+      > rxns[0]['w'].user_mutable_attr = []
+      >
+      > rxns[0]['x'].name = 'x*'
+      > rxns[0]['x'].volume = '1 µL'
+      > rxns[0]['x'].stock_conc = '1 µM'
+      > rxns[0]['x'].flags = {'c'}
+      > rxns[0]['x'].catalog_num = 'd'
+      > rxns[0]['x'].user_attr = 2
+      > rxns[0]['x'].user_mutable_attr = []
+      >
+      > # Make sure changes don't affect the original.
+      > rxns.append(rxns[0].copy())
+      >
+      > rxns[1]['w'].name = 'v*'
+      > rxns[1]['w'].flags.add('e')
+      > rxns[1]['w'].catalog_num = 'f'
+      > rxns[1]['w'].user_attr = 3
+      > rxns[1]['w'].user_mutable_attr.append(4)
+      >
+      > rxns[1]['x'].name = 'y*'
+      > rxns[1]['x'].volume = '2 µL'
+      > rxns[1]['x'].stock_conc = '2 µM'
+      > rxns[1]['x'].flags.add('g')
+      > rxns[1]['x'].catalog_num = 'h'
+      > rxns[1]['x'].user_attr = 5
+      > rxns[1]['x'].user_mutable_attr.append(6)
+      >
+      > # Make sure the original is copied faithfully.
+      > rxns.append(rxns[0].copy())
+
+    expected:
+      -
+        volume: Q('5 µL')
+        solvent: 'w'
+        reagents:
+          -
+            class: Solvent
+            key: 'w'
+            name: 'w*'
+            volume: Q('4 µL')
+            flags: {'a'}
+            catalog_num: 'b'
+            user_attr: 1
+            user_mutable_attr: []
+          -
+            class: Reagent
+            key: 'x'
+            name: 'x*'
+            volume: Q('1 µL')
+            stock_conc: Q('1 µM')
+            flags: {'c'}
+            catalog_num: 'd'
+            user_attr: 2
+            user_mutable_attr: []
+      -
+        volume: Q('5 µL')
+        solvent: 'w'
+        reagents:
+          -
+            class: Solvent
+            key: 'w'
+            name: 'v*'
+            volume: Q('3 µL')
+            flags: {'a', 'e'}
+            catalog_num: 'f'
+            user_attr: 3
+            user_mutable_attr: [4]
+          -
+            class: Reagent
+            key: 'x'
+            name: 'y*'
+            volume: Q('2 µL')
+            stock_conc: Q('2 µM')
+            flags: {'c', 'g'}
+            catalog_num: 'h'
+            user_attr: 5
+            user_mutable_attr: [6]
+      -
+        volume: Q('5 µL')
+        solvent: 'w'
+        reagents:
+          -
+            class: Solvent
+            key: 'w'
+            name: 'w*'
+            volume: Q('4 µL')
+            flags: {'a'}
+            catalog_num: 'b'
+            user_attr: 1
+            user_mutable_attr: []
+          -
+            class: Reagent
+            key: 'x'
+            name: 'x*'
+            volume: Q('1 µL')
+            stock_conc: Q('1 µM')
+            flags: {'c'}
+            catalog_num: 'd'
+            user_attr: 2
+            user_mutable_attr: []
+  -
+    id: key-reagent
+    reaction:
+      > rxn = Reaction()
+      > rxn['x'].volume = '1 µL'
+      > rxn['x'].key = 'y'
+    expected:
+      reagents:
+        -
+          key: 'y'
+          name: 'x'
+          volume: Q('1 µL')
+  -
+    id: key-solvent
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].volume = 'to 5 µL'
+      > rxn['w'].key = 'v'
+    expected:
+      volume: Q('5 µL')
+      reagents:
+        -
+          key: 'v'
+          name: 'w'
+          volume: Q('5 µL')
+  -
+    id: key-keep-name
+    reaction:
+      > rxn = Reaction()
+      > rxn['x'].volume = '1 µL'
+      > rxn['x'].name = 'A'
+      > rxn['x'].key = 'y'
+    expected:
+      reagents:
+        -
+          key: 'y'
+          name: 'A'
+          volume: Q('1 µL')
+  -
+    id: key-err-dup
+    reaction:
+      > rxn = Reaction()
+      > rxn['x'].volume = '1 µL'
+      > rxn['y'].volume = '2 µL'
+      > rxn['x'].key = 'y'
+    error:
+      type: UsageError
+      message: cannot change 'x' key to 'y'; new key already in use
+
+test_reaction_from_cols:
+  -
+    id: solvent-only
+    cols:
+      reagent:
+        - 'w'
+      volume:
+        - 'to 5 µL'
+      master_mix:
+        - 'y'
+
+    expected:
+      volume: Q('5 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+  -
+    id: reagent-only
+    cols:
+      reagent:
+        - 'x'
+      stock_conc:
+        - '2x'
+      volume:
+        - '3 µL'
+      master_mix:
+        - 'y'
+
+    expected:
+      volume: Q('3 µL')
+      reagents:
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: True
+  -
+    id: solvent-and-reagent
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - ''
+        - '2x'
+      volume:
+        - 'to 8 µL'
+        - '3 µL'
+      master_mix:
+        - 'y'
+        - 'n'
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: False
+  -
+    id: stock-with-solvent
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - ''
+        - '2x'
+      volume:
+        - 'to 8 µL'
+        - '3 µL'
+      master_mix:
+        - 'y'
+        - 'n'
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: False
+  -
+    id: conc-with-solvent
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - ''
+        - '4x'
+      conc:
+        - ''
+        - '1x'
+      volume:
+        - 'to 8 µL'
+        - ''
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('6 µL')
+        -
+          name: 'x'
+          volume: Q('2 µL')
+          stock_conc: '4x'
+          conc: '1x'
+  -
+    id: conc-volume-with-solvent
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+        - 'y'
+      stock_conc:
+        - ''
+        - '4x'
+        - ''
+      conc:
+        - ''
+        - '1x'
+        - ''
+      volume:
+        - 'to 8 µL'
+        - ''
+        - '1 µL'
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+        -
+          name: 'x'
+          volume: Q('2 µL')
+          stock_conc: '4x'
+          conc: '1x'
+        -
+          name: 'y'
+          volume: Q('1 µL')
+  -
+    id: conc-without-solvent
+    cols:
+      reagent:
+        - 'x'
+        - 'y'
+      stock_conc:
+        - ''
+        - '4x'
+      conc:
+        - ''
+        - '1x'
+      volume:
+        - '6 µL'
+        - ''
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'x'
+          volume: Q('6 µL')
+        -
+          name: 'y'
+          volume: Q('2 µL')
+          stock_conc: '4x'
+          conc: '1x'
+  -
+    id: column-aliases
+    cols:
+      Reagent:
+        - 'w'
+        - 'x'
+      Stock:
+        - ''
+        - '2x'
+      Volume:
+        - 'to 8 µL'
+        - '3 µL'
+      MM?:
+        - 'y'
+        - 'n'
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: False
+  -
+    id: extra-columns
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - ''
+        - '2x'
+      volume:
+        - 'to 8 µL'
+        - '3 µL'
+      master_mix:
+        - 'y'
+        - 'n'
+      note:
+        - 'lorem'
+        - 'ipsum'
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: False
+  -
+    id: assume-master-mix-if-col-missing
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - ''
+        - '2x'
+      volume:
+        - 'to 8 µL'
+        - '3 µL'
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: True
+  -
+    id: default-values
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      volume:
+        - 'to 8 µL'
+        - '3 µL'
+      master_mix:
+        - 'y'
+        - 'n'
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: None
+          master_mix: False
+  -
+    id: default-values
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - ''
+        - '2x'
+      volume:
+        - 'to 8 µL'
+        - '3 µL'
+      master_mix:
+        - 'n'
+        - 'n'
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: False
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: False
+  -
+    id: whitespace
+    cols:
+      reagent:
+        - ' w' 
+        - ' x' 
+      stock_conc:
+        - ''
+        - ' 2x' 
+      volume:
+        - ' to 8 µL' 
+        - ' 3 µL' 
+      master_mix:
+        - ' y' 
+        - ' n' 
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: False
+  -
+    id: non-strings
+    cols:
+      reagent:
+        - 'w' 
+        - 'x' 
+      stock_conc:
+        - None
+        - Quantity(2, 'x')
+      volume:
+        - To(Quantity(8, 'µL'))
+        - Quantity(3, 'µL')
+      master_mix:
+        - True
+        - False
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: False
+
+  -
+    id: err-no-reagents
+    cols:
+      reagent:
+        []
+      stock_conc:
+        []
+      volume:
+        []
+      master_mix:
+        []
+    error:
+      type: UsageError
+      message: at least one reagent
+  -
+    id: err-duplicate-cols
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      Reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - ''
+        - '2x'
+      volume:
+        - 'to 8 µL'
+        - '3 µL'
+      master_mix:
+        - 'y'
+        - 'n'
+    error:
+      type: UsageError
+      message: multiple 'reagent' columns found: 'Reagent', 'reagent'
+  -
+    id: err-no-reagent-col
+    cols:
+      stock_conc:
+        - ''
+        - '2x'
+      volume:
+        - 'to 5 µL'
+        - '3 µL'
+      master_mix:
+        - 'y'
+        - 'n'
+    error:
+      type: UsageError
+      message: no 'reagent' column
+  -
+    id: err-no-volume-col
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - ''
+        - '2x'
+      master_mix:
+        - 'y'
+        - 'n'
+    error:
+      type: UsageError
+      message: no 'volume' column
+  -
+    id: err-inconsistent-rows
+    cols:
+      reagent:
+        - 'w'
+      stock_conc:
+        - ''
+        - '2x'
+      volume:
+        - 'to 5 µL'
+        - '3 µL'
+      master_mix:
+        - 'y'
+        - 'n'
+    error:
+      type: UsageError
+      message: different numbers of rows: 1, 2
+  -
+    id: err-missing-names
+    cols:
+      reagent:
+        - ''
+        - 'x'
+      stock_conc:
+        - ''
+        - '2x'
+      volume:
+        - 'to 5 µL'
+        - '3 µL'
+      master_mix:
+        - 'y'
+        - 'n'
+    error:
+      type: UsageError
+      message: missing names
+  -
+    id: err-missing-vol
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - ''
+        - '2x'
+      volume:
+        - ''
+        - '3 µL'
+      master_mix:
+        - 'y'
+        - 'n'
+    error:
+      type: UsageError
+      message: must specify either volume or concentration for 'w'
+  -
+    id: err-vol-and-conc
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - ''
+        - '2x'
+      conc:
+        - ''
+        - '1x'
+      volume:
+        - 'to 10 µL'
+        - '5 µL'
+    error:
+      type: UsageError
+      message: cannot specify volume ('5 µL') and concentration ('1x') for 'x'
+  -
+    id: err-two-solvents
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - ''
+        - '2x'
+      volume:
+        - 'to 8 µL'
+        - 'to 8 µL'
+      master_mix:
+        - 'y'
+        - 'n'
+    error:
+      type: UsageError
+      message: cannot set 'x' as solvent; 'w' is already the solvent
+  -
+    id: err-solvent-conc
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      conc:
+        - '1x'
+        - ''
+      volume:
+        - 'to 8 µL'
+        - '3 µL'
+    error:
+      type: UsageError
+      message: cannot specify a concentration ('1x') for the solvent ('w')
+  -
+    id: err-solvent-stock-conc
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - '2x'
+        - '2x'
+      volume:
+        - 'to 8 µL'
+        - '3 µL'
+    error:
+      type: UsageError
+      message: cannot specify a stock concentration ('2x') for the solvent ('w')
+  -
+    id: err-parse-bool
+    cols:
+      reagent:
+        - 'w'
+        - 'x'
+      stock_conc:
+        - ''
+        - '2x'
+      volume:
+        - 'to 8 µL'
+        - '3 µL'
+      master_mix:
+        - 'maybe'
+        - 'n'
+    error:
+      type: UsageError
+      message: expected 'yes' or 'no', got 'maybe'
+
+test_reaction_from_rows:
+  -
+    rows:
+      -
+        reagent: 'w'
+        volume: 'to 8 µL'
+      -
+        reagent: 'x'
+        stock_conc: '2x'
+        volume: '3 µL'
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+        -
+          name: 'x'
+          stock_conc: '2x'
+          volume: Q('3 µL')
+
+test_reaction_from_text:
+  -
+    id: base
+    text:
+      > Reagent  Stock   Volume  MM?
+      > =======  =====  =======  ===
+      > w               to 8 µL  yes
+      > x           2x     3 µL   no
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: False
+  -
+    id: base
+    text:
+      > MM?   Volume  Stock  Reagent
+      > ===  =======  =====  =======
+      > yes  to 8 µL         w
+      >  no     3 µL     2x  x
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: False
+  -
+    id: empty-cell
+    text:
+      > Reagent  Stock   Volume  MM?
+      > =======  =====  =======  ===
+      > w               to 8 µL  yes
+      > x           2x     3 µL
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: False
+  -
+    id: flags
+    text:
+      > Reagent  Stock   Volume  MM?  Flags
+      > =======  =====  =======  ===  =====
+      > w               to 8 µL  yes  a
+      > x           2x     3 µL   no  a,b
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+          flags: {'a'}
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: False
+          flags: {'a', 'b'}
+  -
+    id: catalog-num
+    text:
+      > Reagent  Stock   Volume  MM?  Cat
+      > =======  =====  =======  ===  ===
+      > w               to 8 µL  yes
+      > x           2x     3 µL   no  101
+
+    expected:
+      volume: Q('8 µL')
+      reagents:
+        -
+          name: 'w'
+          volume: Q('5 µL')
+          master_mix: True
+          catalog_num: None
+        -
+          name: 'x'
+          volume: Q('3 µL')
+          stock_conc: '2x'
+          master_mix: False
+          catalog_num: '101'
+  -
+    id: err-0-lines
+    text:
+      >
+    error:
+      type: UsageError
+      message: has 0 lines
+  -
+    id: err-1-line
+    text:
+      > Reagent  Stock  Volume  MM?
+    error:
+      type: UsageError
+      message: has 1 line
+  -
+    id: err-2-lines
+    text:
+      > Reagent  Stock  Volume  MM?
+      > =======  =====  ======  ===
+    error:
+      type: UsageError
+      message: has 2 lines
+  -
+    id: err-underline
+    text:
+      > Reagent  Stock   Volume  MM?
+      > ~~~~~~~  ~~~~~  ~~~~~~~  ~~~
+      > w               to 8 µL  yes
+      > x           2x     3 µL   no
+    error:
+      type: UsageError
+      message: not '~~~
+
+test_reaction_repr:
+  -
+    id: empty
+    reaction:
+      > #!/usr/bin/env python
+      > rxn = Reaction()
+    expected:
+      > Reaction()
+  -
+    id: order
+    reaction:
+      > #!/usr/bin/env python
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.append_reagent('y')
+      > rxn.append_reagent('z')
+    expected:
+      > Reaction(Reagent('x'), Reagent('y'), Reagent('z'))
+  -
+    id: reagent-name
+    reaction:
+      > #!/usr/bin/env python
+      > rxn = Reaction()
+      > rxn['x'].name = 'y'
+    expected:
+      > Reaction(Reagent('x', name='y'))
+  -
+    id: reagent-volume
+    reaction:
+      > #!/usr/bin/env python
+      > rxn = Reaction()
+      > rxn['x'].volume = '3 µL'
+    expected:
+      > Reaction(Reagent('x', volume=Quantity(3.0, 'µL')))
+  -
+    id: reagent-stock
+    reaction:
+      > #!/usr/bin/env python
+      > rxn = Reaction()
+      > rxn['x'].stock_conc = '1 µM'
+    expected:
+      > Reaction(Reagent('x', stock_conc=Quantity(1.0, 'µM')))
+  -
+    id: reagent-flags
+    reaction:
+      > #!/usr/bin/env python
+      > rxn = Reaction()
+      > rxn['x'].flags = {'a'}
+    expected:
+      > Reaction(Reagent('x', flags={'a'}))
+  -
+    id: reagent-catalog-num
+    reaction:
+      > #!/usr/bin/env python
+      > rxn = Reaction()
+      > rxn['x'].catalog_num = 'a'
+    expected:
+      > Reaction(Reagent('x', catalog_num='a'))
+  -
+    id: solvent-name
+    reaction:
+      > #!/usr/bin/env python
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['w'].name = 'v'
+    expected:
+      > Reaction(Solvent('w', name='v'))
+  -
+    id: solvent-volume
+    reaction:
+      > #!/usr/bin/env python
+      > rxn = Reaction()
+      > rxn['w'].volume = 'to 8 µL'
+    expected:
+      > Reaction(Solvent('w'), volume=Quantity(8.0, 'µL'))
+  -
+    id: solvent-flags
+    reaction:
+      > #!/usr/bin/env python
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['w'].flags = {'a'}
+    expected:
+      > Reaction(Solvent('w', flags={'a'}))
+  -
+    id: solvent-catalog-num
+    reaction:
+      > #!/usr/bin/env python
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['w'].catalog_num = 'a'
+    expected:
+      > Reaction(Solvent('w', catalog_num='a'))
+
+test_reaction_eq:
+  -
+    id: empty
+    a:
+      > rxn = Reaction()
+    b:
+      > rxn = Reaction()
+    expected: True
+  -
+    id: type-diff
+    a:
+      > rxn = Reaction()
+    b:
+      > rxn = None
+
+    expected: False
+  -
+    id: len-same
+    a:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+    b:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+
+    expected: True
+  -
+    id: len-diff
+    a:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+    b:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.append_reagent('y')
+
+    expected: False
+  -
+    id: order-same
+    a:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.append_reagent('y')
+    b:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.append_reagent('y')
+
+    expected: True
+  -
+    id: order-diff
+    a:
+      > rxn = Reaction()
+      > rxn.append_reagent('y')
+      > rxn.append_reagent('x')
+    b:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.append_reagent('y')
+
+    expected: False
+  -
+    id: reagent-same
+    a:
+      > rxn = Reaction()
+      > rxn['x'].name = 'y'
+      > rxn['x'].volume = '1 µL'
+      > rxn['x'].stock_conc = '1 µM'
+      > rxn['x'].flags = {'a'}
+      > rxn['x'].catalog_num = 'b'
+    b:
+      > rxn = Reaction()
+      > rxn['x'].name = 'y'
+      > rxn['x'].volume = '1 µL'
+      > rxn['x'].stock_conc = '1 µM'
+      > rxn['x'].flags = {'a'}
+      > rxn['x'].catalog_num = 'b'
+
+    expected: True
+  -
+    id: reagent-diff-key
+    a:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+    b:
+      > rxn = Reaction()
+      > rxn['x'].key = 'y'
+
+    # Keys are considered an implementation detail, and are not considered when 
+    # comparing two reactions.  All that matters is if the reagents have the 
+    # same names.
+    expected: True
+  -
+    id: reagent-diff-name
+    a:
+      > rxn = Reaction()
+      > rxn['x'].name = 'y1'
+    b:
+      > rxn = Reaction()
+      > rxn['x'].name = 'y2'
+
+    expected: False
+  -
+    id: reagent-diff-volume
+    a:
+      > rxn = Reaction()
+      > rxn['x'].volume = '1 µL'
+    b:
+      > rxn = Reaction()
+      > rxn['x'].volume = '2 µL'
+
+    expected: False
+  -
+    id: reagent-diff-stock-conc
+    a:
+      > rxn = Reaction()
+      > rxn['x'].stock_conc = '1 µM'
+    b:
+      > rxn = Reaction()
+      > rxn['x'].stock_conc = '2 µM'
+
+    expected: False
+  -
+    id: reagent-diff-flags
+    a:
+      > rxn = Reaction()
+      > rxn['x'].flags = {'a'}
+    b:
+      > rxn = Reaction()
+      > rxn['x'].flags = {'b'}
+
+    expected: False
+  -
+    id: reagent-diff-catalog-num
+    a:
+      > rxn = Reaction()
+      > rxn['x'].catalog_num = 'a'
+    b:
+      > rxn = Reaction()
+      > rxn['x'].catalog_num = 'b'
+
+    expected: False
+  -
+    id: solvent-same
+    a:
+      > rxn = Reaction()
+      > rxn['w'].name = 'v'
+      > rxn['w'].volume = 'to 8 µL'
+      > rxn['w'].flags = {'a'}
+      > rxn['w'].catalog_num = 'b'
+    b:
+      > rxn = Reaction()
+      > rxn['w'].name = 'v'
+      > rxn['w'].volume = 'to 8 µL'
+      > rxn['w'].flags = {'a'}
+      > rxn['w'].catalog_num = 'b'
+
+    expected: True
+  -
+    id: solvent-diff-type
+    a:
+      > rxn = Reaction()
+      > rxn['w'].volume = 'to 8 µL'
+    b:
+      > rxn = Reaction()
+      > rxn['w'].volume = '8 µL'
+
+    expected: False
+  -
+    id: solvent-diff-key
+    a:
+      > rxn = Reaction()
+      > rxn['w'].volume = 'to 8 µL'
+    b:
+      > rxn = Reaction()
+      > rxn['_w'].volume = 'to 8 µL'
+      > rxn['_w'].name = 'w'
+
+    # See 'reagent-diff-key'.
+    expected: True
+  -
+    id: solvent-diff-name
+    a:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['w'].name = 'w1'
+    b:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['w'].name = 'w2'
+
+    expected: False
+  -
+    id: solvent-diff-volume
+    a:
+      > rxn = Reaction()
+      > rxn['w'].volume = 'to 8 µL'
+    b:
+      > rxn = Reaction()
+      > rxn['w'].volume = 'to 7 µL'
+
+    expected: False
+  -
+    id: solvent-diff-flags
+    a:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['w'].flags = {'a'}
+    b:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['w'].flags = {'b'}
+
+    expected: False
+  -
+    id: solvent-diff-catalog-num
+    a:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['w'].catalog_num = 'a'
+    b:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn['w'].catalog_num = 'b'
+
+    expected: False
 
 test_reaction_iter_nonzero:
   -
@@ -66,488 +1990,94 @@ test_reaction_iter_nonzero:
     expected:
       [x]
 
-test_reaction_from_cols:
+test_reaction_volume:
   -
-    id: solvent-only
-    cols:
-      reagent:
-        - w
-      volume:
-        - to 5 µL
-      master_mix:
-        - y
-
-    volume: 5 µL
-    expected:
-      w:
-        volume: '5 µL'
-        master_mix: True
+    id: empty
+    reaction:
+      > rxn = Reaction()
+    expected_uL: 0
   -
-    id: reagent-only
-    cols:
-      reagent:
-        - x
-      stock_conc:
-        - 2x
-      volume:
-        - 3 µL
-      master_mix:
-        - y
-
-    volume: 3 µL
-    expected:
-      x:
-        volume: '3 µL'
-        stock_conc: '2x'
-        master_mix: True
+    id: from-str
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn.volume = '1 µL'
+    expected_uL: 1
   -
-    id: solvent-and-reagent
-    cols:
-      reagent:
-        - w
-        - x
-      stock_conc:
-        -
-        - 2x
-      volume:
-        - to 8 µL
-        - 3 µL
-      master_mix:
-        - y
-        - n
-
-    volume: 8 µL
-    expected:
-      w:
-        volume: '5 µL'
-        master_mix: True
-      x:
-        volume: '3 µL'
-        stock_conc: '2x'
-        master_mix: False
+    id: from-tuple
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn.volume = 1, 'µL'
+    expected_uL: 1
   -
-    id: stock-with-solvent
-    cols:
-      reagent:
-        - w
-        - x
-      stock_conc:
-        -
-        - 2x
-      volume:
-        - to 8 µL
-        - 3 µL
-      master_mix:
-        - y
-        - n
-
-    volume: 8 µL
-    expected:
-      w:
-        volume: '5 µL'
-        master_mix: True
-      x:
-        volume: '3 µL'
-        stock_conc: '2x'
-        master_mix: False
+    id: from-quantity
+    reaction:
+      > rxn = Reaction()
+      > rxn['w'].set_as_solvent()
+      > rxn.volume = Quantity(1, 'µL')
+    expected_uL: 1
   -
-    id: conc-with-solvent
-    cols:
-      reagent:
-        - w
-        - x
-      stock_conc:
-        -
-        - 4x
-      conc:
-        -
-        - 1x
-      volume:
-        - to 8 µL
-        -
-
-    volume: 8 µL
-    expected:
-      w:
-        volume: '6 µL'
-      x:
-        volume: '2 µL'
-        stock_conc: '4x'
-        conc: '1x'
+    id: from-reagents-1
+    reaction:
+      > rxn = Reaction()
+      > rxn['x'].volume = '1 µL'
+    expected_uL: 1
   -
-    id: conc-volume-with-solvent
-    cols:
-      reagent:
-        - w
-        - x
-        - y
-      stock_conc:
-        -
-        - 4x
-        -
-      conc:
-        -
-        - 1x
-        -
-      volume:
-        - to 8 µL
-        -
-        - 1 µL
-
-    volume: 8 µL
-    expected:
-      w:
-        volume: '5 µL'
-      x:
-        volume: '2 µL'
-        stock_conc: '4x'
-        conc: '1x'
-      y:
-        volume: '1 µL'
+    id: from-reagents-2
+    reaction:
+      > rxn = Reaction()
+      > rxn['x'].volume = '1 µL'
+      > rxn['y'].volume = '2 µL'
+    expected_uL: 3
   -
-    id: conc-without-solvent
-    cols:
-      reagent:
-        - x
-        - y
-      stock_conc:
-        -
-        - 4x
-      conc:
-        -
-        - 1x
-      volume:
-        - 6 µL
-        -
-
-    volume: 8 µL
-    expected:
-      x:
-        volume: '6 µL'
-      y:
-        volume: '2 µL'
-        stock_conc: '4x'
-        conc: '1x'
-  -
-    id: column-aliases
-    cols:
-      Reagent:
-        - w
-        - x
-      Stock:
-        -
-        - 2x
-      Volume:
-        - to 8 µL
-        - 3 µL
-      MM?:
-        - y
-        - n
-
-    volume: 8 µL
-    expected:
-      w:
-        volume: '5 µL'
-        master_mix: True
-      x:
-        volume: '3 µL'
-        stock_conc: '2x'
-        master_mix: False
-  -
-    id: extra-columns
-    cols:
-      reagent:
-        - w
-        - x
-      stock_conc:
-        -
-        - 2x
-      volume:
-        - to 8 µL
-        - 3 µL
-      master_mix:
-        - y
-        - n
-      note:
-        - lorem
-        - ipsum
-
-    volume: 8 µL
-    expected:
-      w:
-        volume: '5 µL'
-        master_mix: True
-      x:
-        volume: '3 µL'
-        stock_conc: '2x'
-        master_mix: False
-  -
-    id: assume-master-mix-if-col-missing
-    cols:
-      reagent:
-        - w
-        - x
-      stock_conc:
-        -
-        - 2x
-      volume:
-        - to 8 µL
-        - 3 µL
-
-    volume: 8 µL
-    expected:
-      w:
-        volume: '5 µL'
-        master_mix: True
-      x:
-        volume: '3 µL'
-        stock_conc: '2x'
-        master_mix: True
-  -
-    id: default-values
-    cols:
-      reagent:
-        - w
-        - x
-      volume:
-        - to 8 µL
-        - 3 µL
-      master_mix:
-        - y
-        - n
-
-    volume: 8 µL
-    expected:
-      w:
-        volume: '5 µL'
-        master_mix: True
-      x:
-        volume: '3 µL'
-        stock_conc: None
-        master_mix: False
-  -
-    id: default-values
-    cols:
-      reagent:
-        - w
-        - x
-      stock_conc:
-        -
-        - 2x
-      volume:
-        - to 8 µL
-        - 3 µL
-      master_mix:
-        - n
-        - n
-
-    volume: 8 µL
-    expected:
-      w:
-        volume: '5 µL'
-        master_mix: False
-      x:
-        volume: '3 µL'
-        stock_conc: '2x'
-        master_mix: False
-  -
-    id: whitespace
-    cols:
-      reagent:
-        -  w 
-        -  x 
-      stock_conc:
-        -  
-        -  2x 
-      volume:
-        -  to 8 µL 
-        -  3 µL 
-      master_mix:
-        -  y 
-        -  n 
-
-    volume: 8 µL
-    expected:
-      w:
-        volume: '5 µL'
-        master_mix: True
-      x:
-        volume: '3 µL'
-        stock_conc: '2x'
-        master_mix: False
-
-  -
-    id: err-no-reagents
-    cols:
-      reagent:
-        []
-      stock_conc:
-        []
-      volume:
-        []
-      master_mix:
-        []
+    id: err-set-without-solvent
+    reaction:
+      > rxn = Reaction()
+      > rxn.volume = '1 µL'
     error:
-      type: UsageError
-      message: at least one reagent
+      type: ValueError
+      message: no solvent specified
   -
-    id: err-duplicate-cols
-    cols:
-      reagent:
-        - w
-        - x
-      Reagent:
-        - w
-        - x
-      stock_conc:
-        -
-        - 2x
-      volume:
-        - to 8 µL
-        - 3 µL
-      master_mix:
-        - y
-        - n
+    id: err-reagent-without-volume
+    reaction:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
     error:
-      type: UsageError
-      message: multiple 'reagent' columns found: 'Reagent', 'reagent'
+      type: ValueError
+      message: no volume specified for 'x'
+
+test_reaction_repair_volumes:
   -
-    id: err-no-reagent-col
-    cols:
-      stock_conc:
-        -
-        - 2x
-      volume:
-        - to 5 µL
-        - 3 µL
-      master_mix:
-        - y
-        - n
-    error:
-      type: UsageError
-      message: no 'reagent' column
+    donor_before: 0
+    donor_after: 0
+    acceptor_before: 0
+    acceptor_after: 0
   -
-    id: err-no-volume-col
-    cols:
-      reagent:
-        - w
-        - x
-      stock_conc:
-        -
-        - 2x
-      master_mix:
-        - y
-        - n
-    error:
-      type: UsageError
-      message: no 'volume' column
+    donor_before: 0
+    donor_after: -1
+    acceptor_before: -1
+    acceptor_after: 0
   -
-    id: err-inconsistent-rows
-    cols:
-      reagent:
-        - w
-      stock_conc:
-        -
-        - 2x
-      volume:
-        - to 5 µL
-        - 3 µL
-      master_mix:
-        - y
-        - n
-    error:
-      type: UsageError
-      message: different numbers of rows: 1, 2
+    donor_before: 0
+    donor_after: 0
+    acceptor_before: 1
+    acceptor_after: 1
   -
-    id: err-missing-names
-    cols:
-      reagent:
-        -
-        - x
-      stock_conc:
-        -
-        - 2x
-      volume:
-        - to 5 µL
-        - 3 µL
-      master_mix:
-        - y
-        - n
-    error:
-      type: UsageError
-      message: missing names
+    donor_before: 1
+    donor_after: 1
+    acceptor_before: 0
+    acceptor_after: 0
   -
-    id: err-missing-vol
-    cols:
-      reagent:
-        - w
-        - x
-      stock_conc:
-        -
-        - 2x
-      volume:
-        -
-        - 3 µL
-      master_mix:
-        - y
-        - n
-    error:
-      type: UsageError
-      message: must specify either volume or concentration for 'w'
+    donor_before: 1
+    donor_after: 0
+    acceptor_before: -1
+    acceptor_after: 0
   -
-    id: err-vol-and-conc
-    cols:
-      reagent:
-        - w
-        - x
-      stock_conc:
-        -
-        - 2x
-      conc:
-        -
-        - 1x
-      volume:
-        - to 10 µL
-        - 5 µL
-    error:
-      type: UsageError
-      message: cannot specify volume ('5 µL') and concentration ('1x') for 'x'
-  -
-    id: err-two-solvents
-    cols:
-      reagent:
-        - w
-        - x
-      stock_conc:
-        -
-        - 2x
-      volume:
-        - to 8 µL
-        - to 8 µL
-      master_mix:
-        - y
-        - n
-    error:
-      type: UsageError
-      message: multiple solvents specified: 'w', 'x'
-  -
-    id: err-parse-bool
-    cols:
-      reagent:
-        - w
-        - x
-      stock_conc:
-        -
-        - 2x
-      volume:
-        - to 8 µL
-        - 3 µL
-      master_mix:
-        - maybe
-        - n
-    error:
-      type: UsageError
-      message: expected 'yes' or 'no', got 'maybe'
+    donor_before: 1
+    donor_after: 1
+    acceptor_before: 1
+    acceptor_after: 1
 
 test_master_mix_format_text:
   -
@@ -930,13 +2460,13 @@ test_reactions_protocol:
         > pl(
         >   "Setup 1 reaction:",
         >   table(
-        >     header=["Reagent", "Stock", "Volume"],
+        >     header=["Reagent", "Volume"],
         >     rows=[
-        >         ["a", "", "1.00 µL"],
-        >         ["b", "", "2.00 µL"],
+        >         ["a", "1.00 µL"],
+        >         ["b", "2.00 µL"],
         >     ],
-        >     footer=["", "", "3.00 µL"],
-        >     align=list("<>>"),
+        >     footer=["", "3.00 µL"],
+        >     align=list("<>"),
         >   ),
         > )
   -
@@ -956,13 +2486,13 @@ test_reactions_protocol:
         > pl(
         >   "Setup 1 reaction:",
         >   table(
-        >     header=["Reagent", "Stock", "Volume"],
+        >     header=["Reagent", "Volume"],
         >     rows=[
-        >         ["1", "", "1.00 µL"],
-        >         ["b", "", "2.00 µL"],
+        >         ["1", "1.00 µL"],
+        >         ["b", "2.00 µL"],
         >     ],
-        >     footer=["", "", "3.00 µL"],
-        >     align=list("<>>"),
+        >     footer=["", "3.00 µL"],
+        >     align=list("<>"),
         >   ),
         > )
   -
@@ -984,13 +2514,13 @@ test_reactions_protocol:
         > pl(
         >   "Setup 1 reaction:",
         >   table(
-        >     header=["Reagent", "Stock", "Volume"],
+        >     header=["Reagent", "Volume"],
         >     rows=[
-        >         ["1", "", "1.00 µL"],
-        >         ["b", "", "2.00 µL"],
+        >         ["1", "1.00 µL"],
+        >         ["b", "2.00 µL"],
         >     ],
-        >     footer=["", "", "3.00 µL"],
-        >     align=list("<>>"),
+        >     footer=["", "3.00 µL"],
+        >     align=list("<>"),
         >   ),
         >   ul('c', 'd'),
         > )
@@ -1020,13 +2550,13 @@ test_reactions_protocol:
         >     pl(
         >       "Mix the reactions:",
         >       table(
-        >         header=["Reagent", "Stock", "Volume"],
+        >         header=["Reagent", "Volume"],
         >         rows=[
-        >             ["a", "", "1.00 µL"],
-        >             ["b", "", "2.00 µL"],
+        >             ["a", "1.00 µL"],
+        >             ["b", "2.00 µL"],
         >         ],
-        >         footer=["", "", "3.00 µL"],
-        >         align=list("<>>"),
+        >         footer=["", "3.00 µL"],
+        >         align=list("<>"),
         >       ),
         >     ),
         >     br='\n\n',
@@ -1059,25 +2589,25 @@ test_reactions_protocol:
         >     pl(
         >       "Make master mix:",
         >       table(
-        >         header=["Reagent", "Stock", "Volume", "2x"],
+        >         header=["Reagent", "Volume", "2x"],
         >         rows=[
-        >             ["b", "", "2.00 µL", "4.00 µL"],
-        >             ["c", "", "3.00 µL", "6.00 µL"],
+        >             ["b", "2.00 µL", "4.00 µL"],
+        >             ["c", "3.00 µL", "6.00 µL"],
         >         ],
-        >         footer=["", "", "5.00 µL", "10.00 µL"],
-        >         align=list("<>>>"),
+        >         footer=["", "5.00 µL", "10.00 µL"],
+        >         align=list("<>>"),
         >       ),
         >     ),
         >     pl(
         >       "Add the remaining reagents:",
         >       table(
-        >         header=["Reagent", "Stock", "Volume"],
+        >         header=["Reagent", "Volume"],
         >         rows=[
-        >             ["master mix", "", "5.00 µL"],
-        >             ["a", "", "1.00 µL"],
+        >             ["master mix", "5.00 µL"],
+        >             ["a", "1.00 µL"],
         >         ],
-        >         footer=["", "", "6.00 µL"],
-        >         align=list("<>>"),
+        >         footer=["", "6.00 µL"],
+        >         align=list("<>"),
         >       ),
         >     ),
         >     br='\n\n',
@@ -1112,25 +2642,25 @@ test_reactions_protocol:
         >     pl(
         >       "Make master mix:",
         >       table(
-        >         header=["Reagent", "Stock", "Volume", "2x"],
+        >         header=["Reagent", "Volume", "2x"],
         >         rows=[
-        >             ["b", "", "2.00 µL", "4.00 µL"],
-        >             ["c", "", "3.00 µL", "6.00 µL"],
+        >             ["b", "2.00 µL", "4.00 µL"],
+        >             ["c", "3.00 µL", "6.00 µL"],
         >         ],
-        >         footer=["", "", "5.00 µL", "10.00 µL"],
-        >         align=list("<>>>"),
+        >         footer=["", "5.00 µL", "10.00 µL"],
+        >         align=list("<>>"),
         >       ),
         >     ),
         >     pl(
         >       "Add the remaining reagents:",
         >       table(
-        >         header=["Reagent", "Stock", "Volume"],
+        >         header=["Reagent", "Volume"],
         >         rows=[
-        >             ["master mix", "", "5.00 µL"],
-        >             ["a", "", "1.00 µL"],
+        >             ["master mix", "5.00 µL"],
+        >             ["a", "1.00 µL"],
         >         ],
-        >         footer=["", "", "6.00 µL"],
-        >         align=list("<>>"),
+        >         footer=["", "6.00 µL"],
+        >         align=list("<>"),
         >       ),
         >     ),
         >     br='\n\n',
@@ -1176,37 +2706,37 @@ test_reactions_protocol:
         >     pl(
         >       "Make master mix:",
         >       table(
-        >         header=["Reagent", "Stock", "Volume", "4x"],
+        >         header=["Reagent", "Volume", "4x"],
         >         rows=[
-        >             ["c", "", "3.00 µL", "12.00 µL"],
-        >             ["d", "", "4.00 µL", "16.00 µL"],
+        >             ["c", "3.00 µL", "12.00 µL"],
+        >             ["d", "4.00 µL", "16.00 µL"],
         >         ],
-        >         footer=["", "", "7.00 µL", "28.00 µL"],
-        >         align=list("<>>>"),
+        >         footer=["", "7.00 µL", "28.00 µL"],
+        >         align=list("<>>"),
         >       ),
         >     ),
         >     pl(
         >       "Make 2 a mixes:",
         >       table(
-        >         header=["Reagent", "Stock", "Volume", "2x"],
+        >         header=["Reagent", "Volume", "2x"],
         >         rows=[
-        >             ["master mix", "", "7.00 µL", "14.00 µL"],
-        >             ["a", "", "1.00 µL", "2.00 µL"],
+        >             ["master mix", "7.00 µL", "14.00 µL"],
+        >             ["a", "1.00 µL", "2.00 µL"],
         >         ],
-        >         footer=["", "", "8.00 µL", "16.00 µL"],
-        >         align=list("<>>>"),
+        >         footer=["", "8.00 µL", "16.00 µL"],
+        >         align=list("<>>"),
         >       ),
         >     ),
         >     pl(
         >       "Add the remaining reagents:",
         >       table(
-        >         header=["Reagent", "Stock", "Volume"],
+        >         header=["Reagent", "Volume"],
         >         rows=[
-        >             ["a mix", "", "8.00 µL"],
-        >             ["b", "", "2.00 µL"],
+        >             ["a mix", "8.00 µL"],
+        >             ["b", "2.00 µL"],
         >         ],
-        >         footer=["", "", "10.00 µL"],
-        >         align=list("<>>"),
+        >         footer=["", "10.00 µL"],
+        >         align=list("<>"),
         >       ),
         >     ),
         >     br='\n\n',
@@ -1229,11 +2759,11 @@ test_reactions_protocol:
         > pl(
         >   "Setup 1 test reaction:",
         >   table(
-        >     header=["Reagent", "Stock", "Volume"],
+        >     header=["Reagent", "Volume"],
         >     rows=[
-        >         ["a", "", "1.00 µL"],
+        >         ["a", "1.00 µL"],
         >     ],
-        >     align=list("<>>"),
+        >     align=list("<>"),
         >   ),
         > )
   -
@@ -1253,11 +2783,11 @@ test_reactions_protocol:
         > pl(
         >   "Setup 1 test:",
         >   table(
-        >     header=["Reagent", "Stock", "Volume"],
+        >     header=["Reagent", "Volume"],
         >     rows=[
-        >         ["a", "", "1.00 µL"],
+        >         ["a", "1.00 µL"],
         >     ],
-        >     align=list("<>>"),
+        >     align=list("<>"),
         >   ),
         > )
   -
@@ -1277,14 +2807,18 @@ test_reactions_protocol:
         > pl(
         >   "Prepare 1 buffer:",
         >   table(
-        >     header=["Reagent", "Stock", "Volume"],
+        >     header=["Reagent", "Volume"],
         >     rows=[
-        >         ["a", "", "1.00 µL"],
+        >         ["a", "1.00 µL"],
         >     ],
-        >     align=list("<>>"),
+        >     align=list("<>"),
         >   ),
         > )
 
+# - Fails if len(self.plural_combo_reagents) == 0
+#   - Note that this function is only called in len(self.combos) >= 2
+#   - This means this condition only comes up if there are two identical 
+#     combos.
 test_reactions_combo_step:
   -
     id: solo
@@ -1627,6 +3161,7 @@ test_reactions_combo_table:
       base:
         > Reagent   Volume
         > =======  =======
+        > c           3 µL
         > b           2 µL
         > a           1 µL
       combos:
@@ -1693,6 +3228,7 @@ test_reactions_all_combos_dl:
       base:
         > Reagent   Volume
         > =======  =======
+        > c           3 µL
         > b           2 µL
         > a           1 µL
       combos:
@@ -1726,7 +3262,25 @@ test_reactions_all_combos_dl:
       >     ('a', '1, 2'),
       > )
 
+# - reagents with volume=0
+#   - master mixes with only one reagent are avoided.
+#   - but this check is circumvented by reagents with no volume.
+#   - unfortunately, need to merge reactions before working out 
+#     reactions/scales, so how to do this accurately?
 test_reactions_mixes:
+  -
+    id: check-combos
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > a           1 µL
+      combos:
+        -
+          b: 1
+    error:
+      type: UsageError
+      message: can't specify combos for reagents ('b') that aren't in the reaction
   -
     id: init-combos-empty
     reactions:
@@ -1738,6 +3292,7 @@ test_reactions_mixes:
         []
     expected:
       -
+        name: master
         reagents:
           - a
         reaction:
@@ -1768,19 +3323,21 @@ test_reactions_mixes:
           d: 2
     expected:
       -
+        name: master
         reagents:
           - a
           - b
           - c
         reaction:
-          > Reagent  Name  Volume
-          > =======  ====  ======
-          > a                1 µL
-          > b                2 µL
-          > c        C       3 µL
+          > Reagent  Volume
+          > =======  ======
+          > a          1 µL
+          > b          2 µL
+          > C          3 µL
         scale: 2
         num_reactions: 1
       -
+        name: d
         reagents:
           - d
         reaction:
@@ -1810,6 +3367,7 @@ test_reactions_mixes:
 
     expected:
       -
+        name: master
         reagents:
           - c
           - d
@@ -1821,6 +3379,7 @@ test_reactions_mixes:
         scale: 2
         num_reactions: 1
       -
+        name: a/b
         reagents:
           - a
           - b
@@ -1858,6 +3417,7 @@ test_reactions_mixes:
 
     expected:
       -
+        name: master
         reagents:
           - a
           - b
@@ -1869,6 +3429,7 @@ test_reactions_mixes:
         scale: 4
         num_reactions: 1
       -
+        name: c
         reagents:
           - c
         reaction:
@@ -1879,6 +3440,7 @@ test_reactions_mixes:
         scale: 2
         num_reactions: 2
       -
+        name: d
         reagents:
           - d
         reaction:
@@ -1914,6 +3476,7 @@ test_reactions_mixes:
         - AutoMix(['a', 'b'])
     expected:
       -
+        name: master
         reagents:
           - c
           - a
@@ -1925,12 +3488,13 @@ test_reactions_mixes:
         scale: 2
         num_reactions: 2
       -
+        name: b
         reagents:
           - b
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > a mix         4 µL
+          > master mix    4 µL
           > b             2 µL
         scale: 1
         num_reactions: 4
@@ -1973,6 +3537,7 @@ test_reactions_mixes:
         - Mix(['c'])
     expected:
       -
+        name: a
         reagents:
           - a
           - d
@@ -1984,6 +3549,7 @@ test_reactions_mixes:
         scale: 2
         num_reactions: 2
       -
+        name: b
         reagents:
           - b
         reaction:
@@ -1994,6 +3560,7 @@ test_reactions_mixes:
         scale: 1
         num_reactions: 4
       -
+        name: c
         reagents:
           - c
         reaction:
@@ -2042,6 +3609,7 @@ test_reactions_mixes:
         - Mix(['a'])
     expected:
       -
+        name: a
         reagents:
           - a
           - b
@@ -2071,14 +3639,15 @@ test_reactions_mixes:
         - Mix(['a'])
     expected:
       -
+        name: a
         reagents:
           - a
           - b
         reaction:
-          > Reagent  Name  Volume
-          > =======  ====  ======
-          > a                1 µL
-          > b        B       2 µL
+          > Reagent  Volume
+          > =======  ======
+          > a          1 µL
+          > B          2 µL
         scale: 1
         num_reactions: 2
   -
@@ -2103,41 +3672,47 @@ test_reactions_mixes:
       type: UsageError
       message: 'a' included in multiple master mixes
   -
-    id: init-user-explicit-fixed-mix
-    # Normally 'b' would be automatically merged with 'a', but here we keep it 
-    # separate by explicitly making a mix for 'b'.
+    id: init-user-empty-mix
     reactions:
       base:
         > Reagent   Volume
         > =======  =======
         > a           1 µL
         > b           2 µL
+        > c           3 µL
       combos:
         -
           a: 1
+          b: 1
         -
           a: 2
+          b: 2
       mixes:
-        - Mix(['b'])
         - Mix(['a'])
+        - Mix([])
+        - Mix(['b'])
     expected:
       -
+        name: master
+        reagents:
+          - a
+          - c
+        reaction:
+          > Reagent  Volume
+          > =======  ======
+          > a          1 µL
+          > c          3 µL
+        scale: 1
+        num_reactions: 2
+      -
+        name: b
         reagents:
           - b
         reaction:
-          > Reagent  Volume
-          > =======  ======
-          > b          2 µL
-        scale: 2
-        num_reactions: 1
-      -
-        reagents:
-          - a
-        reaction:
-          > Reagent  Volume
-          > =======  ======
-          > b mix      2 µL
-          > a          1 µL
+          > Reagent     Volume
+          > ==========  ======
+          > master mix    4 µL
+          > b             2 µL
         scale: 1
         num_reactions: 2
   -
@@ -2154,6 +3729,7 @@ test_reactions_mixes:
           a: 2
     expected:
       -
+        name: a
         reagents:
           - a
         reaction:
@@ -2177,6 +3753,7 @@ test_reactions_mixes:
           a: 2
     expected:
       -
+        name: a
         reagents:
           - a
           - b
@@ -2203,6 +3780,7 @@ test_reactions_mixes:
           a: 2
     expected:
       -
+        name: master
         reagents:
           - b
           - c
@@ -2214,6 +3792,7 @@ test_reactions_mixes:
         scale: 2
         num_reactions: 1
       -
+        name: a
         reagents:
           - a
         reaction:
@@ -2223,6 +3802,40 @@ test_reactions_mixes:
           > a             1 µL
         scale: 1
         num_reactions: 2
+  -
+    id: merge-trivial
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > a           1 µL
+        > b           2 µL
+      combos:
+        -
+          a: 1
+          b: 1
+        -
+          a: 2
+          b: 1
+        -
+          a: 1
+          b: 2
+        -
+          a: 2
+          b: 2
+    expected:
+      -
+        name: a/b
+        reagents:
+          - a
+          - b
+        reaction:
+          > Reagent  Volume
+          > =======  ======
+          > a          1 µL
+          > b          2 µL
+        scale: 1
+        num_reactions: 4
   -
     id: set-reactions-fixed-name
     reactions:
@@ -2235,12 +3848,13 @@ test_reactions_mixes:
           a: A
     expected:
       -
+        name: master
         reagents:
           - a
         reaction:
-          > Reagent  Name  Volume
-          > =======  ====  ======
-          > a        A       1 µL
+          > Reagent  Volume
+          > =======  ======
+          > A          1 µL
         scale: 1
         num_reactions: 1
   -
@@ -2262,6 +3876,7 @@ test_reactions_mixes:
           c: 2
     expected:
       -
+        name: master
         reagents:
           - b
           - d
@@ -2273,6 +3888,7 @@ test_reactions_mixes:
         scale: 2
         num_reactions: 1
       -
+        name: a/c
         reagents:
           - a
           - c
@@ -2313,6 +3929,7 @@ test_reactions_mixes:
         - Mix(['a'])
     expected:
       -
+        name: CD
         reagents:
           - c
           - d
@@ -2324,6 +3941,7 @@ test_reactions_mixes:
         scale: 4
         num_reactions: 1
       -
+        name: BCD
         reagents:
           - b
         reaction:
@@ -2334,6 +3952,7 @@ test_reactions_mixes:
         scale: 2
         num_reactions: 2
       -
+        name: a
         reagents:
           - a
         reaction:
@@ -2359,6 +3978,7 @@ test_reactions_mixes:
           a: 2
     expected:
       -
+        name: master
         reagents:
           - b
           - c
@@ -2370,6 +3990,7 @@ test_reactions_mixes:
         scale: 2
         num_reactions: 1
       -
+        name: a
         reagents:
           - a
         reaction:
@@ -2397,6 +4018,7 @@ test_reactions_mixes:
           a: 3
     expected:
       -
+        name: master
         reagents:
           - b
           - c
@@ -2408,6 +4030,7 @@ test_reactions_mixes:
         scale: 3
         num_reactions: 1
       -
+        name: a
         reagents:
           - a
         reaction:
@@ -2435,6 +4058,7 @@ test_reactions_mixes:
           a: 2
     expected:
       -
+        name: master
         reagents:
           - b
           - c
@@ -2446,6 +4070,7 @@ test_reactions_mixes:
         scale: 3
         num_reactions: 1
       -
+        name: a
         reagents:
           - a
         reaction:
@@ -2473,6 +4098,7 @@ test_reactions_mixes:
         fraction: 0.1
     expected:
       -
+        name: master
         reagents:
           - b
           - c
@@ -2484,6 +4110,7 @@ test_reactions_mixes:
         scale: 2.2
         num_reactions: 1
       -
+        name: a
         reagents:
           - a
         reaction:
@@ -2520,6 +4147,7 @@ test_reactions_mixes:
         fraction: 0.1
     expected:
       -
+        name: master
         reagents:
           - c
           - d
@@ -2531,6 +4159,7 @@ test_reactions_mixes:
         scale: 4.84
         num_reactions: 1
       -
+        name: a
         reagents:
           - a
         reaction:
@@ -2541,6 +4170,7 @@ test_reactions_mixes:
         scale: 2.2
         num_reactions: 2
       -
+        name: b
         reagents:
           - b
         reaction:
@@ -2559,6 +4189,7 @@ test_reactions_mixes:
         > a           1 µL
         > b           2 µL
         > c           3 µL
+        > d           4 µL
       combos:
         -
           a: 1
@@ -2573,40 +4204,90 @@ test_reactions_mixes:
           a: 2
           b: 2
       mixes:
-        - Mix(['c'], extra=Extra(fraction=0.2))
+        - Mix(['c', 'd'], extra=Extra(fraction=0.2))
         - Mix(['b'], extra=Extra(fraction=0.1))
         - Mix(['a'])
 
     expected:
       -
+        name: master
         reagents:
           - c
+          - d
         reaction:
           > Reagent  Volume
           > =======  ======
           > c          3 µL
+          > d          4 µL
         scale: 5.28
         num_reactions: 1
       -
+        name: b
         reagents:
           - b
         reaction:
-          > Reagent  Volume
-          > =======  ======
-          > c mix      3 µL
-          > b          2 µL
+          > Reagent     Volume
+          > ==========  ======
+          > master mix    7 µL
+          > b             2 µL
         scale: 2.2
         num_reactions: 2
       -
+        name: a
         reagents:
           - a
         reaction:
           > Reagent  Volume
           > =======  ======
-          > b mix      5 µL
+          > b mix      9 µL
           > a          1 µL
         scale: 1
         num_reactions: 4
+  -
+    id: extra-last-mix
+    # The default extra doesn't apply to the last mix, but extra for that mix 
+    # can still be set manually.
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > a           1 µL
+        > b           2 µL
+        > c           3 µL
+      combos:
+        -
+          a: 1
+        -
+          a: 2
+      mixes:
+        - Mix(['a'], extra=Extra(fraction=0.1))
+      extra:
+        fraction: 0.1
+
+    expected:
+      -
+        name: master
+        reagents:
+          - b
+          - c
+        reaction:
+          > Reagent  Volume
+          > =======  ======
+          > b          2 µL
+          > c          3 µL
+        scale: 2.42
+        num_reactions: 1
+      -
+        name: a
+        reagents:
+          - a
+        reaction:
+          > Reagent     Volume
+          > ==========  ======
+          > master mix    5 µL
+          > a             1 µL
+        scale: 1.1
+        num_reactions: 2
 
 test_extra:
   -
@@ -3322,5 +5003,4 @@ test_extra_from_docopt:
       --extra-min-volume: 0.5
     expected:
       > Extra(min_volume=0.5)
-
 

@@ -86,14 +86,17 @@ test_make_pages:
   -
     id: empty
     text:
+      []
     page_height: 3
     pages:
+      []
   -
     id: _
     text:
       -
     page_height: 3
     pages:
+      []
   -
     id: a
     text:
@@ -228,7 +231,9 @@ test_add_margin:
   -
     margin_width: 4
     pages_before:
+      []
     pages_after:
+      []
   -
     margin_width: 4
     pages_before:

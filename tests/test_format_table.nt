@@ -253,20 +253,22 @@ test_concat_rows:
     expected: [['10', '10.00']]
     i_header: 0
     i_footer: 1
-
-test_concat_rows_err:
   -
     header: []
     rows: [[10, 10]]
     footer: []
     format: [str]
-    err: given 1 formatter, expected 2
+    error:
+      type: ValueError
+      message: given 1 formatter, expected 2
   -
     header: []
     rows: [[10]]
     footer: []
     format: [str, str]
-    err: given 2 formatters, expected 1
+    error:
+      type: ValueError
+      message: given 2 formatters, expected 1
 
 test_split_row:
   -
@@ -424,21 +426,22 @@ test_measure_cols:
     expected:
       cols: [2, 2]
       table: 6
-
-test_measure_cols_err:
   -
     table: [['A']]
     truncate: '--'
     max_width: -1
     pad: 2
-    err: table has 1 column, but truncation specified for 2: '--'
-
+    error:
+      type: ValueError
+      message: table has 1 column, but truncation specified for 2: '--'
   -
     table: [['A', 'B']]
     truncate: '-'
     max_width: -1
     pad: 2
-    err: table has 2 columns, but truncation specified for 1: '-'
+    error:
+      type: ValueError
+      message: table has 2 columns, but truncation specified for 1: '-'
 
 test_count_cols:
   -
@@ -461,10 +464,14 @@ test_count_cols_err:
   -
     id: 2,1
     table: [[1, 2], [1]]
-    err: different numbers of columns: 1,2
+    error:
+      type: ValueError
+      message: different numbers of columns: 1,2
 
   -
     id: 1,2
     table: [[1], [1, 2]]
-    err: different numbers of columns: 1,2
+    error:
+      type: ValueError
+      message: different numbers of columns: 1,2
 

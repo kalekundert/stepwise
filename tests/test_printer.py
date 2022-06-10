@@ -7,57 +7,34 @@ from param_helpers import *
 class DummyPrinter(Printer):
     pass
 
-@parametrize_from_file(
-        schema=Schema({
-            'text_in': [str],
-            'text_out': [str],
-            'page_width': Coerce(int),
-            'margin_width': Coerce(int),
-        }),
-)
+@parametrize_from_file
 def test_truncate_lines(text_in, text_out, page_width, margin_width):
     printer = DummyPrinter()
-    printer.page_width = page_width
-    printer.margin_width = margin_width
+    printer.page_width = int(page_width)
+    printer.margin_width = int(margin_width)
 
     assert printer.truncate_lines(text_in) == text_out
 
 @parametrize_from_file(
-        schema=Schema({
-            'text': [str],
-            'content_width': Coerce(int),
-            **error_or({}),
-        }),
+        schema=with_sw.error_or(),
 )
 def test_check_for_long_lines(text, content_width, error):
     printer = DummyPrinter()
-    printer.content_width = content_width
+    printer.content_width = int(content_width)
 
     with error:
         printer.check_for_long_lines(text)
 
-@parametrize_from_file(
-        schema=Schema({
-            'text': empty_ok([str]),
-            'page_height': Coerce(int),
-            'pages': empty_ok([[str]]),
-        }),
-)
+@parametrize_from_file
 def test_make_pages(text, page_height, pages):
     printer = DummyPrinter()
-    printer.page_height = page_height
+    printer.page_height = int(page_height)
 
     assert printer.make_pages(text) == pages
 
-@parametrize_from_file(
-        schema=Schema({
-            'margin_width': Coerce(int),
-            'pages_before': empty_ok([[str]]),
-            'pages_after': empty_ok([[str]]),
-        }),
-)
+@parametrize_from_file
 def test_add_margin(margin_width, pages_before, pages_after):
     printer = DummyPrinter()
-    printer.margin_width = margin_width
+    printer.margin_width = int(margin_width)
 
     assert printer.add_margin(pages_before) == pages_after

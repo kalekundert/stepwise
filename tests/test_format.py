@@ -5,34 +5,29 @@ from stepwise import ol, ul, pl, dl, pre, table, MasterMix
 from param_helpers import *
 
 @parametrize_from_file(
-        schema=Schema({
-            'obj': eval_stepwise,
-            'expected': str,
-        }),
+        schema=cast(obj=with_sw.eval),
 )
 def test_repr(obj, expected):
     assert repr(obj) == expected
 
 @parametrize_from_file(
-        schema=Schema({
-            'obj': eval_stepwise,
-            'width': eval_python,
-            Optional('kwargs', default={}): {str: eval_python},
-            'expected': str,
-        }),
+        schema=[
+            cast(obj=with_sw.eval, width=with_py.eval, kwargs=with_py.eval),
+            defaults(kwargs={}),
+        ],
 )
 def test_format_text(obj, width, expected, kwargs):
     assert stepwise.format_text(obj, width, **kwargs) == expected
 
 @parametrize_from_file(
-        schema=Schema({
-            'obj': eval_stepwise,
-            'pattern': eval_python,
-            'repl': eval_python,
-            'count': Coerce(int),
-            'expected': eval_stepwise,
-            'n': Coerce(int),
-        }),
+        schema=cast(
+            obj=with_sw.eval,
+            pattern=with_py.eval,
+            repl=with_py.eval,
+            count=int,
+            expected=with_sw.eval,
+            n=int,
+        ),
 )
 def test_replace_text(obj, pattern, repl, count, expected, n):
     state = {}
@@ -144,33 +139,28 @@ def test_pre_operators():
     assert x != 'a'
 
 @parametrize_from_file(
-        schema=Schema({
-            'str': str,
-            'delim': str,
-            'wrap': eval_python,
-            'expected': eval_stepwise,
-        }),
+        schema=cast(
+            wrap=with_py.eval,
+            expected=with_sw.eval,
+        ),
 )
 def test_step_from_str(str, delim, wrap, expected):
     assert stepwise.step_from_str(str, delim, wrap=wrap) == expected
 
 @parametrize_from_file(
-        schema=Schema({
-            'str': str,
-            'delim': str,
-            'count': Coerce(int),
-            'expected': eval_python,
-        }),
+        schema=cast(
+            count=int,
+            expected=with_py.eval,
+        ),
 )
 def test_split_by_delim_count(str, delim, count, expected):
     assert stepwise.split_by_delim_count(str, delim, count) == expected
 
 @parametrize_from_file(
-        schema=Schema({
-            'given': eval_python,
-            Optional('kwargs', default={}): {str: eval_python},
-            'expected': str,
-        }),
+        schema=[
+            cast(given=with_py.eval, kwargs=with_py.eval),
+            defaults(kwargs={}),
+        ]
 )
 def test_oxford_comma(given, kwargs, expected):
     assert stepwise.oxford_comma(given, **kwargs) == expected

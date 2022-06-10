@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import pytest
-from stepwise import Presets
+from stepwise import Presets, StepwiseConfig, PresetConfig
 from byoc.errors import Log
 from more_itertools import one, flatten
 from operator import attrgetter
@@ -13,18 +13,19 @@ class MockObj:
 # test rootkey?
 
 @parametrize_from_file(
-        schema=Schema({
-            'files': {str: str},
-            'appdirs': {
-                'user_dir': str,
-                'site_dir': str,
-            },
-            Optional('plugins', default={}): {str: [exec_with('MockPlugin')]},
-            Optional('config_factory', default='MockConfig = StepwiseConfig'): exec_with('MockConfig').all(stepwise),
-            Optional('obj', default='obj = MockObj()'): exec_with('obj', MockObj=MockObj),
-            'expected': {str: eval_python},
-            'config_paths': [str],
-        }),
+        schema=[
+            cast(
+                plugins=Schema({str: [with_py.exec(get='MockPlugin')]}),
+                config_factory=with_sw.exec(get='MockConfig'),
+                obj=with_sw.fork(MockObj=MockObj).exec(get='obj'),
+                expected=with_py.eval,
+            ),
+            defaults(
+                plugins={},
+                config_factory=StepwiseConfig,
+                obj=MockObj(),
+            ),
+        ],
 )
 def test_stepwise_config(files, appdirs, plugins, config_factory, obj, expected, config_paths, tmp_path, monkeypatch):
     import appdirs as appdirs_module
@@ -85,14 +86,20 @@ def test_stepwise_config(files, appdirs, plugins, config_factory, obj, expected,
     assert list(config.config_paths) == [Path(x) for x in config_paths]
     
 @parametrize_from_file(
-        schema=Schema({
-            Optional('config_factory', default='MockConfig = PresetConfig'):
-                exec_with('MockConfig', attrgetter=attrgetter).all(stepwise),
-            'obj': exec_with('obj', MockObj=MockObj),
-            'key': eval_python,
-            'expected': eval_python,
-            Optional('briefs', default=''): str,
-        }),
+        schema=[
+            cast(
+                config_factory=with_sw.fork(attrgetter=attrgetter).exec(
+                    get='MockConfig',
+                ),
+                obj=with_sw.fork(MockObj=MockObj).exec(get='obj'),
+                key=with_py.eval,
+                expected=with_py.eval,
+            ),
+            defaults(
+                config_factory=PresetConfig,
+                briefs='',
+            ),
+        ],
 )
 def test_preset_config(config_factory, obj, key, expected, briefs):
     config = config_factory(obj)
@@ -104,12 +111,7 @@ def test_preset_config(config_factory, obj, key, expected, briefs):
     if briefs:
         assert config.preset_briefs == briefs
 
-@parametrize_from_file(
-        schema=Schema({
-            'presets': [{str: {str: str}}],
-            'expected': {str: {str: str}},
-        }),
-)
+@parametrize_from_file
 def test_presets(presets, expected):
     p = Presets(presets)
 
@@ -119,11 +121,7 @@ def test_presets(presets, expected):
         assert p[k] == v
 
 @parametrize_from_file(
-        schema=Schema({
-            'presets': [{str: {str: str}}],
-            'key': eval_python,
-            'error': error,
-        }),
+        schema=cast(key=with_py.eval, error=with_sw.error),
 )
 def test_presets_err(presets, key, error):
     p = Presets(presets)

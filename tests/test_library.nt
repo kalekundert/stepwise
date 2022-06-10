@@ -2,8 +2,10 @@ test_library_find_entries:
   -
     id: empty
     collections:
+      []
     tag: proto
     expected:
+      []
   -
     id: 1-a
     collections:
@@ -74,6 +76,7 @@ test_collection_is_unique:
   -
     name: a
     names:
+      []
     expected: True
   -
     name: a
@@ -96,6 +99,7 @@ test_path_collection_find_entries:
   -
     tag: no match
     expected:
+      []
   -
     tag: a
     expected:
@@ -118,6 +122,7 @@ test_cwd_collection_find_entries:
   -
     tag: a
     expected:
+      []
   -
     tag: protocol_a.txt
     expected:
@@ -125,6 +130,7 @@ test_cwd_collection_find_entries:
   -
     tag: protocol_b.txt
     expected:
+      []
   -
     tag: subdir/protocol_b.txt
     expected:
