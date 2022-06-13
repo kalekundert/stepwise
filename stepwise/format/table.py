@@ -42,14 +42,14 @@ class table(Formatter):
 
     def __eq__(self, other):
         def eq_or_empty(a, b):
-            if a == b:
-                return True
-            if not a and not b:
-                return True
+            return list(a or []) == list(b or [])
 
         return (
             type(self) == type(other) and
-            eq_or_empty(self.rows, other.rows) and
+            eq_or_empty(
+                [list(x) for x in self.rows],
+                [list(y) for y in other.rows],
+            ) and
             eq_or_empty(self.header, other.header) and
             eq_or_empty(self.footer, other.footer) and
             self.format == other.format and

@@ -6,10 +6,10 @@ import networkx as nx
 
 from byoc import Key, DocoptConfig, float_eval
 from inform import plural
-from itertools import groupby, permutations
-from more_itertools import pairwise, repeat_last
+from itertools import groupby, permutations, repeat
+from more_itertools import pairwise, repeat_last, unique_everseen as unique
 from reprfunc import repr_from_init
-from operator import itemgetter
+from operator import itemgetter, not_
 from collections import Counter
 from dataclasses import dataclass
 from math import inf
@@ -17,10 +17,8 @@ from math import inf
 from .reaction import Reaction, format_reaction
 from ..format import pl, ul, dl, table
 from ..config import StepwiseConfig
+from ..utils import unanimous, repr_join
 from ..errors import *
-
-# Reactions TODO:
-# - Replicates?  Handled well?
 
 def reaction_from_docopt(args):
     reagent_strs = args['<reagent;stock;conc;volume>']
@@ -124,6 +122,11 @@ class Reactions(byoc.App):
         
           From this we can figure out which reagents need master mixes, and we 
           can display a nice table showing which combos to make.
+
+        replicates:
+            An integer specifying how many times to setup each combination of 
+            reagents, e.g. to make technical replicates.  This parameter can 
+            also be inferred from the given combos.
         
         mixes: (optional)
           A list of objects dictating how to setup each master mix.  This 
@@ -190,9 +193,11 @@ class Reactions(byoc.App):
                 positional=['reagents'],
         )
 
-    def __init__(self, reaction, combos=None, mixes=None, extra=None):
+    def __init__(self, reaction, combos=None, *, replicates=None, mixes=None, extra=None):
         self.base_reaction = reaction
-        if combos: self.combos = combos
+
+        if combos: self._user_combos = combos
+        if replicates: self._user_replicates = replicates
         if mixes: self._user_mixes = mixes
         if extra: self.extra = extra
 
@@ -206,8 +211,13 @@ class Reactions(byoc.App):
 
     def get_step(self):
         step = pl()
+
+        n = len(self.combos)
+        if self.split_replicates:
+            n *= self.combos.replicates
+
         step += self.step_intro.format(
-                n=plural(max(len(self.combos), 1)),
+                n=plural(n),
                 kind=x if '/' in (x := self.step_kind) else f'{x} reaction/s',
         )
 
@@ -221,96 +231,41 @@ class Reactions(byoc.App):
             for i in range(len(self.mixes)):
                 step[-1] += self.get_mix_step(i)
 
+        if self.combos.replicates > 1 and self.split_replicates:
+            step += ul(f"Split into {self.combos.replicates} identical {self.base_reaction.volume:.2f} reactions.")
+
         if self.instructions:
             step += ul(*self.instructions)
 
         return step
 
-    def get_combo_reagents(self):
-        d = {}
-
-        if self.combos:
-            expected_keys = self.combos[0].keys()
-
-        for combo in self.combos:
-            if combo.keys() != expected_keys:
-                raise ValueError
-
-            for k, v in combo.items():
-                reagents = d.setdefault(k, [])
-                if v not in reagents:
-                    reagents.append(v)
-
-        return d
-
-    def get_plural_combo_reagents(self):
-        return {k: v for k, v in self.combo_reagents.items() if len(v) > 1}
-    
-    def get_combo_reagents_in_order_of_appearance(self):
-        mix_order = {}
-        rxn_order = {}
-
-        for i, reagent in enumerate(self.base_reaction):
-            rxn_order[reagent.key] = i
-
-        for j, mix in enumerate(self.mixes):
-            for reagent in mix.reagents:
-                mix_order[reagent] = j
-
-        def by_appearance(reagent):
-            return mix_order[reagent], rxn_order[reagent]
-
-        assert mix_order.keys() == rxn_order.keys()
-        return sorted(self.combo_reagents, key=by_appearance)
+    def get_combos(self):
+        combos = Combos(self._user_combos, self._user_replicates)
+        combos.check_reagents(self.base_reaction)
+        return combos
 
     def get_combo_step(self):
-        if len(self.plural_combo_reagents) == 1:
+        self.combos.sort_by_appearance(self.mixes)
+
+        if len(self.combos.distinct_cols) == 1:
             return pl(
                     "Use the following reagents:",
-                    self.all_combos_dl,
+                    self.combos.format_as_dl(self.base_reaction),
             )
 
-        # There can be duplicate combos, so it is important to ignore those.
-        as_tuple = itemgetter(*self.plural_combo_reagents.keys())
-        num_combos = len(set(map(as_tuple, self.combos)))
-        num_possible_combos = math.prod(
-                len(x)
-                for x in self.plural_combo_reagents.values()
-        )
-
-        if num_combos == num_possible_combos:
+        if self.combos.have_all_possible_combos():
             return pl(
                     "Use all combinations of the following reagents:",
-                    self.all_combos_dl,
+                    self.combos.format_as_dl(self.base_reaction),
             )
 
-        else:
-            return pl(
-                    "Use the following combinations of reagents:",
-                    self.combo_table,
-            )
-
-    def get_combo_table(self):
-        reagents = self.combo_reagents_in_order_of_appearance
-        rows = [
-                [combo[k] for k in reagents]
-                for combo in self.combos
-        ]
-        return table(
-                rows=rows,
-                header=reagents,
+        return pl(
+                "Use the following combinations of reagents:",
+                self.combos.format_as_table(self.base_reaction),
         )
 
-    def get_all_combos_dl(self):
-        return dl(*(
-                (k, ', '.join(self.combo_reagents[k]))
-                for k in self.combo_reagents_in_order_of_appearance
-        ))
-        
     @autoprop.cache(policy='manual')
     def get_unprocessed_mixes(self):
-        self._check_combos()
-
         if self._user_mixes:
             return self._init_mixes_from_user()
         else:
@@ -330,6 +285,8 @@ class Reactions(byoc.App):
         self._set_mix_names(mixes)
         self._set_mix_reactions(mixes)
         self._set_mix_scales(mixes)
+
+        # TODO: remove reagents with zero volume and recalculate mixes.
 
         return mixes
 
@@ -357,13 +314,6 @@ class Reactions(byoc.App):
         mix = self.mixes[i]
         return format_reaction(mix.reaction, scale=mix.scale)
 
-    def _check_combos(self):
-        known_reagents = set(x.key for x in self.base_reaction)
-        unknown_reagents = set(self.combo_reagents) - known_reagents
-
-        if unknown_reagents:
-            raise UsageError(f"can't specify combos for reagents ({','.join(map(repr, unknown_reagents))}) that aren't in the reaction")
-
     def _init_mixes_from_user(self):
         """
         Check that the mixes include all of the reagents being varied.
@@ -377,10 +327,7 @@ class Reactions(byoc.App):
             # Automatically calculate master mixes as requested:
             if isinstance(mix, self.AutoMix):
                 keys = itemgetter(mix.reagents)
-                combos = [
-                        {k: combo[k] for k in mix.reagents}
-                        for combo in self.combos
-                ]
+                combos = self.combos.select(mix.reagents)
                 mixes += self._init_mixes_from_combos(combos)
 
             else:
@@ -400,7 +347,7 @@ class Reactions(byoc.App):
                 raise UsageError(f"{', '.join(map(repr, dups))} included in multiple master mixes")
             reagents |= mix.reagents
 
-        for reagent, values in self.plural_combo_reagents.items():
+        for reagent, values in self.combos.distinct_values_by_col.items():
             if reagent not in reagents:
                 raise UsageError(f"{reagent!r} not included in any master mix.\nThe following reagents are included: {', '.join(map(repr, reagents))}")
 
@@ -411,8 +358,8 @@ class Reactions(byoc.App):
         Infer a reasonable set of master mixes based on the requested reagent 
         combinations.
         """
-        combos = drop_fixed_reagents(combos)
-        ideal_order = [x.name for x in self.base_reaction]
+        combos = list(combos.select(combos.distinct_cols))
+        ideal_order = [x.key for x in self.base_reaction]
         graph = make_pipetting_graph(combos, ideal_order, self.master_mix_penalty)
         groups = minimize_pipetting(graph)
         return [self.Mix(x) for x in groups]
@@ -442,10 +389,8 @@ class Reactions(byoc.App):
         # Verify that the mixes collectively contain every reagent with 
         # multiple unique values.  Note that the `_init*()` methods are 
         # actually responsible for making sure that this is the case; we're 
-        # just double-checking here.  This code is all crammed into one 
-        # expression so that it will all be elided with optimizations enabled.
-        assert (all_reagents - missing_reagents) >= \
-                set(self.plural_combo_reagents)
+        # just double-checking here.
+        assert (all_reagents - missing_reagents) >= self.combos.distinct_cols
 
         mix = self.Mix(missing_reagents)
         mixes.insert(0, mix)
@@ -466,9 +411,9 @@ class Reactions(byoc.App):
 
     @autoprop.ignore
     def _set_mix_names(self, mixes):
-        order_map = {x.name: i for i, x in enumerate(self.base_reaction)}
+        order_map = {x.key: i for i, x in enumerate(self.base_reaction)}
         by_order = lambda x: order_map[x]
-        name_reagents = set(self.plural_combo_reagents)
+        name_reagents = self.combos.distinct_cols
 
         for i, mix in enumerate(mixes):
             if mix.name:
@@ -481,7 +426,10 @@ class Reactions(byoc.App):
                 mix.name = 'master'
                 continue
 
-            mix.name = '/'.join(sorted(reagents, key=by_order))
+            mix.name = '/'.join(
+                    self.base_reaction[k].name
+                    for k in sorted(reagents, key=by_order)
+            )
 
     @autoprop.ignore
     def _set_mix_reactions(self, mixes):
@@ -503,7 +451,7 @@ class Reactions(byoc.App):
                         del rxn[key]
                 else:
                     try:
-                        names = self.combo_reagents[key]
+                        names = self.combos.unique_values_by_col[key]
                     except KeyError:
                         pass
                     else:
@@ -531,18 +479,21 @@ class Reactions(byoc.App):
         cumulative_reagents = set()
 
         for mix in mixes:
-            cumulative_reagents |= mix.reagents
+            cumulative_reagents |= mix.reagents & self.combos.cols
             combo_counts = Counter(
-                    tuple(combo.get(k) for k in cumulative_reagents)
-                    for combo in self.combos
+                    self.combos.select_ordered_rows(cumulative_reagents)
             )
             mix.num_reactions = len(combo_counts) or 1
-            mix.scale = max(combo_counts.values(), default=1)
+            mix.scale = max(combo_counts.values(), default=1) * \
+                    self.combos.replicates
 
         # Account for the extra volume requested by the user:
 
         cumulative_factor = 1
-        extra_defaults = repeat_last([Extra(), self.extra])
+        if self.last_mix_extra or (self.combos.replicates > 1):
+            extra_defaults = repeat(self.extra)
+        else:
+            extra_defaults = repeat_last([Extra(), self.extra])
 
         for mix, extra_default in zip(reversed(mixes), extra_defaults):
             extra = mix.extra or extra_default
@@ -555,9 +506,9 @@ Setup one or more reactions.
 
 Usage:
     reaction <reagent;stock;conc;volume>... [-C <reagents>] [-c <combo>]...
-        [-m <reagents>]... [-M penalty] [-S <step>] [-s <kind>]
-        [-i <instruction>]... [-v <volume>] [-x <percent>] [-X <volume>]
-        [options]
+        [-r <replicates>] [-v <volume>] [-m <reagents>]... [-M <penalty>]
+        [-S <step>] [-s <kind>] [-i <instruction>]... [-x <percent>]
+        [-X <volume>] [options]
 
 Arguments:
     <reagent;stock;conc;volume>
@@ -610,6 +561,15 @@ Options:
         for each variant you want to set up.  The `--combo-reagents` option 
         determines the meaning of each field in this option.
 
+    -r --replicates <int>
+        Prepare the given number of technical replicates of each reaction.  You 
+        can get the same behavior by specifying every combo multiple times, but 
+        this option is more succinct.
+
+    -v --volume <expr>
+        Scale the reaction to the given volume.  This volume is taken to be in 
+        the same unit as all of the reagents.
+
     -m --mix <reagents>
         Which reagents to include in a particular master mix.  The purpose of 
         this option is to manually specify which master mixes to make (e.g. if 
@@ -654,10 +614,6 @@ Options:
         multiple times, and each instruction will be included in a bullet-point 
         list below the reaction tables.
 
-    -v --volume <expr>
-        Scale the reaction to the given volume.  This volume is taken to be in 
-        the same unit as all of the reagents.
-
     -x --extra-percent <float>
         How much extra master mix to make, as a percentage of the total master 
         mix volume.  The default is 10%.
@@ -671,7 +627,16 @@ Options:
 
     -X --extra-min-volume <float>
         Scale the master mix such that every reagent has at least this volume.  
-        This volume is taken to be in the same unit as all the reagents.
+
+    --last-mix-extra
+        Make extra of the final mix (i.e. the mix representing the 1x 
+        reaction), in addition to all of the mixes leading up to it.  This is 
+        useful if you plan on using these reactions as inputs to other 
+        reactions, and don't want to run out of material.
+
+    --no-split-replicates
+        If multiple replicates are specified, skip the step where they are 
+        split into separate but identical reactions.
 
 Configuration:
     Default values for this protocol can be specified in any of the following 
@@ -706,9 +671,13 @@ Configuration:
     base_reaction = byoc.param(
             Key(DocoptConfig, reaction_from_docopt),
     )
-    combos = byoc.param(
+    _user_combos = byoc.param(
             Key(DocoptConfig, combos_from_docopt),
             default_factory=list,
+    )
+    _user_replicates = byoc.param(
+            Key(DocoptConfig, '--replicates', cast=int),
+            default=1,
     )
     _user_mixes = byoc.param(
             Key(DocoptConfig, '--mix', cast=mixes_from_strs),
@@ -726,6 +695,14 @@ Configuration:
             Key(DocoptConfig, '--instruction'),
             default_factory=list,
     )
+    split_replicates = byoc.param(
+            Key(DocoptConfig, '--no-split-replicates', cast=not_),
+            default=True,
+    )
+    last_mix_extra = byoc.param(
+            Key(DocoptConfig, '--last-mix-extra'),
+            default=False,
+    )
     master_mix_penalty = byoc.param(
             Key(DocoptConfig, '--mix-penalty', cast=float),
             Key(StepwiseConfig, 'mix_penalty'),
@@ -736,6 +713,169 @@ Configuration:
             Key(StepwiseConfig, 'extra', cast=extra_from_dict),
             default_factory=lambda: Extra(percent=10),
     )
+
+@autoprop.cache
+class Combos:
+    """
+    A collection of reagent combinations to prepare via a series of master 
+    mixes.
+
+    You can think of this data structure as a table, where each column 
+    corresponds to one reagent, and each row gives a different combination of 
+    values for those reagents.  Typically, each column would also be a key in 
+    the `Reaction` object used to build the master mixes.
+
+    If every row in the tables is duplicated the same number of times, the 
+    duplicates are removed and the number of duplicates is recorded in the 
+    *replicate* attribute.
+    """
+
+    # This API feels too rigid to me.  It doesn't really matter, because the 
+    # code works, but there's definitely some logic in the Reagents class that 
+    # should be moved here.  I wonder if something like the following would be 
+    # more powerful:
+    #
+    # iter_rows(self, replicates=False, order=None)
+    # iter_cols(self, singleton=False)
+
+    def __init__(self, combos, replicates=1):
+        self._combos = combos
+        self._replicates = replicates
+        self._ordered_cols = None
+
+        self._check_cols()
+        self._infer_replicates()
+
+    def __iter__(self):
+        yield from self._combos
+
+    def __len__(self):
+        return max(len(self._combos), 1)
+
+    def get_cols(self):
+        return set(self._combos[0].keys()) if self._combos else set()
+
+    def get_ordered_cols(self):
+        assert self._ordered_cols is not None
+        return self._ordered_cols
+
+    def get_ordered_rows(self):
+        assert self._ordered_cols is not None
+        return self.select_ordered_rows(self.ordered_cols)
+
+    def get_distinct_cols(self):
+        return set(self.distinct_values_by_col)
+
+    def get_values_by_col(self):
+        values_by_col = {}
+
+        for combo in self:
+            for k, v in combo.items():
+                values_by_col.setdefault(k, []).append(v)
+
+        return values_by_col
+
+    def get_unique_values_by_col(self):
+        # Keep the values in the same order they were given in, to make for 
+        # nice output.  This is why we don't use `set`, which would be simpler 
+        # and more performant.
+        return {k: list(unique(v)) for k, v in self.values_by_col.items()}
+
+    def get_distinct_values_by_col(self):
+        return {k: v for k, v in self.unique_values_by_col.items() if len(v) > 1}
+
+    def get_replicates(self):
+        return self._replicates
+
+    def check_reagents(self, rxn):
+        known_reagents = set(x.key for x in rxn)
+        unknown_reagents = self.cols - known_reagents
+
+        if unknown_reagents:
+            raise UsageError(f"can't specify combos for reagents that aren't in the reaction\nreaction: {repr_join(rxn.keys())}\nunexpected: {repr_join(unknown_reagents)}")
+
+    def select(self, cols):
+        combos = [
+                {k: combo[k] for k in cols}
+                for combo in self
+        ]
+        return Combos(combos, self.replicates)
+
+    def select_ordered_rows(self, ordered_cols):
+        return [
+                tuple(combo[k] for k in ordered_cols)
+                for combo in self
+        ]
+
+    def sort_by_appearance(self, mixes):
+        self._ordered_cols = []
+
+        for mix in mixes:
+            for reagent in mix.reaction:
+                key = reagent.key
+                if key in self.cols:
+                    self._ordered_cols.append(key)
+
+        assert set(self._ordered_cols) == self.cols
+            
+        try:
+            del self.ordered_cols
+            del self.ordered_rows
+        except AttributeError:
+            pass
+
+    def have_all_possible_combos(self):
+        # There can be duplicate combos, so it's important to ignore those.
+        num_combos = max(len(set(self.select_ordered_rows(self.cols))), 1)
+        num_possible_combos = math.prod(
+                len(x)
+                for x in self.distinct_values_by_col.values()
+        )
+        return num_combos == num_possible_combos
+
+    def format_as_table(self, rxn):
+        return table(
+                header=[rxn[k].name for k in self.ordered_cols],
+                rows=self.ordered_rows,
+        )
+
+    def format_as_dl(self, rxn):
+        return dl(*(
+                (rxn[k].name, ', '.join(self.distinct_values_by_col[k]))
+                for k in self.ordered_cols
+                if k in self.distinct_values_by_col
+        ))
+        
+    def _check_cols(self):
+        if not self._combos:
+            return
+
+        expected_keys = self._combos[0].keys()
+
+        for combo in self._combos:
+            if combo.keys() != expected_keys:
+                raise UsageError(f"every combo must have the same keys\nexpected: {repr_join(expected_keys)}\nfound: {repr_join(combo.keys())}")
+
+    def _infer_replicates(self):
+        """
+        Check for "de-facto" replicates, i.e. the case where each combo appears 
+        more than once and exactly the same number of times as every other 
+        combo.  By detecting this, we can make better protocols by scaling-up 
+        and dividing the final reaction mix.
+        """
+        cols = self.cols
+        rows = self.select_ordered_rows(cols)
+        counts = Counter(rows)
+
+        try:
+            self.replicates *= unanimous(counts.values())
+        except ValueError:
+            return
+
+        self._combos = [
+                dict(zip(cols, row))
+                for row in unique(rows)
+        ]
 
 @autoprop
 @dataclass
@@ -768,30 +908,6 @@ class Extra:
         ))
 
     __repr__ = repr_from_init(skip=['percent'])
-
-def drop_fixed_reagents(combos):
-    """
-    Remove any reagents that are the same in every combo.
-    """
-    if not combos:
-        return []
-
-    fixed = combos[0].copy()
-
-    for combo in combos:
-        for k in combo:
-            if k in fixed and combo[k] != fixed[k]:
-                del fixed[k]
-
-    keys = [k for k in combos[0] if k not in fixed]
-
-    if not keys:
-        return []
-
-    return [
-            {k: combo[k] for k in keys}
-            for combo in combos
-    ]
 
 def make_pipetting_graph(combos, ideal_order=None, split_penalty=0):
     """

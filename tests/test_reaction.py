@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 
-import pytest, re
-from io import StringIO
+import pytest
 from stepwise import *
-from funcy import autocurry
-from math import inf
 from param_helpers import *
-from pytest_unordered import unordered
 from reprfunc import ReprBuilder, repr_from_init
 
 # Test that when a reagent is removed from a reaction, it doesn't affect that 
@@ -16,75 +12,6 @@ wx = '8 µL', {
         'w': ('5 µL',  ..., True),
         'x': ('3 µL', '2x', False),
 }
-
-@autocurry
-def exec_reactions(x, defer=False):
-
-    def from_str(x):
-        return with_sw.exec(x, get='rxns', defer=defer)
-
-    def from_dict(d):
-
-        def factory():
-            with_mix = with_sw.fork(
-                    Mix=Reactions.Mix,
-                    AutoMix=Reactions.AutoMix,
-            )
-            schema = Schema({
-                'base': eval_reaction,
-                'combos': [dict],
-                Optional('mixes'): [with_mix.eval],
-
-                # Default extra to 0 for testing, because calculating it by 
-                # hand adds complexity and isn't usually relevant.
-                Optional('extra', default={}): Or(
-                    And(dict, lambda x: Extra(**with_py.eval(x))),
-                    And(str, with_sw.eval),
-                ),
-
-                Optional('exec'): str,
-            })
-            kw = schema(d)
-            exec = kw.pop('exec', None)
-            rxns = Reactions(kw.pop('base'), kw.pop('combos'), **kw)
-
-            if exec:
-                with_sw.fork(rxns=rxns).exec(exec)
-
-            return rxns
-
-
-        if defer:
-            factory.exec = factory
-            return factory
-        else:
-            return factory()
-
-    schema = Or(
-            And(str, from_str),
-            And(dict, from_dict),
-    )
-    return schema(x)
-
-def eval_reaction(x):
-    if isinstance(x, str):
-        if x.lstrip().startswith('#!/usr/bin/env python'):
-            return with_sw.exec(x, get='rxn')
-        else:
-            return Reaction.from_text(x)
-
-    if isinstance(x, list):
-        return Reaction.from_rows(x)
-    if isinstance(x, dict):
-        return Reaction.from_cols(x)
-
-    raise TypeError(f"expected str, list, or dict, not: {type(x)}")
-
-def eval_reaction_wrapper(x):
-    return ReactionWrapper(**with_sw.eval(x))
-
-def eval_mix_wrappers(mix_dicts):
-    return [MixWrapper.from_strs(x) for x in mix_dicts]
 
 class ReactionWrapper:
 
@@ -114,47 +41,23 @@ class ReactionWrapper:
 
     __repr__ = repr_from_init
 
-class MixWrapper:
+def eval_reaction(x):
+    if isinstance(x, str):
+        if x.lstrip().startswith('#!/usr/bin/env python'):
+            return with_sw.exec(x, get='rxn')
+        else:
+            return Reaction.from_text(x)
 
-    @classmethod
-    def from_strs(cls, d):
-        return cls(
-                name=d.get('name'),
-                reagents=set(d['reagents']),
-                reaction=eval_reaction(d['reaction']),
-                scale=pytest.approx(float(d['scale'])),
-                num_reactions=int(d['num_reactions']),
-        )
+    if isinstance(x, list):
+        return Reaction.from_rows(x)
+    if isinstance(x, dict):
+        return Reaction.from_cols(x)
 
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
+    raise TypeError(f"expected str, list, or dict, not: {type(x)}")
 
-    def __repr__(self):
-        builder = ReprBuilder(self)
-        for k, v in self.__dict__.items():
-            builder.add_keyword_value(k, v)
-        return str(builder)
+def eval_reaction_wrapper(x):
+    return ReactionWrapper(**with_sw.eval(x))
 
-    def __eq__(self, actual):
-        if not isinstance(actual, Reactions.Mix):
-            raise AssertionError(f"expected 'Reactions.Mix', got {actual!r}")
-
-        if hasattr(self, 'name') and self.name != actual.name:
-            raise AssertionError(f"expected name={self.name!r}, got {actual.name!r}")
-
-        if self.reagents != actual.reagents:
-            raise AssertionError(f"expected reagents={self.reagents!r}, got {actual.reagents!r}")
-
-        if self.reaction != actual.reaction:
-            raise AssertionError(f"expected reaction={self.reaction!r}, got {actual.reaction!r}")
-
-        if self.num_reactions != actual.num_reactions:
-            raise AssertionError(f"expected num_reactions={self.num_reactions!r}, got {actual.num_reactions!r}")
-
-        if approx(self.scale) != actual.scale:
-            raise AssertionError(f"expected scale={self.scale!r}, got {actual.scale!r}")
-
-        return True
 
 def test_reagent_key():
     rxn = Reaction()
@@ -930,120 +833,4 @@ extra long name    10x   1.00 µL
 ────────────────────────────────
                         10.00 µL"""
 
-
-@parametrize_from_file
-def test_reactions_protocol(reactions, expected):
-    rxns = exec_reactions(reactions)
-    expected = with_sw.eval(expected)
-    assert rxns.protocol.steps == expected
-
-@parametrize_from_file
-def test_reactions_combo_step(reactions, expected):
-    rxns = exec_reactions(reactions)
-    expected = with_sw.eval(expected)
-    assert rxns.combo_step == expected
-
-@parametrize_from_file(
-        schema=with_sw.error_or('expected'),
-)
-def test_reactions_combo_reagents(combos, expected, error):
-    rxn = Reaction()
-    rxns = Reactions(rxn, combos)
-
-    with error:
-        assert rxns.combo_reagents == expected
-
-@parametrize_from_file
-def test_reactions_combo_reagents_in_order_of_appearance(reactions, expected):
-    rxns = exec_reactions(reactions)
-    assert rxns.combo_reagents_in_order_of_appearance == expected
-
-@parametrize_from_file
-def test_reactions_combo_table(reactions, expected):
-    rxns = exec_reactions(reactions)
-    expected = with_sw.eval(expected)
-    assert rxns.combo_table == expected
-
-@parametrize_from_file
-def test_reactions_all_combos_dl(reactions, expected):
-    rxns = exec_reactions(reactions)
-    expected = with_sw.eval(expected)
-    assert rxns.all_combos_dl == expected
-
-@parametrize_from_file(
-        schema=with_sw.error_or('expected'),
-)
-def test_reactions_mixes(reactions, expected, error):
-    rxns = exec_reactions(reactions)
-    expected = eval_mix_wrappers(expected)
-
-    with error:
-        assert rxns.mixes == expected
-
-
-@parametrize_from_file(
-        schema=[
-            cast(scale=float, expected=float),
-            defaults(reaction='', expected_repr=''),
-        ],
-)
-def test_extra(extra, scale, reaction, expected, expected_repr):
-    if not expected_repr:
-        expected_repr = extra
-
-    extra = with_sw.eval(extra)
-
-    if reaction:
-        rxn = eval_reaction(reaction)
-    else:
-        rxn = Reaction()
-        rxn['w'].volume = 'to 1 µL'
-
-    assert repr(extra) == expected_repr
-    assert extra.increase_scale(scale, rxn) == approx(expected)
-
-@parametrize_from_file
-def test_drop_fixed_reagents(combos, expected):
-    assert drop_fixed_reagents(combos) == expected
-
-@parametrize_from_file(
-        schema=[
-            cast(penalty=int),
-            defaults(order=None, penalty=0),
-        ],
-)
-def test_minimize_pipetting(combos, order, penalty, graph, groups):
-    g = make_pipetting_graph(combos, order, penalty)
-
-    actual_edges = [
-            {'start': a, 'end': b, **data}
-            for a, b, data in g.edges.data()
-    ]
-    expected_edges = unordered(with_py.eval(graph))
-    assert actual_edges == expected_edges
-
-    actual_groups = minimize_pipetting(g)
-    expected_groups = [set(x) for x in groups]
-    assert actual_groups == expected_groups
-
-@parametrize_from_file(
-        schema=with_sw.error_or('expected'),
-)
-def test_reaction_from_docopt(args, expected, error):
-    with error:
-        assert reaction_from_docopt(args) == eval_reaction(expected)
-
-@parametrize_from_file(
-        schema=with_sw.error_or('expected'),
-)
-def test_combos_from_docopt(args, expected, error):
-    with error:
-        assert combos_from_docopt(args) == expected
-
-@parametrize_from_file(
-        schema=with_sw.error_or('expected'),
-)
-def test_extra_from_docopt(args, expected, error):
-    with error:
-        assert extra_from_docopt(args) == with_sw.eval(expected)
 

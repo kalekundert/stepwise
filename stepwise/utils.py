@@ -1,5 +1,32 @@
 #!/usr/bin/env python3
 
+NO_DEFAULT = object()
+
+def unanimous(
+        items,
+        default=NO_DEFAULT,
+        err_empty=ValueError("empty iterable"),
+        err_multiple=lambda v1, v2: ValueError(f"found multiple values: {v1!r}, {v2!r}"),
+    ):
+    it = iter(items)
+
+    try:
+        value = next(it)
+    except StopIteration:
+        if default is not NO_DEFAULT:
+            return default
+        else:
+            raise err_empty
+
+    for next_value in it:
+        if next_value != value:
+            raise err_multiple(value, next_value)
+
+    return value
+
+def repr_join(xs):
+    return ', '.join(map(repr, xs))
+
 def load_plugins(group, default_priority=None):
     from entrypoints import get_group_all
 

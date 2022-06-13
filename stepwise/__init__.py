@@ -14,6 +14,7 @@ from .library import *
 from .printer import *
 from .config import *
 from .errors import *
+from .utils import *
 
 from pathlib import Path
 from inform import Inform

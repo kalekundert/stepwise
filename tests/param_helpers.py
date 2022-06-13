@@ -6,7 +6,7 @@ import parametrize_from_file
 import math
 
 from pytest import approx
-from parametrize_from_file import Namespace, error_or, defaults, cast
+from parametrize_from_file import Namespace, defaults, cast, error, error_or
 from voluptuous import Schema, Invalid, Coerce, And, Or, Optional
 from unittest.mock import Mock, MagicMock
 from contextlib import nullcontext
@@ -29,23 +29,6 @@ class Params:
         # Could also check to make sure parameters make sense.
 
         return pytest.mark.parametrize(args, params)(f)
-
-def eval_db(reagents):
-    db = freezerbox.Database()
-    schema = Schema(
-            empty_ok({
-                str: eval_freezerbox,
-            }),
-    )
-
-    for tag, reagent in schema(reagents).items():
-        db[tag] = reagent
-
-    return db
-
-def empty_ok(x):
-    return Or(x, And('', lambda y: type(x)()))
-
 
 with_py = Namespace(
         inf=math.inf,
