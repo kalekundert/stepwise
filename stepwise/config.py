@@ -144,6 +144,9 @@ class Presets:
     def __iter__(self):
         yield from unique_everseen(flatten(self.layers))
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.layers!r})'
+
     def __getitem__(self, key):
         try: return self.loaded_presets[key]
         except KeyError: pass
