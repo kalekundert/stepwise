@@ -36,6 +36,11 @@ def test_repr(given, expected):
 def test_str(given, expected):
     assert str(given) == expected
 
+def test_hash():
+    k, v = Quantity(1, 'ng'), object()
+    d = {k: v}
+    assert d[k] is v
+
 def test_format():
     q = Q('1 ng')
     assert f'{q}' == '1 ng'
