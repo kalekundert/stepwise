@@ -55,6 +55,9 @@ class MasterMix:
     def __getitem__(self, key):
         return self.reaction.__getitem__(key)
 
+    def __setitem__(self, key, value):
+        return self.reaction.__setitem__(key, value)
+
     def __delitem__(self, key):
         return self.reaction.__delitem__(key)
 
@@ -615,21 +618,23 @@ class Reaction:
         if key in self._key_map:
             raise UsageError(f"{key!r} is already a reagent")
 
-        if callable(loc):
-            i = loc(self._key_map, self._reagents, solvent=self._solvent)
-        else:
-            i = loc
-
         reagent = Reagent(self, key)
+        i = self._index_from_loc(loc)
         self._reagents.insert(i, reagent)
-        self._key_map[key] = i
+        self._refresh_key_map()
 
-        for reagent in self._reagents[i+1:]:
-            self._key_map[reagent.key] += 1
+    def reorder_reagent(self, key, loc):
+        self.require_reagent(key)
+
+        i = self._key_map[key]
+        j = self._index_from_loc(loc)
+
+        reagent = self._reagents.pop(i)
+        self._reagents.insert(j, reagent)
+        self._refresh_key_map()
 
     def remove_reagent(self, key):
-        if key not in self._key_map:
-            raise UsageError(f"{key!r} is not a reagent")
+        self.require_reagent(key)
 
         i = self._key_map[key]
         reagent = self._reagents[i]
@@ -642,8 +647,7 @@ class Reaction:
         del self._key_map[key]
         del self._reagents[i]
 
-        for reagent in self._reagents[i:]:
-            self._key_map[reagent.key] -= 1
+        self._refresh_key_map()
 
     def iter_nonzero_reagents(self, precision=2):
         yield from (x for x in self if not x.is_empty(precision))
@@ -761,6 +765,19 @@ class Reaction:
         if self._solvent is None:
             raise ValueError(f"no solvent specified")
 
+    def _refresh_key_map(self):
+        self._key_map = {
+                reagent.key: i
+                for i, reagent in enumerate(self._reagents)
+        }
+
+    def _index_from_loc(self, loc):
+        if callable(loc):
+            return loc(self._key_map, self._reagents, solvent=self._solvent)
+        else:
+            return loc
+
+
     @autoprop
     class _HoldRatios:
         """
@@ -802,7 +819,6 @@ class BaseReagent(ABC):
 
         self.flags = set()
         self.catalog_num = None
-        self.master_mix = False
 
     def __eq__(self, other):
         # Don't compare `key`.  I consider it to be an implementation detail, 
@@ -898,6 +914,8 @@ class Reagent(BaseReagent):
         self._volume = None
         self._stock_conc = None
 
+        self.master_mix = False
+
     def __repr__(self):
         builder = ReprBuilder(self)
         builder.add_positional_value(self.key)
@@ -940,6 +958,7 @@ class Reagent(BaseReagent):
         del copy_attrs['_key']
         del copy_attrs['_volume']
         del copy_attrs['_stock_conc']
+        del copy_attrs['master_mix']
 
         solvent = Solvent(self)
         solvent.__dict__.update(copy_attrs)
@@ -1166,6 +1185,7 @@ class Solvent(BaseReagent):
     def __init__(self, reaction):
         super().__init__(reaction)
         self._volume = None
+        self.master_mix = True
 
     def __repr__(self):
         builder = ReprBuilder(self)

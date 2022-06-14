@@ -219,6 +219,71 @@ test_reaction_setup:
       type: UsageError
       message: 'x' is already a reagent
   -
+    id: reorder
+    reaction:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.append_reagent('y')
+      > rxn.append_reagent('z')
+      > rxn.reorder_reagent('z', 0)
+    expected:
+      reagents:
+        -
+          class: Reagent
+          key: 'z'
+        -
+          class: Reagent
+          key: 'x'
+        -
+          class: Reagent
+          key: 'y'
+  -
+    id: reorder-before
+    reaction:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.append_reagent('y')
+      > rxn.append_reagent('z')
+      > rxn.reorder_reagent('z', before('x'))
+    expected:
+      reagents:
+        -
+          class: Reagent
+          key: 'z'
+        -
+          class: Reagent
+          key: 'x'
+        -
+          class: Reagent
+          key: 'y'
+  -
+    id: reorder-after
+    reaction:
+      > rxn = Reaction()
+      > rxn.append_reagent('x')
+      > rxn.append_reagent('y')
+      > rxn.append_reagent('z')
+      > rxn.reorder_reagent('x', after('z'))
+    expected:
+      reagents:
+        -
+          class: Reagent
+          key: 'y'
+        -
+          class: Reagent
+          key: 'z'
+        -
+          class: Reagent
+          key: 'x'
+  -
+    id: reorder-err-not-found
+    reaction:
+      > rxn = Reaction()
+      > rxn.reorder_reagent('x', 0)
+    error:
+      type: ValueError
+      message: no 'x' reagent in the reaction
+  -
     id: remove
     reaction:
       > rxn = Reaction()
@@ -272,8 +337,8 @@ test_reaction_setup:
       > rxn = Reaction()
       > rxn.remove_reagent('x')
     error:
-      type: UsageError
-      message: 'x' is not a reagent
+      type: ValueError
+      message: no 'x' reagent in the reaction
   -
     id: getitem
     reaction:
