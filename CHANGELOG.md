@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.37.0 (2022-06-14)
+### Feature
+* Reorder reagents within a reaction ([`1be1557`](https://github.com/kalekundert/stepwise/commit/1be1557bdaaedf732f13b0893eacc927c7704c81))
+* Give presets a repr function ([`cbc39d4`](https://github.com/kalekundert/stepwise/commit/cbc39d4e325a25921bb987e81fe1c2e84bb8b587))
+* Make quantities hashable ([`a9d1632`](https://github.com/kalekundert/stepwise/commit/a9d163243be5e1e36e23673c8143eb58b219b59b))
+* Teach `Reagents` about replicates ([`5e4711b`](https://github.com/kalekundert/stepwise/commit/5e4711b5857c2ef8fa6d65a4fea41f18890505f2))
+
 ## v0.36.0 (2022-06-10)
 ### Feature
 * Make reactions intrinsically ordered ([`2e5a5ae`](https://github.com/kalekundert/stepwise/commit/2e5a5aec17384bae4f05c1c9b98fb4634b0634ad))
