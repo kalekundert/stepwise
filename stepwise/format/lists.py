@@ -188,6 +188,10 @@ class definition_list(Formatter):
     # Note that you can put the definition on the line below the key by using a 
     # newline in prefix[0].
 
+    @classmethod
+    def from_iterable(cls, items, **kwargs):
+        return cls(*items, **kwargs)
+
     def __init__(self, *items, prefix='{}: ', indent='  ', br='\n'):
         self._keys, self._values = map(list, zip(*items)) if items else ([], [])
         self._prefix = prefix

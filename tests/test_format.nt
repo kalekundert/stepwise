@@ -330,6 +330,14 @@ test_format_text:
       > >a b
       >
       > >c d
+  -
+    id: pl-from-iterable
+    obj: pl.from_iterable(['a', 'b'])
+    width: inf
+    expected:
+      > a
+      >
+      > b
 
   -
     id: ul-items-0
@@ -513,6 +521,13 @@ test_format_text:
     expected:
       > >- a
       > >- b
+  -
+    id: ul-from-iterable
+    obj: ul.from_iterable(['a', 'b'])
+    width: inf
+    expected:
+      > - a
+      > - b
 
   -
     id: ol-items-0
@@ -722,6 +737,14 @@ test_format_text:
       > >1. a
       >
       > >2. b
+  -
+    id: ol-from-iterable
+    obj: ol.from_iterable(['a', 'b'])
+    width: inf
+    expected:
+      > 1. a
+      >
+      > 2. b
 
   -
     id: dl-items-0
@@ -1120,6 +1143,13 @@ test_format_text:
     expected:
       > >a: b
       > >c: d
+  -
+    id: dl-from-iterable
+    obj: dl.from_iterable([('a', 'b'), ('c', 'd')])
+    width: inf
+    expected:
+      > a: b
+      > c: d
 
   -
     id: table-empty
