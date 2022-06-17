@@ -1923,7 +1923,9 @@ test_reaction_eq:
       > rxn = Reaction()
       > rxn['x'].flags = {'b'}
 
-    expected: False
+    # Flags are not considered when calculating equality, because they are 
+    # never presented to end users.
+    expected: True
   -
     id: reagent-diff-catalog-num
     a:
@@ -1959,7 +1961,9 @@ test_reaction_eq:
       > rxn = Reaction()
       > rxn['w'].volume = '8 µL'
 
-    expected: False
+    # The distinction between reagents and solvents doesn't matter.  All that 
+    # matters is the volume ultimately presented to the user.
+    expected: True
   -
     id: solvent-diff-key
     a:
@@ -2005,7 +2009,8 @@ test_reaction_eq:
       > rxn['w'].set_as_solvent()
       > rxn['w'].flags = {'b'}
 
-    expected: False
+    # See `reagent-diff-flags`
+    expected: True
   -
     id: solvent-diff-catalog-num
     a:

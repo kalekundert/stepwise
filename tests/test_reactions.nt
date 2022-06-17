@@ -121,7 +121,8 @@ test_reactions_protocol:
         -
           a: 1
       exec:
-        > rxns.instructions = ['c', 'd']
+        > rxns.instructions += 'c'
+        > rxns.instructions += 'd'
     
     expected:
       -
@@ -260,8 +261,8 @@ test_reactions_protocol:
         >       table(
         >         header=["Reagent", "Volume"],
         >         rows=[
-        >             ["master mix", "5.00 µL"],
         >             ["a", "1.00 µL"],
+        >             ["master mix", "5.00 µL"],
         >         ],
         >         footer=["", "6.00 µL"],
         >         align=list("<>"),
@@ -312,8 +313,8 @@ test_reactions_protocol:
         >       table(
         >         header=["Reagent", "Volume", "2x"],
         >         rows=[
-        >             ["master mix", "5.00 µL", "10.00 µL"],
         >             ["a",          "1.00 µL", "2.00 µL"],
+        >             ["master mix", "5.00 µL", "10.00 µL"],
         >         ],
         >         footer=["", "6.00 µL", "12.00 µL"],
         >         align=list("<>>"),
@@ -338,7 +339,8 @@ test_reactions_protocol:
         -
           a: 2
       exec:
-        > rxns.instructions = ['d', 'e']
+        > rxns.instructions += 'd'
+        > rxns.instructions += 'e'
     
     expected:
       -
@@ -366,8 +368,8 @@ test_reactions_protocol:
         >       table(
         >         header=["Reagent", "Volume"],
         >         rows=[
-        >             ["master mix", "5.00 µL"],
         >             ["a", "1.00 µL"],
+        >             ["master mix", "5.00 µL"],
         >         ],
         >         footer=["", "6.00 µL"],
         >         align=list("<>"),
@@ -430,8 +432,8 @@ test_reactions_protocol:
         >       table(
         >         header=["Reagent", "Volume", "2x"],
         >         rows=[
-        >             ["master mix", "7.00 µL", "14.00 µL"],
         >             ["a", "1.00 µL", "2.00 µL"],
+        >             ["master mix", "7.00 µL", "14.00 µL"],
         >         ],
         >         footer=["", "8.00 µL", "16.00 µL"],
         >         align=list("<>>"),
@@ -506,8 +508,8 @@ test_reactions_protocol:
         >       table(
         >         header=["Reagent", "Volume", "4x"],
         >         rows=[
-        >             ["master mix", "7.00 µL", "28.00 µL"],
         >             ["a", "1.00 µL", "4.00 µL"],
+        >             ["master mix", "7.00 µL", "28.00 µL"],
         >         ],
         >         footer=["", "8.00 µL", "32.00 µL"],
         >         align=list("<>>"),
@@ -740,24 +742,7 @@ test_reactions_combos_table:
         > ===  ====  =======
         > a    a*       1 µL
         > b    b*       2 µL
-      combos:
-        -
-          b: 2
-          a: 1
-        -
-          b: 4
-          a: 3
-    expected:
-      > table(header=['a*', 'b*'], rows=[['1', '2'], ['3', '4']])
-  -
-    id: mix-order
-    reactions:
-      base:
-        > Key  Name   Volume
-        > ===  ====  =======
         > c    c*       3 µL
-        > b    b*       2 µL
-        > a    a*       1 µL
       combos:
         -
           b: 2
@@ -766,8 +751,8 @@ test_reactions_combos_table:
           b: 4
           a: 3
       mixes:
-        - Mix(['a'])
         - Mix(['b'])
+        - Mix(['a'])
     expected:
       > table(header=['a*', 'b*'], rows=[['1', '2'], ['3', '4']])
 
@@ -822,27 +807,7 @@ test_reactions_combos_dl:
         > =======  =======
         > a           1 µL
         > b           2 µL
-      combos:
-        -
-          b: 2
-          a: 1
-        -
-          b: 4
-          a: 3
-    expected:
-      > dl(
-      >     ('a', '1, 3'),
-      >     ('b', '2, 4'),
-      > )
-  -
-    id: ab-mix-order
-    reactions:
-      base:
-        > Reagent   Volume
-        > =======  =======
         > c           3 µL
-        > b           2 µL
-        > a           1 µL
       combos:
         -
           b: 2
@@ -851,8 +816,8 @@ test_reactions_combos_dl:
           b: 4
           a: 3
       mixes:
-        - Mix('a')
         - Mix('b')
+        - Mix('a')
 
     expected:
       > dl(
@@ -984,9 +949,9 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > master mix    7 µL
           > a             1 µL
           > b             2 µL
+          > master mix    7 µL
         scale: 1
         num_reactions: 2
   -
@@ -1070,11 +1035,16 @@ test_reactions_mixes:
         -
           a: 2
           b: 2
-      mixes:
-        - AutoMix(['a', 'b'])
+      exec:
+        > def init_mixes(mixes):
+        >     for i, mix in enumerate(mixes, 1):
+        >         mix.name = f'init {i}'
+        >
+        > rxns.mixes = [Reactions.AutoMix(['a', 'b'], init_mixes=init_mixes)]
+
     expected:
       -
-        name: master
+        name: init 1
         reagents:
           - c
           - a
@@ -1086,13 +1056,13 @@ test_reactions_mixes:
         scale: 2
         num_reactions: 2
       -
-        name: b
+        name: init 2
         reagents:
           - b
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > master mix    4 µL
+          > init 1 mix    4 µL
           > b             2 µL
         scale: 1
         num_reactions: 4
@@ -1151,10 +1121,10 @@ test_reactions_mixes:
         reagents:
           - b
         reaction:
-          > Reagent     Volume
-          > ==========  ======
-          > a mix         5 µL
-          > b             2 µL
+          > Reagent     Stock  Volume
+          > ==========  =====  ======
+          > a mix          2x    5 µL
+          > b                    2 µL
         scale: 1
         num_reactions: 4
       -
@@ -1168,6 +1138,44 @@ test_reactions_mixes:
           > c             3 µL
         scale: 1
         num_reactions: 4
+  -
+    id: init-user-automix-no-combos
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > a           1 µL
+        > b           2 µL
+        > c           3 µL
+      combos:
+        []
+      mixes:
+        - AutoMix(['a', 'b'])
+        - Mix(['c'])
+    expected:
+      -
+        name: master
+        reagents:
+          - a
+          - b
+        reaction:
+          > Reagent     Volume
+          > ==========  ======
+          > a             1 µL
+          > b             2 µL
+        scale: 1
+        num_reactions: 1
+      -
+        name: master
+        reagents:
+          - c
+        reaction:
+          > Reagent     Stock  Volume
+          > ==========  =====  ======
+          > master mix     2x    3 µL
+          > c                    3 µL
+        scale: 1
+        num_reactions: 1
   -
     id: init-user-missing-reagent
     reactions:
@@ -1396,10 +1404,47 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > master mix    5 µL
           > a             1 µL
+          > master mix    5 µL
         scale: 1
         num_reactions: 2
+  -
+    id: add-solvent-err-no-solvent
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > a           1 µL
+      combos:
+        -
+          a: 1
+        -
+          a: 2
+      mixes:
+        - Mix({'a'}, volume=3)
+
+    error:
+      type: UsageError
+      message: can't set mix volume to 3: the reaction has no solvent
+  -
+    id: add-solvent-err-last-mix
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > w        to 5 µL
+        > a           1 µL
+      combos:
+        -
+          a: 1
+        -
+          a: 2
+      mixes:
+        - Mix({'a'}, volume=3)
+
+    error:
+      type: UsageError
+      message: can't set mix volume to 3: no subsequent mixes
   -
     id: merge-trivial
     reactions:
@@ -1539,11 +1584,176 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > master mix    6 µL
           > a             1 µL
+          > master mix    6 µL
           > c             3 µL
         scale: 1
         num_reactions: 2
+  -
+    id: set-reactions-order-first-reagent-in-mix
+    reactions:
+      base:
+        > Reagent    Volume
+        > =======  ========
+        > a            1 µL
+        > b            2 µL
+        > c            3 µL
+      combos:
+        -
+          a: 1
+        -
+          a: 2
+    expected:
+      -
+        name: master
+        reagents:
+          - b
+          - c
+        reaction:
+          > Reagent  Volume
+          > =======  ======
+          > b          2 µL
+          > c          3 µL
+        scale: 2
+        num_reactions: 1
+      -
+        name: a
+        reagents:
+          - a
+        reaction:
+          > Reagent     Volume
+          > ==========  ======
+          > a             1 µL
+          > master mix    5 µL
+        scale: 1
+        num_reactions: 2
+  -
+    id: set-reactions-order-first-reagent-not-in-mix
+    reactions:
+      base:
+        > Reagent    Volume
+        > =======  ========
+        > a            1 µL
+        > b            2 µL
+        > c            3 µL
+      combos:
+        -
+          b: 1
+        -
+          b: 2
+    expected:
+      -
+        name: master
+        reagents:
+          - a
+          - c
+        reaction:
+          > Reagent  Volume
+          > =======  ======
+          > a          1 µL
+          > c          3 µL
+        scale: 2
+        num_reactions: 1
+      -
+        name: b
+        reagents:
+          - b
+        reaction:
+          > Reagent     Volume
+          > ==========  ======
+          > master mix    4 µL
+          > b             2 µL
+        scale: 1
+        num_reactions: 2
+  -
+    id: set-reactions-order-first-two-reagents-in-mix
+    reactions:
+      base:
+        > Reagent    Volume
+        > =======  ========
+        > a            1 µL
+        > b            2 µL
+        > c            3 µL
+        > d            4 µL
+      combos:
+        -
+          a: 1
+          b: 1
+        -
+          a: 2
+          b: 2
+    expected:
+      -
+        name: master
+        reagents:
+          - c
+          - d
+        reaction:
+          > Reagent  Volume
+          > =======  ======
+          > c          3 µL
+          > d          4 µL
+        scale: 2
+        num_reactions: 1
+      -
+        name: a/b
+        reagents:
+          - a
+          - b
+        reaction:
+          > Reagent     Volume
+          > ==========  ======
+          > a             1 µL
+          > b             2 µL
+          > master mix    7 µL
+        scale: 1
+        num_reactions: 2
+  -
+    id: set-reactions-order-first-reagent-in-both
+    # This is an interesting case.  The same reagent can only appear in two 
+    # mixes if that reagent is the solvent, and the user specified a volume for 
+    # one of the intermediate mixes.  In this case, we don't want to count the 
+    # solvent when considering reagent order, because the master mix isn't 
+    # really *providing* the solvent.  It's providing the non-shared reagent, 
+    # so it should be slotted in at that point.
+    reactions:
+      base:
+        > Reagent    Volume
+        > =======  ========
+        > w        to 10 µL
+        > a            1 µL
+        > b            2 µL
+      combos:
+        []
+      mixes:
+        - Mix({'b'}, volume=5)
+        - Mix({'a'})
+    expected:
+      -
+        name: master
+        reagents:
+          - w
+          - b
+        reaction:
+          > Reagent  Volume
+          > =======  ======
+          > w          3 µL
+          > b          2 µL
+        scale: 1
+        num_reactions: 1
+      -
+        name: master
+        reagents:
+          - w
+          - a
+        reaction:
+          > Reagent     Stock  Volume
+          > ==========  =====  ======
+          > w                    4 µL
+          > a                    1 µL
+          > master mix     2x    5 µL
+        scale: 1
+        num_reactions: 1
   -
     id: set-reactions-prev-mix-name
     reactions:
@@ -1591,8 +1801,8 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > CD mix        7 µL
           > b             2 µL
+          > CD mix        7 µL
         scale: 2
         num_reactions: 2
       -
@@ -1602,19 +1812,19 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > BCD mix       9 µL
           > a             1 µL
+          > BCD mix       9 µL
         scale: 1
         num_reactions: 4
   -
-    id: set-reactions-update-solvent-volume
+    id: set-reactions-solvent
     reactions:
       base:
         > Reagent   Volume
         > =======  =======
+        > w        to 6 µL
         > a           1 µL
         > b           2 µL
-        > c        to 6 µL
       combos:
         -
           a: 1
@@ -1624,13 +1834,13 @@ test_reactions_mixes:
       -
         name: master
         reagents:
+          - w
           - b
-          - c
         reaction:
           > Reagent   Volume
           > =======  =======
+          > w        to 5 µL
           > b           2 µL
-          > c        to 5 µL
         scale: 2
         num_reactions: 1
       -
@@ -1642,6 +1852,157 @@ test_reactions_mixes:
           > ==========  ======
           > master mix    5 µL
           > a             1 µL
+        scale: 1
+        num_reactions: 2
+  -
+    id: set-reactions-volume-2-mixes
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > w        to 6 µL
+        > a           1 µL
+        > b           2 µL
+      combos:
+        -
+          a: 1
+        -
+          a: 2
+      mixes:
+        - Mix({'b'}, volume=3)
+        - Mix({'a'})
+
+    expected:
+      -
+        name: master
+        reagents:
+          - w
+          - b
+        reaction:
+          > Reagent   Volume
+          > =======  =======
+          > w        to 3 µL
+          > b           2 µL
+        scale: 2
+        num_reactions: 1
+      -
+        name: a
+        reagents:
+          - w
+          - a
+        reaction:
+          > Reagent     Stock   Volume
+          > ==========  =====  =======
+          > w                  to 6 µL
+          > a                     1 µL
+          > master mix     2x     3 µL
+        scale: 1
+        num_reactions: 2
+  -
+    id: set-reactions-volume-3-mixes
+    reactions:
+      base:
+        > Reagent    Volume
+        > =======  ========
+        > w        to 10 µL
+        > a            1 µL
+        > b            2 µL
+        > c            3 µL
+      combos:
+        -
+          a: 1
+          b: 1
+        -
+          a: 1
+          b: 2
+        -
+          a: 2
+          b: 1
+        -
+          a: 2
+          b: 2
+      mixes:
+        # Explicitly put the solvent in the third mix, to make sure that:
+        # - The solvent is added back to the first mix.
+        # - The first mix is not counted as "trivial" and merged with the 
+        #   second, even though it initially has only one reagent.
+        - Mix({'c'})
+        - Mix({'b'}, volume=6)
+        - Mix({'a', 'w'})
+
+    expected:
+      -
+        name: master
+        reagents:
+          - w
+          - c
+        reaction:
+          > Reagent   Volume
+          > =======  =======
+          > w        to 4 µL
+          > c           3 µL
+        scale: 4
+        num_reactions: 1
+      -
+        name: b
+        reagents:
+          - b
+        reaction:
+          > Reagent      Volume
+          > ==========  =======
+          > master mix     4 µL
+          > b              2 µL
+        scale: 2
+        num_reactions: 2
+      -
+        name: a
+        reagents:
+          - w
+          - a
+        reaction:
+          > Reagent       Volume
+          > ==========  ========
+          > w           to 10 µL
+          > a               1 µL
+          > b mix           6 µL
+        scale: 1
+        num_reactions: 4
+  -
+    id: set-reactions-stock-conc
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > a           1 µL
+        > b           2 µL
+        > c           3 µL
+      combos:
+        -
+          c: 1
+        -
+          c: 2
+    expected:
+      -
+        name: master
+        reagents:
+          - a
+          - b
+        reaction:
+          > Reagent   Volume
+          > =======  =======
+          > a           1 µL
+          > b           2 µL
+        scale: 2
+        num_reactions: 1
+      -
+        name: c
+        reagents:
+          - c
+        reaction:
+          > Reagent     Stock  Volume
+          > ==========  =====  ======
+          > master mix     2x    3 µL
+          > c                    3 µL
         scale: 1
         num_reactions: 2
   -
@@ -1680,8 +2041,8 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > master mix    5 µL
           > a             1 µL
+          > master mix    5 µL
         scale: 1
         num_reactions: 3
   -
@@ -1720,8 +2081,8 @@ test_reactions_mixes:
         reaction:
           > Reagent        Volume
           > ==========     ======
-          > master mix       5 µL
           > a                1 µL
+          > master mix       5 µL
         scale: 2
         num_reactions: 2
   -
@@ -1760,8 +2121,8 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > master mix    5 µL
           > a             1 µL
+          > master mix    5 µL
         scale: 1
         num_reactions: 2
   -
@@ -1801,8 +2162,8 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > master mix    5 µL
           > a             1 µL
+          > master mix    5 µL
         scale: 2.2
         num_reactions: 2
   -
@@ -1850,8 +2211,8 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > master mix    7 µL
           > a             1 µL
+          > master mix    7 µL
         scale: 2.2
         num_reactions: 2
       -
@@ -1911,8 +2272,8 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > master mix    7 µL
           > a             1 µL
+          > master mix    7 µL
         scale: 4.84
         num_reactions: 2
       -
@@ -1974,8 +2335,8 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > master mix    7 µL
           > b             2 µL
+          > master mix    7 µL
         scale: 2.2
         num_reactions: 2
       -
@@ -1985,8 +2346,8 @@ test_reactions_mixes:
         reaction:
           > Reagent  Volume
           > =======  ======
-          > b mix      9 µL
           > a          1 µL
+          > b mix      9 µL
         scale: 1
         num_reactions: 4
   -
@@ -2028,8 +2389,8 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > master mix    5 µL
           > a             1 µL
+          > master mix    5 µL
         scale: 1.1
         num_reactions: 2
   -
@@ -2071,8 +2432,8 @@ test_reactions_mixes:
         reaction:
           > Reagent     Volume
           > ==========  ======
-          > master mix    5 µL
           > a             1 µL
+          > master mix    5 µL
         scale: 1.1
         num_reactions: 2
 
@@ -2569,8 +2930,12 @@ test_combos_sort_by_appearance:
     id: empty
     combos:
       []
-    mixes:
-      []
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > x          1 µL
+      > y          1 µL
+      > z          1 µL
     ordered_cols:
       []
     ordered_rows:
@@ -2582,9 +2947,12 @@ test_combos_sort_by_appearance:
         x: a
       -
         x: b
-    mixes:
-      -
-        - x
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > x          1 µL
+      > y          1 µL
+      > z          1 µL
     ordered_cols:
       [x]
     ordered_rows:
@@ -2593,7 +2961,7 @@ test_combos_sort_by_appearance:
       -
         [b]
   -
-    id: x-y
+    id: xy
     combos:
       -
         y: b
@@ -2601,11 +2969,12 @@ test_combos_sort_by_appearance:
       -
         y: d
         x: c
-    mixes:
-      -
-        - x
-      -
-        - y
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > x          1 µL
+      > y          1 µL
+      > z          1 µL
     ordered_cols:
       [x, y]
     ordered_rows:
@@ -2614,7 +2983,7 @@ test_combos_sort_by_appearance:
       -
         [c, d]
   -
-    id: xy-z
+    id: xyz
     combos:
       -
         z: c
@@ -2624,12 +2993,12 @@ test_combos_sort_by_appearance:
         z: f
         y: e
         x: d
-    mixes:
-      -
-        - x
-        - y
-      -
-        - z
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > x          1 µL
+      > y          1 µL
+      > z          1 µL
     ordered_cols:
       [x, y, z]
     ordered_rows:

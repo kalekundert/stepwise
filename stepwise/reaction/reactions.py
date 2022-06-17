@@ -1,21 +1,25 @@
-import sys
-import math
 import byoc
 import autoprop
 import networkx as nx
+import sys
+import math
 
 from byoc import Key, DocoptConfig, float_eval
 from inform import plural
 from itertools import groupby, permutations, repeat
-from more_itertools import pairwise, repeat_last, unique_everseen as unique
+from more_itertools import (
+        pairwise, repeat_last, unique_everseen as unique, mark_ends,
+)
 from reprfunc import repr_from_init
 from operator import itemgetter, not_
 from collections import Counter
 from dataclasses import dataclass
 from math import inf
+from fractions import Fraction
 
-from .reaction import Reaction, format_reaction
+from .reaction import Reaction, format_reaction, after
 from ..format import pl, ul, dl, table
+from ..quantity import Quantity
 from ..config import StepwiseConfig
 from ..utils import unanimous, repr_join
 from ..errors import *
@@ -101,6 +105,12 @@ def extra_from_docopt(args):
 def extra_from_dict(tolerances):
     return Extra(**tolerances)
 
+# I want to get rid of `unprocessed_mixes` and replace it with 
+# `refresh_mix_scales` and `refresh_mix_names` methods.  The big sticking point 
+# with this is that I need to be able to distinguish between user-set and 
+# automatically-generated values, because I only want to "refresh" the latter.  
+# This will require adding some beef to the Mix class.
+
 @autoprop.cache
 class Reactions(byoc.App):
     """
@@ -156,13 +166,15 @@ class Reactions(byoc.App):
     @autoprop
     class Mix:
 
-        def __init__(self, reagents, *, name=None, extra=None):
+        def __init__(self, reagents, *, name=None, volume=None, extra=None):
             self.reagents = set(reagents)
             self.name = name
+            self.volume = volume
             self.extra = extra
 
             # Filled in by `Reactions.get_mixes()`:
             self.reaction = None
+            self.stock_conc = None
             self.num_reactions = None
             self.scale = None
 
@@ -172,22 +184,9 @@ class Reactions(byoc.App):
 
     class AutoMix:
 
-        def __init__(self, reagents, *, name=None, extra=None):
+        def __init__(self, reagents, init_mixes=lambda x: x):
             self.reagents = set(reagents)
-            self.name = name
-            self.extra = extra
-
-        def get_name(self, reagents):
-            if callable(self.name):
-                return self.name(reagents)
-            else:
-                return self.name
-
-        def get_extra(self, reagents):
-            if callable(self.extra):
-                return self.extra(reagents)
-            else:
-                return self.extra
+            self.init_mixes = init_mixes
 
         __repr__ = repr_from_init(
                 positional=['reagents'],
@@ -226,7 +225,9 @@ class Reactions(byoc.App):
 
         else:
             step += ul(br='\n\n')
-            step[-1] += self.combo_step
+
+            if len(self.combos) > 1:
+                step[-1] += self.combo_step
 
             for i in range(len(self.mixes)):
                 step[-1] += self.get_mix_step(i)
@@ -235,7 +236,7 @@ class Reactions(byoc.App):
             step += ul(f"Split into {self.combos.replicates} identical {self.base_reaction.volume:.2f} reactions.")
 
         if self.instructions:
-            step += ul(*self.instructions)
+            step += self.instructions
 
         return step
 
@@ -245,7 +246,7 @@ class Reactions(byoc.App):
         return combos
 
     def get_combo_step(self):
-        self.combos.sort_by_appearance(self.mixes)
+        self.combos.sort_by_appearance(self.base_reaction)
 
         if len(self.combos.distinct_cols) == 1:
             return pl(
@@ -273,14 +274,19 @@ class Reactions(byoc.App):
     
     def set_unprocessed_mixes(self, mixes):
         self._user_mixes = mixes
-        autoprop.del_cached_attr(self, 'unprocessed_mixes')
-        autoprop.del_cached_attr(self, 'mixes')
+
+        try:
+            autoprop.del_cached_attr(self, 'unprocessed_mixes')
+            autoprop.del_cached_attr(self, 'mixes')
+        except AttributeError:
+            pass
 
     @autoprop.cache(policy='manual')
     def get_mixes(self):
         mixes = self.unprocessed_mixes
 
         self._add_missing_reagents(mixes)
+        self._add_solvent(mixes)
         self._merge_trivial_mixes(mixes)
         self._set_mix_names(mixes)
         self._set_mix_reactions(mixes)
@@ -292,7 +298,21 @@ class Reactions(byoc.App):
 
     def set_mixes(self, mixes):
         self._user_mixes = mixes
-        autoprop.del_cached_attr(self, 'mixes')
+
+        try:
+            autoprop.del_cached_attr(self, 'unprocessed_mixes')
+            autoprop.del_cached_attr(self, 'mixes')
+        except AttributeError:
+            pass
+
+    def del_mixes(self, mixes):
+        self._user_mixes = None
+
+        try:
+            autoprop.del_cached_attr(self, 'unprocessed_mixes')
+            autoprop.del_cached_attr(self, 'mixes')
+        except AttributeError:
+            pass
 
     def get_mix_step(self, i):
         mix = self.mixes[i]
@@ -305,10 +325,12 @@ class Reactions(byoc.App):
             else:
                 return pl("Add the remaining reagents:", table)
 
-        if n == 1:
-            return pl(' '.join([f"Make {mix.name} mix:"]), table)
+        if mix.stock_conc:
+            name = f'{mix.stock_conc} {mix.name}'
+        else:
+            name = f'{mix.name}'
 
-        return pl(' '.join([f"Make {n} {mix.name} mixes:"]), table)
+        return pl(f"Make {plural(n):/{name} mix/# {name} mixes}:", table)
 
     def get_mix_table(self, i):
         mix = self.mixes[i]
@@ -324,11 +346,13 @@ class Reactions(byoc.App):
 
         for mix in self._user_mixes:
 
-            # Automatically calculate master mixes as requested:
             if isinstance(mix, self.AutoMix):
                 keys = itemgetter(mix.reagents)
                 combos = self.combos.select(mix.reagents)
-                mixes += self._init_mixes_from_combos(combos)
+                auto_mixes = self._init_mixes_from_combos(combos)
+                self._add_missing_reagents(auto_mixes, mix.reagents)
+                mix.init_mixes(auto_mixes)
+                mixes += auto_mixes
 
             else:
                 # Silently ignore mixes with no reagents.  I was on the fence 
@@ -344,12 +368,12 @@ class Reactions(byoc.App):
             # Check for duplicates:
             dups = reagents & mix.reagents
             if dups:
-                raise UsageError(f"{', '.join(map(repr, dups))} included in multiple master mixes")
+                raise UsageError(f"{repr_join(dups)} included in multiple master mixes")
             reagents |= mix.reagents
 
-        for reagent, values in self.combos.distinct_values_by_col.items():
-            if reagent not in reagents:
-                raise UsageError(f"{reagent!r} not included in any master mix.\nThe following reagents are included: {', '.join(map(repr, reagents))}")
+        for key in self.combos.distinct_cols:
+            if key not in reagents:
+                raise UsageError(f"{key!r} not included in any master mix.\nThe following reagents are included: {repr_join(reagents)}")
 
         return mixes
 
@@ -364,7 +388,7 @@ class Reactions(byoc.App):
         groups = minimize_pipetting(graph)
         return [self.Mix(x) for x in groups]
 
-    def _add_missing_reagents(self, mixes):
+    def _add_missing_reagents(self, mixes, all_reagents=None):
         """
         Create an initial master mix containing any reagents that aren't 
         explicitly included in any of the given mixes.
@@ -375,7 +399,9 @@ class Reactions(byoc.App):
         helpful errors if either of these conditions are not met.
         """
 
-        all_reagents = set(x.key for x in self.base_reaction)
+        if all_reagents is None:
+            all_reagents = set(self.base_reaction.keys())
+
         missing_reagents = all_reagents.copy()
 
         for mix in mixes:
@@ -390,10 +416,18 @@ class Reactions(byoc.App):
         # multiple unique values.  Note that the `_init*()` methods are 
         # actually responsible for making sure that this is the case; we're 
         # just double-checking here.
-        assert (all_reagents - missing_reagents) >= self.combos.distinct_cols
+        assert (all_reagents - missing_reagents) >= all_reagents & self.combos.distinct_cols
 
         mix = self.Mix(missing_reagents)
         mixes.insert(0, mix)
+
+    def _add_solvent(self, mixes):
+        solvent = self.base_reaction.solvent
+        if not solvent:
+            return
+
+        for group in self._iter_volume_groups(mixes):
+            group.solvent_mix.reagents.add(solvent)
 
     def _merge_trivial_mixes(self, mixes):
         # It doesn't make sense to setup a "master mix" with only a single 
@@ -411,6 +445,20 @@ class Reactions(byoc.App):
 
     @autoprop.ignore
     def _set_mix_names(self, mixes):
+        """
+        Assign a name to each mix.
+
+        - If there is only one master mix (two mixes total), it will simply be 
+          named "master mix".
+
+        - Any mixes containing only reagents that are the same in every combo 
+          will also be named "master mix".  Note that it is possible for 
+          several mixes to be named "master mix", but only if you specify mixes 
+          manually.
+
+        - Any remaining mixes will be named after the reagents that differ 
+          between combos.
+        """
         order_map = {x.key: i for i, x in enumerate(self.base_reaction)}
         by_order = lambda x: order_map[x]
         name_reagents = self.combos.distinct_cols
@@ -424,12 +472,11 @@ class Reactions(byoc.App):
 
             if not reagents or only_master_mix:
                 mix.name = 'master'
-                continue
-
-            mix.name = '/'.join(
-                    self.base_reaction[k].name
-                    for k in sorted(reagents, key=by_order)
-            )
+            else:
+                mix.name = '/'.join(
+                        self.base_reaction[k].name
+                        for k in sorted(reagents, key=by_order)
+                )
 
     @autoprop.ignore
     def _set_mix_reactions(self, mixes):
@@ -446,10 +493,7 @@ class Reactions(byoc.App):
             mix.reaction = rxn = self.base_reaction.copy()
 
             for key in rxn.keys():
-                if key not in mix.reagents:
-                    with rxn.hold_solvent_volume():
-                        del rxn[key]
-                else:
+                if key in mix.reagents:
                     try:
                         names = self.combos.unique_values_by_col[key]
                     except KeyError:
@@ -457,13 +501,50 @@ class Reactions(byoc.App):
                     else:
                         if len(names) == 1:
                             rxn[key].name = names[0]
+                else:
+                    with rxn.hold_solvent_volume():
+                        del rxn[key]
+
+        # Set each mix to the requested volume.
+
+        for group in self._iter_volume_groups(mixes):
+            group.solvent_mix.reaction.volume = group.volume - sum(
+                    x.reaction.volume
+                    for x in group.iter_mixes_after_solvent()
+            )
 
         # Add references to the previous master mixes:
 
+        solvent = self.base_reaction.solvent
+        prev_reagents = set()
+
         for prev, mix in pairwise(mixes):
             key = f'{prev.name} mix'
-            mix.reaction.prepend_reagent(key)
+
+            # Try to match the order of reagents in the original reaction as 
+            # best as possible:
+
+            i = 0
+            prev_reagents |= prev.reagents
+
+            for k in self.base_reaction.keys():
+                if k in mix.reagents:
+                    i = after(k)
+                elif k in prev_reagents:
+                    break
+
+            mix.reaction.insert_reagent(key, i)
             mix.reaction[key].volume = prev.reaction.volume
+
+            # If the master mix has a nice stock concentration, include it in 
+            # the protocol:
+            
+            if not prev.stock_conc:
+                stock_conc = self.base_reaction.volume / prev.reaction.volume
+                if stock_conc.is_integer():
+                    prev.stock_conc = f'{int(stock_conc)}x'
+
+            mix.reaction[key].stock_conc = prev.stock_conc
 
     @autoprop.ignore
     def _set_mix_scales(self, mixes):
@@ -500,6 +581,38 @@ class Reactions(byoc.App):
             scale = extra.increase_scale(mix.scale, mix.reaction)
             cumulative_factor *= scale / mix.scale
             mix.scale *= cumulative_factor
+
+    def _iter_volume_groups(self, mixes):
+        volume_group = _VolumeGroup()
+        solvent = self.base_reaction.solvent
+        unit = self.base_reaction.volume.unit
+
+        for _, is_last, mix in mark_ends(mixes):
+            volume_group.add_mix(mix, solvent)
+
+            if mix.volume:
+                if not solvent:
+                    raise UsageError(f"can't set mix volume to {mix.volume}: the reaction has no solvent.")
+                if is_last:
+                    raise UsageError(f"can't set mix volume to {mix.volume}: no subsequent mixes to restore total reaction volume")
+
+                volume_group.volume = Quantity(mix.volume, unit)
+                yield volume_group
+
+                volume_group = _VolumeGroup()
+
+        # Return without yielding anything if there's no solvent.  This helps 
+        # simplify calling code.  It would be more natural to do this check at 
+        # the beginning of the function, but we want the error-checking that 
+        # happens in the for loop.  Note that even though it looks like we may 
+        # have already yielded in the for-loop, we never would have gotten that 
+        # far without solvent.
+
+        if not solvent:
+            return
+
+        volume_group.volume = self.base_reaction.volume
+        yield volume_group
 
     docopt_usage = """\
 Setup one or more reactions.
@@ -692,8 +805,8 @@ Configuration:
             default="reaction/s",
     )
     instructions = byoc.param(
-            Key(DocoptConfig, '--instruction'),
-            default_factory=list,
+            Key(DocoptConfig, '--instruction', cast=ul.from_iterable),
+            default_factory=ul,
     )
     split_replicates = byoc.param(
             Key(DocoptConfig, '--no-split-replicates', cast=not_),
@@ -795,6 +908,7 @@ class Combos:
             raise UsageError(f"can't specify combos for reagents that aren't in the reaction\nreaction: {repr_join(rxn.keys())}\nunexpected: {repr_join(unknown_reagents)}")
 
     def select(self, cols):
+        cols = set(cols) & self.cols
         combos = [
                 {k: combo[k] for k in cols}
                 for combo in self
@@ -807,14 +921,13 @@ class Combos:
                 for combo in self
         ]
 
-    def sort_by_appearance(self, mixes):
+    def sort_by_appearance(self, rxn):
         self._ordered_cols = []
 
-        for mix in mixes:
-            for reagent in mix.reaction:
-                key = reagent.key
-                if key in self.cols:
-                    self._ordered_cols.append(key)
+        for reagent in rxn:
+            key = reagent.key
+            if key in self.cols:
+                self._ordered_cols.append(key)
 
         assert set(self._ordered_cols) == self.cols
             
@@ -877,6 +990,11 @@ class Combos:
                 for row in unique(rows)
         ]
 
+    __repr__ = repr_from_init(
+            attrs={'combos': '_combos', 'replicates': '_replicates'},
+            positional=['combos'],
+    )
+
 @autoprop
 @dataclass
 class Extra:
@@ -908,6 +1026,29 @@ class Extra:
         ))
 
     __repr__ = repr_from_init(skip=['percent'])
+
+class _VolumeGroup:
+
+    def __init__(self):
+        self.volume = None
+        self.mixes = []
+        self._solvent_index = None
+
+    def add_mix(self, mix, solvent):
+        if solvent in mix.reagents:
+            self._solvent = len(self.mixes)
+        self.mixes.append(mix)
+
+    def iter_mixes_after_solvent(self):
+        yield from self.mixes[self.solvent_index+1:]
+
+    @property
+    def solvent_mix(self):
+        return self.mixes[self.solvent_index]
+
+    @property
+    def solvent_index(self):
+        return self._solvent_index or 0
 
 def make_pipetting_graph(combos, ideal_order=None, split_penalty=0):
     """
@@ -1000,4 +1141,7 @@ def minimize_pipetting(g):
         groups[-1].add(b)
 
     return groups
+
+
+
 

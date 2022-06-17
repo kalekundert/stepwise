@@ -121,7 +121,7 @@ def test_reactions_combos_table(reactions, expected):
     combos = rxns.combos
     expected = with_sw.eval(expected)
 
-    combos.sort_by_appearance(rxns.mixes)
+    combos.sort_by_appearance(rxn)
     assert combos.format_as_table(rxn) == expected
 
 @parametrize_from_file
@@ -131,7 +131,7 @@ def test_reactions_combos_dl(reactions, expected):
     combos = rxns.combos
     expected = with_sw.eval(expected)
 
-    combos.sort_by_appearance(rxns.mixes)
+    combos.sort_by_appearance(rxn)
     assert combos.format_as_dl(rxn) == expected
 
 @parametrize_from_file(
@@ -184,11 +184,11 @@ def test_combos_select(combos, cols, expected):
     assert combos.select_ordered_rows(cols) == list_of_tuples(expected['ordered'])
 
 @parametrize_from_file
-def test_combos_sort_by_appearance(combos, mixes, ordered_cols, ordered_rows):
+def test_combos_sort_by_appearance(combos, reaction, ordered_cols, ordered_rows):
     combos = Combos(combos)
-    mixes = mixes_with_reactions(mixes)
+    rxn = eval_reaction(reaction)
 
-    combos.sort_by_appearance(mixes)
+    combos.sort_by_appearance(rxn)
 
     assert combos.ordered_cols == ordered_cols
     assert combos.ordered_rows == list_of_tuples(ordered_rows)

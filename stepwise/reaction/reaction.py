@@ -264,13 +264,14 @@ class Reaction:
         return str(builder)
 
     def __eq__(self, other):
+        """
+        Determine if two reaction call for the same amount of the same reagents in 
+        the same order.
+        """
         if not isinstance(other, Reaction):
             return NotImplemented
 
-        return all((
-            list(self) == list(other),
-            self._volume == other._volume,
-        ))
+        return list(self) == list(other)
 
     def __iter__(self):
         yield from self._reagents
@@ -359,6 +360,9 @@ class Reaction:
         (which means "no").
         """
         lines = text.rstrip().splitlines()
+
+        if lines and not lines[0]:
+            lines = lines[1:]
 
         if len(lines) < 3:
             raise UsageError(f"reagent table has {plural(lines):# line/s}, but needs at least 3 (i.e. header, underline, first reagent).")
@@ -634,6 +638,9 @@ class Reaction:
         self._refresh_key_map()
 
     def remove_reagent(self, key):
+        self.pop_reagent(key)
+
+    def pop_reagent(self, key):
         self.require_reagent(key)
 
         i = self._key_map[key]
@@ -649,6 +656,8 @@ class Reaction:
 
         self._refresh_key_map()
 
+        return reagent
+    
     def iter_nonzero_reagents(self, precision=2):
         yield from (x for x in self if not x.is_empty(precision))
 
@@ -821,23 +830,23 @@ class BaseReagent(ABC):
         self.catalog_num = None
 
     def __eq__(self, other):
-        # Don't compare `key`.  I consider it to be an implementation detail, 
-        # since only `name` is ever displayed.
-        #
-        # Don't check `order` because (i) `Reaction.__eq__()` takes care of 
-        # making sure the reagents are in the right order and (ii) I'm planning 
-        # to deprecate it anyways.
-        # 
-        # Don't check `master_mix` because it causes problems with the tests 
-        # (python defaults are different than `from_cols()` defaults), and I'm 
-        # planning to deprecate it anyway.
+        """
+        Determine if two reagents represent the same amount of the same 
+        material.
 
+        Reagents can be considered equivalent despite being very different 
+        internally.  For example, a solvent can be equal to a non-solvent so 
+        long as both have the same volume.  Reagents with different keys but 
+        the same name can be equal.  Flags are not considered when checking for 
+        equality.
+        """
         if not isinstance(other, BaseReagent):
             return NotImplemented
         return (
                 self.name == other.name and
-                self.flags == other.flags and
-                self.catalog_num == other.catalog_num
+                self.catalog_num == other.catalog_num and
+                self.volume_or_none == other.volume_or_none and
+                self.stock_conc == other.stock_conc
         )
 
     def get_reaction(self):
@@ -867,6 +876,12 @@ class BaseReagent(ABC):
     @abstractmethod
     def get_volume(self):
         raise NotImplementedError
+
+    def get_volume_or_none(self):
+        try:
+            return self.volume
+        except (ValueError, NotImplementedError):
+            return None
 
     def get_conc(self):
         raise NotImplementedError
@@ -932,15 +947,6 @@ class Reagent(BaseReagent):
             builder.add_keyword_attr('catalog_num')
 
         return str(builder)
-
-    def __eq__(self, other):
-        if not isinstance(other, Reagent):
-            return NotImplemented
-        return (
-                super().__eq__(other) and
-                self.volume == other.volume and
-                self.stock_conc == other.stock_conc
-        )
 
     def set_as_solvent(self):
         if self.reaction.solvent:
@@ -1201,15 +1207,6 @@ class Solvent(BaseReagent):
 
         return str(builder)
 
-    def __eq__(self, other):
-        if not isinstance(other, Solvent):
-            return NotImplemented
-
-        # Don't check `volume`, because it is only meant to be set temporarily.  
-        # It is assumed that the "real" volume value is the one that is stored 
-        # in the reaction.
-        return super().__eq__(other)
-
     def _get_key(self):
         return self.reaction._solvent
 
@@ -1280,7 +1277,7 @@ def format_reaction(rxn, *, scale=1, show_1x=True, show_stocks=None, show_concs=
         if not show_stocks:
             del cols[1]
 
-        return cols
+        return [str(x) for x in cols]
 
     def quantity_header():
         # This is a bit of a quick-fix; the reaction framework pretty much 
@@ -1358,8 +1355,10 @@ def parse_volume(v):
 def rounds_to_zero(x, precision=2):
     return f'{abs(x):.{precision}f}' == f'{0:.{precision}f}'
 
-def before(key):
-    return lambda key_map, reagents, **kwargs: key_map[key]
+def before(*keys):
+    return lambda key_map, reagents, **kwargs: \
+            min(key_map[k] for k in keys)
 
-def after(key):
-    return lambda key_map, reagents, **kwargs: key_map[key] + 1
+def after(*keys):
+    return lambda key_map, reagents, **kwargs: \
+            max(key_map[k] for k in keys) + 1
