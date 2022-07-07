@@ -646,6 +646,18 @@ def test_reaction_hold_solvent_volume_del_solvent():
     assert rxn['y'].volume == '2 µL'
 
 
+@parametrize_from_file(
+        schema=[
+            cast(kwargs=with_py.eval), 
+            defaults(kwargs={}),
+        ],
+)
+def test_format_reaction(reaction, kwargs, expected):
+    rxn = eval_reaction(reaction)
+    table = format_reaction(rxn, **kwargs)
+    assert table.format_text(inf) == expected
+
+
 def test_master_mix_getattr():
     mm = MasterMix()
     mm['w'].volume = 'to 1 µL'

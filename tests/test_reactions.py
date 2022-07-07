@@ -10,11 +10,20 @@ class MixWrapper:
 
     @classmethod
     def from_strs(cls, d):
+        if isinstance(d, Mock):
+            return Mock()
+
+        try:
+            d['scales'] = [d['scale']]
+        except KeyError:
+            pass
+
         return cls(
                 name=d.get('name'),
                 reagents=set(d['reagents']),
+                mixes=[MixWrapper.from_strs(x) for x in d.get('mixes', [])],
                 reaction=eval_reaction(d['reaction']),
-                scale=pytest.approx(float(d['scale'])),
+                scales=[float(x) for x in d['scales']],
                 num_reactions=int(d['num_reactions']),
         )
 
@@ -28,14 +37,17 @@ class MixWrapper:
         return str(builder)
 
     def __eq__(self, actual):
-        if not isinstance(actual, Reactions.Mix):
+        if not isinstance(actual, Mix):
             raise AssertionError(f"expected 'Reactions.Mix', got {actual!r}")
 
-        if hasattr(self, 'name') and self.name != actual.name:
+        if self.name and self.name != actual.name:
             raise AssertionError(f"expected name={self.name!r}, got {actual.name!r}")
 
         if self.reagents != actual.reagents:
             raise AssertionError(f"expected reagents={self.reagents!r}, got {actual.reagents!r}")
+
+        if self.mixes:
+            assert UnorderedList(self.mixes, False) == actual.mixes
 
         if self.reaction != actual.reaction:
             raise AssertionError(f"expected reaction={self.reaction!r}, got {actual.reaction!r}")
@@ -43,8 +55,8 @@ class MixWrapper:
         if self.num_reactions != actual.num_reactions:
             raise AssertionError(f"expected num_reactions={self.num_reactions!r}, got {actual.num_reactions!r}")
 
-        if approx(self.scale) != actual.scale:
-            raise AssertionError(f"expected scale={self.scale!r}, got {actual.scale!r}")
+        if approx(sorted(self.scales)) != sorted(actual.scales):
+            raise AssertionError(f"expected scales={self.scales!r}, got {actual.scales!r}")
 
         return True
 
@@ -57,15 +69,11 @@ def exec_reactions(x, defer=False):
     def from_dict(d):
 
         def factory():
-            with_mix = with_sw.fork(
-                    Mix=Reactions.Mix,
-                    AutoMix=Reactions.AutoMix,
-            )
             schema = Schema({
                 'base': eval_reaction,
                 'combos': [dict],
                 Optional('replicates'): Coerce(int),
-                Optional('mixes'): [with_mix.eval],
+                Optional('mixes'): [with_sw.eval],
 
                 # Default extra to 0 for testing, because calculating it by 
                 # hand adds complexity and isn't usually relevant.
@@ -85,7 +93,6 @@ def exec_reactions(x, defer=False):
 
             return rxns
 
-
         if defer:
             factory.exec = factory
             return factory
@@ -98,21 +105,293 @@ def exec_reactions(x, defer=False):
     )
     return schema(x)
 
-def eval_mix_wrappers(mix_dicts):
-    return [MixWrapper.from_strs(x) for x in mix_dicts]
+def list_of_tuples(xs):
+    return [tuple(x) for x in xs]
 
 
 @parametrize_from_file
 def test_reactions_protocol(reactions, expected):
     rxns = exec_reactions(reactions)
     expected = with_sw.eval(expected)
+    print(rxns.step.format_text(inf))
     assert rxns.protocol.steps == expected
 
+def test_reactions_refresh_names():
+    rxn = Reaction()
+    rxn['a'].volume = '1 µL'
+    rxn['b'].volume = '2 µL'
+    rxn['c'].volume = '3 µL'
+
+    combos = [
+            {'a': '1'},
+            {'a': '2'},
+    ]
+
+    mix = Mix({'b', 'c'})
+
+    rxns = Reactions(rxn, combos, mixes=[mix], extra=Extra())
+
+    # Check auto-generated mix name:
+    assert rxns.step == pl(
+            "Setup 2 reactions:",
+            ul(
+              pl(
+                "Use the following reagents:",
+                dl(('a', '1, 2')),
+              ),
+              pl(
+                "Make master mix:",  # <---
+                table(
+                  header=["Reagent", "Volume", "2x"],
+                  rows=[
+                      ["b", "2.00 µL", "4.00 µL"],
+                      ["c", "3.00 µL", "6.00 µL"],
+                  ],
+                  footer=["", "5.00 µL", "10.00 µL"],
+                  align=list("<>>"),
+                ),
+              ),
+              pl(
+                "Setup the reactions:",
+                table(
+                  header=["Reagent", "Volume"],
+                  rows=[
+                      ["a", "1.00 µL"],
+                      ["master mix", "5.00 µL"],  # <---
+                  ],
+                  footer=["", "6.00 µL"],
+                  align=list("<>"),
+                ),
+              ),
+              br='\n\n',
+            ),
+    ), 'before'
+
+    # Check refreshed mix name:
+    mix.name = 'B/C'
+    rxns.refresh_names()
+
+    assert rxns.step == pl(
+            "Setup 2 reactions:",
+            ul(
+              pl(
+                "Use the following reagents:",
+                dl(('a', '1, 2')),
+              ),
+              pl(
+                "Make B/C mix:",  # <---
+                table(
+                  header=["Reagent", "Volume", "2x"],
+                  rows=[
+                      ["b", "2.00 µL", "4.00 µL"],
+                      ["c", "3.00 µL", "6.00 µL"],
+                  ],
+                  footer=["", "5.00 µL", "10.00 µL"],
+                  align=list("<>>"),
+                ),
+              ),
+              pl(
+                "Setup the reactions:",
+                table(
+                  header=["Reagent", "Volume"],
+                  rows=[
+                      ["a", "1.00 µL"],
+                      ["B/C mix", "5.00 µL"],  # <---
+                  ],
+                  footer=["", "6.00 µL"],
+                  align=list("<>"),
+                ),
+              ),
+              br='\n\n',
+            ),
+    ), 'after'
+
+def test_reactions_refresh_reactions():
+    rxn = Reaction()
+    rxn['w'].volume = 'to 6 µL'
+    rxn['a'].volume = '1 µL'
+    rxn['b'].volume = '2 µL'
+
+    combos = [
+            {'a': '1'},
+            {'a': '2'},
+    ]
+
+    mix = Mix({'w', 'b'}, volume=4)
+
+    rxns = Reactions(rxn, combos, mixes=[mix], extra=Extra())
+    rxns.master_mix_bias = 1
+
+    # Check the auto-generated mix reaction:
+    assert rxns.step == pl(
+            "Setup 2 reactions:",
+            ul(
+              pl(
+                "Use the following reagents:",
+                dl(('a', '1, 2')),
+              ),
+              pl(
+                "Make master mix:",
+                table(
+                  header=["Reagent", "Volume", "2x"],
+                  rows=[
+                      ["w", "2.00 µL", "4.00 µL"],
+                      ["b", "2.00 µL", "4.00 µL"],
+                  ],
+                  footer=["", "4.00 µL", "8.00 µL"],
+                  align=list("<>>"),
+                ),
+              ),
+              pl(
+                "Setup the reactions:",
+                table(
+                  header=["Reagent", "Volume"],
+                  rows=[
+                      ["w", "1.00 µL"],
+                      ["a", "1.00 µL"],
+                      ["master mix", "4.00 µL"],
+                  ],
+                  footer=["", "6.00 µL"],
+                  align=list("<>"),
+                ),
+              ),
+              br='\n\n',
+            ),
+    ), 'before'
+
+    # Check the refreshed mix reaction:
+    mix.volume = 3
+    rxns.refresh_reactions()
+
+    assert rxns.step == pl(
+            "Setup 2 reactions:",
+            ul(
+              pl(
+                "Use the following reagents:",
+                dl(('a', '1, 2')),
+              ),
+              pl(
+                "Make 2x master mix:",
+                table(
+                  header=["Reagent", "Volume", "2x"],
+                  rows=[
+                      ["w", "1.00 µL", "2.00 µL"],
+                      ["b", "2.00 µL", "4.00 µL"],
+                  ],
+                  footer=["", "3.00 µL", "6.00 µL"],
+                  align=list("<>>"),
+                ),
+              ),
+              pl(
+                "Setup the reactions:",
+                table(
+                  header=["Reagent", "Stock", "Volume"],
+                  rows=[
+                      ["w", "", "2.00 µL"],
+                      ["a", "", "1.00 µL"],
+                      ["master mix", "2x", "3.00 µL"],
+                  ],
+                  footer=["", "", "6.00 µL"],
+                  align=list("<>>"),
+                ),
+              ),
+              br='\n\n',
+            ),
+    ), 'after'
+
+def test_reactions_refresh_scales():
+    rxn = Reaction()
+    rxn['w'].volume = 'to 6 µL'
+    rxn['a'].volume = '1 µL'
+    rxn['b'].volume = '2 µL'
+
+    combos = [
+            {'a': '1'},
+            {'a': '2'},
+    ]
+
+    rxns = Reactions(rxn, combos, extra=Extra())
+
+    # Check auto-generated mix volumes:
+    assert rxns.step == pl(
+            "Setup 2 reactions:",
+            ul(
+              pl(
+                "Use the following reagents:",
+                dl(('a', '1, 2')),
+              ),
+              pl(
+                "Make master mix:",
+                table(
+                  header=["Reagent", "Volume", "2x"],  # <---
+                  rows=[
+                      ["w", "3.00 µL", "6.00 µL"],     # <---
+                      ["b", "2.00 µL", "4.00 µL"],     # <---
+                  ],
+                  footer=["", "5.00 µL", "10.00 µL"],  # <---
+                  align=list("<>>"),
+                ),
+              ),
+              pl(
+                "Setup the reactions:",
+                table(
+                  header=["Reagent", "Volume"],
+                  rows=[
+                      ["master mix", "5.00 µL"],
+                      ["a", "1.00 µL"],
+                  ],
+                  footer=["", "6.00 µL"],
+                  align=list("<>"),
+                ),
+              ),
+              br='\n\n',
+            ),
+    ), 'before'
+
+    # Check refreshed mix volumes:
+    rxns.extra = Extra(percent=10)
+    rxns.refresh_scales()
+
+    assert rxns.step == pl(
+            "Setup 2 reactions:",
+            ul(
+              pl(
+                "Use the following reagents:",
+                dl(('a', '1, 2')),
+              ),
+              pl(
+                "Make master mix:",
+                table(
+                  header=["Reagent", "Volume", "2.2x"],  # <---
+                  rows=[
+                      ["w", "3.00 µL", "6.60 µL"],       # <---
+                      ["b", "2.00 µL", "4.40 µL"],       # <---
+                  ],
+                  footer=["", "5.00 µL", "11.00 µL"],    # <---
+                  align=list("<>>"),
+                ),
+              ),
+              pl(
+                "Setup the reactions:",
+                table(
+                  header=["Reagent", "Volume"],
+                  rows=[
+                      ["master mix", "5.00 µL"],
+                      ["a", "1.00 µL"],
+                  ],
+                  footer=["", "6.00 µL"],
+                  align=list("<>"),
+                ),
+              ),
+              br='\n\n',
+            ),
+    ), 'after'
+
 @parametrize_from_file
-def test_reactions_combo_step(reactions, expected):
+def test_reactions_combos_step(reactions, expected):
     rxns = exec_reactions(reactions)
     expected = with_sw.eval(expected)
-    assert rxns.combo_step == expected
+    assert rxns.combos_step == expected
 
 @parametrize_from_file
 def test_reactions_combos_table(reactions, expected):
@@ -139,10 +418,10 @@ def test_reactions_combos_dl(reactions, expected):
 )
 def test_reactions_mixes(reactions, expected, error):
     rxns = exec_reactions(reactions)
-    expected = eval_mix_wrappers(expected)
+    expected = MixWrapper.from_strs(expected)
 
     with error:
-        assert rxns.mixes == expected
+        assert rxns.mix == expected
 
 
 @parametrize_from_file(
@@ -202,7 +481,7 @@ def test_combos_sort_by_appearance(combos, reaction, ordered_cols, ordered_rows)
 )
 def test_extra(extra, scale, reaction, expected, expected_repr):
     if not expected_repr:
-        expected_repr = extra
+        expected_repr = extra.replace('Extra().fork(', 'Extra(')
 
     extra = with_sw.eval(extra)
 
@@ -215,25 +494,10 @@ def test_extra(extra, scale, reaction, expected, expected_repr):
     assert repr(extra) == expected_repr
     assert extra.increase_scale(scale, rxn) == approx(expected)
 
-@parametrize_from_file(
-        schema=[
-            cast(penalty=int),
-            defaults(order=None, penalty=0),
-        ],
-)
-def test_minimize_pipetting(combos, order, penalty, graph, groups):
-    g = make_pipetting_graph(combos, order, penalty)
+def test_extra_fork_unknown_arg():
+    with pytest.raises(TypeError, match="unexpected keyword argument\(s\): 'unknown_attr'"):
+        Extra().fork(unknown_attr=0)
 
-    actual_edges = [
-            {'start': a, 'end': b, **data}
-            for a, b, data in g.edges.data()
-    ]
-    expected_edges = unordered(with_py.eval(graph))
-    assert actual_edges == expected_edges
-
-    actual_groups = minimize_pipetting(g)
-    expected_groups = [set(x) for x in groups]
-    assert actual_groups == expected_groups
 
 @parametrize_from_file(
         schema=with_sw.error_or('expected'),
@@ -257,16 +521,3 @@ def test_extra_from_docopt(args, expected, error):
         assert extra_from_docopt(args) == with_sw.eval(expected)
 
 
-def mixes_with_reactions(mixes):
-    mix_objs = []
-
-    for reagents in mixes:
-        mix = Reactions.Mix(reagents); mix_objs.append(mix)
-        mix.reaction = Reaction()
-        for reagent in reagents:
-            mix.reaction.append_reagent(reagent)
-
-    return mix_objs
-
-def list_of_tuples(xs):
-    return [tuple(x) for x in xs]

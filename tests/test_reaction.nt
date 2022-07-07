@@ -2149,6 +2149,285 @@ test_reaction_repair_volumes:
     acceptor_before: 1
     acceptor_after: 1
 
+test_format_reaction:
+  -
+    id: baseline
+    reaction:
+      > Reagent  Stock    Volume
+      > =======  =====  ========
+      > water           to 10 µL
+      > buffer     10x      1 µL
+      > enzyme      5x      2 µL
+
+    expected:
+      > Reagent  Stock    Volume
+      > ────────────────────────
+      > water            7.00 µL
+      > buffer     10x   1.00 µL
+      > enzyme      5x   2.00 µL
+      > ────────────────────────
+      >                 10.00 µL
+  -
+    id: scale=2
+    reaction:
+      > Reagent  Stock    Volume
+      > =======  =====  ========
+      > water           to 10 µL
+      > buffer     10x      1 µL
+      > enzyme      5x      2 µL
+    kwargs:
+      scale: 2
+
+    expected:
+      > Reagent  Stock    Volume        2x
+      > ──────────────────────────────────
+      > water            7.00 µL  14.00 µL
+      > buffer     10x   1.00 µL   2.00 µL
+      > enzyme      5x   2.00 µL   4.00 µL
+      > ──────────────────────────────────
+      >                 10.00 µL  20.00 µL
+  -
+    id: scale=2,3
+    reaction:
+      > Reagent  Stock    Volume
+      > =======  =====  ========
+      > water           to 10 µL
+      > buffer     10x      1 µL
+      > enzyme      5x      2 µL
+    kwargs:
+      scale: 2, 3
+
+    expected:
+      > Reagent  Stock    Volume        2x        3x
+      > ────────────────────────────────────────────
+      > water            7.00 µL  14.00 µL  21.00 µL
+      > buffer     10x   1.00 µL   2.00 µL   3.00 µL
+      > enzyme      5x   2.00 µL   4.00 µL   6.00 µL
+      > ────────────────────────────────────────────
+      >                 10.00 µL  20.00 µL  30.00 µL
+  -
+    id: show_concs=True
+    reaction:
+      > Reagent  Stock    Volume
+      > =======  =====  ========
+      > water           to 10 µL
+      > buffer     10x      1 µL
+      > enzyme      5x      2 µL
+    kwargs:
+      show_concs: True
+
+    expected:
+      > Reagent  Stock  Final    Volume
+      > ───────────────────────────────
+      > water                   7.00 µL
+      > buffer     10x     1x   1.00 µL
+      > enzyme      5x     1x   2.00 µL
+      > ───────────────────────────────
+      >                        10.00 µL
+  -
+    id: show_1x=False
+    reaction:
+      > Reagent  Stock    Volume
+      > =======  =====  ========
+      > water           to 10 µL
+      > buffer     10x      1 µL
+      > enzyme      5x      2 µL
+    kwargs:
+      scale: 2
+      show_1x: False
+
+    expected:
+      > Reagent  Stock        2x
+      > ────────────────────────
+      > water           14.00 µL
+      > buffer     10x   2.00 µL
+      > enzyme      5x   4.00 µL
+      > ────────────────────────
+      >                 20.00 µL
+  -
+    id: show_totals=False
+    reaction:
+      > Reagent  Stock    Volume
+      > =======  =====  ========
+      > water           to 10 µL
+      > buffer     10x      1 µL
+      > enzyme      5x      2 µL
+    kwargs:
+      scale: 2
+      show_totals: False
+
+    expected:
+      > Reagent  Stock   Volume        2x
+      > ─────────────────────────────────
+      > water           7.00 µL  14.00 µL
+      > buffer     10x  1.00 µL   2.00 µL
+      > enzyme      5x  2.00 µL   4.00 µL
+  -
+    id: scale-header-integer-ending-with-0
+    reaction:
+      > Reagent  Stock    Volume
+      > =======  =====  ========
+      > water           to 10 µL
+      > buffer     10x      1 µL
+      > enzyme      5x      2 µL
+    kwargs:
+      scale: 10
+
+    expected:
+      > Reagent  Stock    Volume        10x
+      > ───────────────────────────────────
+      > water            7.00 µL   70.00 µL
+      > buffer     10x   1.00 µL   10.00 µL
+      > enzyme      5x   2.00 µL   20.00 µL
+      > ───────────────────────────────────
+      >                 10.00 µL  100.00 µL
+  -
+    id: scale-header-integer-not-ending-with-0
+    reaction:
+      > Reagent  Stock    Volume
+      > =======  =====  ========
+      > water           to 10 µL
+      > buffer     10x      1 µL
+      > enzyme      5x      2 µL
+    kwargs:
+      scale: 11
+
+    expected:
+      > Reagent  Stock    Volume        11x
+      > ───────────────────────────────────
+      > water            7.00 µL   77.00 µL
+      > buffer     10x   1.00 µL   11.00 µL
+      > enzyme      5x   2.00 µL   22.00 µL
+      > ───────────────────────────────────
+      >                 10.00 µL  110.00 µL
+  -
+    id: scale-header-one-decimal-point
+    reaction:
+      > Reagent  Stock    Volume
+      > =======  =====  ========
+      > water           to 10 µL
+      > buffer     10x      1 µL
+      > enzyme      5x      2 µL
+    kwargs:
+      scale: 11.1
+
+    expected:
+      > Reagent  Stock    Volume      11.1x
+      > ───────────────────────────────────
+      > water            7.00 µL   77.70 µL
+      > buffer     10x   1.00 µL   11.10 µL
+      > enzyme      5x   2.00 µL   22.20 µL
+      > ───────────────────────────────────
+      >                 10.00 µL  111.00 µL
+  -
+    id: scale-header-two-decimal-points
+    reaction:
+      > Reagent  Stock    Volume
+      > =======  =====  ========
+      > water           to 10 µL
+      > buffer     10x      1 µL
+      > enzyme      5x      2 µL
+    kwargs:
+      scale: 11.11
+
+    expected:
+      > Reagent  Stock    Volume     ≈11.1x
+      > ───────────────────────────────────
+      > water            7.00 µL   77.77 µL
+      > buffer     10x   1.00 µL   11.11 µL
+      > enzyme      5x   2.00 µL   22.22 µL
+      > ───────────────────────────────────
+      >                 10.00 µL  111.10 µL
+  -
+    id: drop-solvent
+    reaction:
+      > Reagent   Stock   Volume
+      > ========  =====  =======
+      > water            to 3 µL
+      > buffer       3x     1 µL
+      > cofactor     3x     1 µL
+      > enzyme       3x     1 µL
+
+    expected:
+      > Reagent   Stock   Volume
+      > ────────────────────────
+      > buffer       3x  1.00 µL
+      > cofactor     3x  1.00 µL
+      > enzyme       3x  1.00 µL
+      > ────────────────────────
+      >                  3.00 µL
+  -
+    id: drop-reagent-volume=0.001
+    reaction:
+      > Reagent   Stock    Volume
+      > ========  =====  ========
+      > water             to 3 µL
+      > buffer       3x  0.001 µL
+      > cofactor     3x      1 µL
+      > enzyme       3x      1 µL
+
+    expected:
+      > Reagent   Stock   Volume
+      > ────────────────────────
+      > water            1.00 µL
+      > cofactor     3x  1.00 µL
+      > enzyme       3x  1.00 µL
+      > ────────────────────────
+      >                  3.00 µL
+  -
+    id: drop-reagent-volume=-0.001
+    reaction:
+      > Reagent   Stock     Volume
+      > ========  =====  =========
+      > water              to 3 µL
+      > buffer       3x  -0.001 µL
+      > cofactor     3x       1 µL
+      > enzyme       3x       1 µL
+
+    expected:
+      > Reagent   Stock   Volume
+      > ────────────────────────
+      > water            1.00 µL
+      > cofactor     3x  1.00 µL
+      > enzyme       3x  1.00 µL
+      > ────────────────────────
+      >                  3.00 µL
+  -
+    id: no-solvent-scale=1
+    reaction:
+      > Reagent   Stock   Volume
+      > ========  =====  =======
+      > buffer       3x     1 µL
+      > cofactor     3x     1 µL
+      > enzyme       3x     1 µL
+
+    expected:
+      > Reagent   Stock   Volume
+      > ────────────────────────
+      > buffer       3x  1.00 µL
+      > cofactor     3x  1.00 µL
+      > enzyme       3x  1.00 µL
+      > ────────────────────────
+      >                  3.00 µL
+  -
+    id: no-solvent-num-reactions=2
+    reaction:
+      > Reagent   Stock   Volume
+      > ========  =====  =======
+      > buffer       3x     1 µL
+      > cofactor     3x     1 µL
+      > enzyme       3x     1 µL
+    kwargs:
+      scale: 2
+    expected:
+      > Reagent   Stock   Volume       2x
+      > ─────────────────────────────────
+      > buffer       3x  1.00 µL  2.00 µL
+      > cofactor     3x  1.00 µL  2.00 µL
+      > enzyme       3x  1.00 µL  2.00 µL
+      > ─────────────────────────────────
+      >                  3.00 µL  6.00 µL
+
 test_master_mix_format_text:
   -
     id: num_reactions=1

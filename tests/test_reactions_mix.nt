@@ -1,0 +1,2245 @@
+test_plan_mixes:
+  -
+    id: 1-reagent
+    combos:
+      a: 1 2
+    expected:
+      [a]
+  -
+    id: 2-reagents
+    combos:
+      a:
+      b: 1 2
+
+    # Can't have master mix with only two reagents.
+    expected:
+      [a,b]
+  -
+    id: 3-reagents
+    combos:
+      a:
+      b: 1 1 2 2
+      c: 1 2 3 4
+    expected:
+      [[a,b],c]
+  -
+    id: 4-reagents
+    combos:
+      a:
+      b: 1 1 1 1 2 2 2 2
+      c: 1 1 2 2 3 3 4 4
+      d: 1 2 3 4 5 6 7 8
+
+    expected:
+      [[[a,b],c],d]
+  -
+    id: tiebreaker-num-mixes
+    combos:
+      a:
+      b:
+      c: 1 2
+
+    # - Same number of pipetting steps with or without a master mix: tie goes 
+    #   to the master mix because it's more accurate.
+    expected:
+      [[a,b],c]
+  -
+    id: tiebreaker-order
+    combos:
+      a:
+      b: 1 2 1 2
+      c: 1 1 2 2
+
+    # - Same number of pipetting steps with or without a master mix: tie goes 
+    #   to the master mix because it's more accurate.
+    # - Same number of pipetting steps if the master mix is {a,b} or {a,c}.  
+    #   Prefer {a,b} because it allows the reagents to be mixed in order.
+    expected:
+      [[a,b],c]
+  -
+    id: no-master-mix
+    combos:
+      a:
+      b: 1 1 2
+      c: 1 2 3
+
+    # This is a case where it's less efficient to make a master mix.  The trick 
+    # to coming up with cases like this is to not make every possible 
+    # combination.
+
+    # without master mix: 9
+    # with master mix: 10
+    # - distribute A: 2 
+    # - add B: 2
+    # - distribute A+B: 3
+    # - add C: 3
+
+    expected:
+      [a,b,c]
+  - 
+    id: parallel-master-mixes
+    combos:
+      a: 1 1 2 2  - - - -  - - - -
+      b: 1 2 3 4  - - - -  - - - -
+      c: - - - -  1 1 2 2  - - - -
+      d: - - - -  1 2 3 4  - - - -
+      e: - - - -  - - - -  1 1 2 2
+      f: - - - -  - - - -  1 2 3 4
+
+    # This is an example where it makes sense to prepare three parallel master 
+    # mixes.  I couldn't figure out a way to trigger this behavior with only 
+    # two parallel mixes.
+
+    expected:
+      [[a,b],[c,d],[e,f]]
+  -
+    id: pick-within-level
+    combos:
+      a: 1 1 1 1 2 2 2 2
+      b: 1 1 2 2 3 3 4 4
+      c: 1 2 3 4 1 2 3 4
+
+    # B and C have the same number of variants, but it's more efficient to make 
+    # an A+B master mix than a A+C one.
+
+    # with A+B master mix: 16
+    # - distribute A: 4
+    # - add B: 4
+    # - distribute A+B: 4
+    # - add C: 4
+    #
+    # with A+C master mix: 32
+    # - distribute A: 8
+    # - add C: 8
+    # - distribute A+B: 8
+    # - add C: 8
+
+    expected:
+      [[a,b],c]
+  -
+    id: required-mix
+    combos:
+      a:
+      b:
+      c:
+
+    required_mixes:
+      - Mix({'a', 'b'})
+
+    expected:
+      [[a,b],c]
+  -
+    id: required-mix
+    combos:
+      a:
+      b: 1 2
+      c:
+
+    required_mixes:
+      - Mix({'a', 'b'})
+
+    expected:
+      [[a,b],c]
+  -
+    id: required-mix-solvent-without-volume
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 6 µL
+      > a           1 µL
+      > b           2 µL
+    combos:
+      w:
+      a: 1 2
+      b:
+    required_mixes:
+      - Mix({'w', 'a'})
+
+    expected:
+      [[w,a],b]
+  -
+    id: required-mix-solvent-with-volume
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 6 µL
+      > a           1 µL
+      > b           2 µL
+    combos:
+      w:
+      a: 1 2
+      b:
+    required_mixes:
+      - Mix({'w', 'a'}, volume=3)
+
+    expected:
+      [[w,a],[w,b]]
+  -
+    id: automix
+    combos:
+      a:
+      b: 1 1 2 2
+      c: 1 2 3 4
+      d:
+
+    required_mixes:
+      - AutoMix({'a', 'b', 'c'})
+
+    expected:
+      [[[a,b],c],d]
+  -
+    id: bias-pos
+    combos:
+      a:
+      b: 1 1 2 2
+      c: 1 2 3 4
+    bias: 1
+
+    # It takes 12 pipetting steps to setup this reaction with or without a 
+    # master mix.  The master mix is preferred when there are ties, but setting 
+    # the bias to 1 should tip the scale in favor of not making master mix.
+    expected:
+      [a,b,c]
+  -
+    id: bias-neg
+    combos:
+      a:
+      b: 1 1 2
+      c: 1 2 3
+    bias: -1
+
+    # See no-master-mix for a breakdown of this reaction.  Making a master mix 
+    # requires one more pipetting step than not doing so, so a bias of -1 
+    # should be enough to get a master mix.
+    expected:
+      [a+b,c]
+  -
+    id: dont-merge-matching-components
+    # Here the W+B mix and W both have only one variant.  However, merging them 
+    # precludes the most efficient pipetting scheme from being found. 
+    #
+    # This example only works if the bias is set, because it's otherwise 
+    # equally efficient to setup the reaction via [[[w,b], w], a].  I'd like to 
+    # think of an example of this that didn't require a bias, but so far I 
+    # haven't been able to.
+    #
+    # If I can't think of a better example, I might want to scrap this test.  
+    # There's a pretty big performance cost to not immediately merging any 
+    # matching components.
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 6 µL
+      > a           1 µL
+      > b           2 µL
+    combos:
+      w:
+      a: 1 2
+      b:
+    required_mixes:
+      - Mix({'w', 'b'}, volume=3)
+    bias: 1
+
+    expected:
+      [w,a,[w,b]]
+  -
+    id: multichar-reagent-names
+    combos:
+      ab:
+      cd: 1 1 2 2
+      ef: 1 2 3 4
+    expected:
+      [[ab,cd],ef]
+  -
+    combos:
+      a: 1 2 1 2
+      b: 1 1 2 2
+
+    # Can't make a master mix.  A and B are at the same level.
+    expected:
+      [a,b]
+  -
+    combos:
+      a:
+      b: 1 1 2 2
+
+    # This is a bit of a weird example because (i) it has duplicates and (ii) it 
+    # only has two reagents.  In real life, I'd make a "master mix" with a+b and 
+    # dispense the duplicates from there, but I'm not sure how I want to 
+    # represent this...
+    expected:
+      [a,b]
+
+test_set_mix_names:
+  -
+    id: ab-c
+    mixes:
+      ab: Mix({'a', 'b'})
+      c: Mix({MIXES['ab'], 'c'})
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > a          1 µL
+      > b          2 µL
+      > c          3 µL
+    expected:
+      ab: master
+  -
+    id: ab-cd-e
+    mixes:
+      ab: Mix({'a', 'b'})
+      cd: Mix({MIXES['ab'], 'c', 'd'})
+      e: Mix({MIXES['cd'], 'e'})
+    reaction:
+      > Key  Name  Volume
+      > ===  ====  ======
+      > a            1 µL
+      > b            2 µL
+      > c    c*      3 µL
+      > d    d*      4 µL
+    notable_reagents:
+      [c,d,e]
+    expected:
+      ab: master
+      cd: c*/d*
+
+test_set_mix_reactions:
+  -
+    id: no-solvent
+    mixes:
+      ab: Mix({'a', 'b'}, name='master')
+      c: Mix({MIXES['ab'], 'c'})
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > a           1 µL
+      > b           2 µL
+      > c           3 µL
+    expected:
+      ab:
+        > Reagent   Volume
+        > =======  =======
+        > a           1 µL
+        > b           2 µL
+      c:
+        > Reagent     Stock  Volume
+        > ==========  =====  ======
+        > master mix     2x    3 µL
+        > c                    3 µL
+  -
+    id: solvent
+    mixes:
+      wb: Mix({'w', 'b'}, name='master')
+      a: Mix({MIXES['wb'], 'a'})
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 6 µL
+      > a           1 µL
+      > b           2 µL
+    expected:
+      wb:
+        > Reagent   Volume
+        > =======  =======
+        > w        to 5 µL
+        > b           2 µL
+      a:
+        > Reagent     Volume
+        > ==========  ======
+        > master mix    5 µL
+        > a             1 µL
+  -
+    id: solvent-split
+    mixes:
+      wa: Mix({'w', 'a'}, name='a')
+      wb: Mix({'w', 'b'}, name='b')
+      wab: Mix({MIXES['wa'], MIXES['wb']})
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 7 µL
+      > a           1 µL
+      > b           2 µL
+    expected:
+      wa:
+        > Reagent     Volume
+        > ==========  ======
+        > w             2 µL
+        > a             1 µL
+      wb:
+        > Reagent   Volume
+        > =======  =======
+        > w           2 µL
+        > b           2 µL
+      wab:
+        > Reagent   Volume
+        > =======  =======
+        > a mix       3 µL
+        > b mix       4 µL
+  -
+    id: solvent-volume
+    mixes:
+      wb: Mix({'w', 'b'}, volume=3, name='master')
+      wa: Mix({MIXES['wb'], 'w', 'a'})
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 6 µL
+      > a           1 µL
+      > b           2 µL
+    expected:
+      wb:
+        > Reagent   Volume
+        > =======  =======
+        > w        to 3 µL
+        > b           2 µL
+      wa:
+        > Reagent     Stock   Volume
+        > ==========  =====  =======
+        > w                  to 6 µL
+        > a                     1 µL
+        > master mix     2x     3 µL
+  -
+    id: solvent-volume-fork
+    mixes:
+      wa: Mix({'w', 'a'}, name='a')
+      wb: Mix({'w', 'b'}, name='b', volume=3)
+      wab: Mix({MIXES['wa'], MIXES['wb']})
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 7 µL
+      > a           1 µL
+      > b           2 µL
+    expected:
+      wa:
+        > Reagent   Volume
+        > =======  =======
+        > w        to 4 µL
+        > a           1 µL
+      wb:
+        > Reagent   Volume
+        > =======  =======
+        > w        to 3 µL
+        > b           2 µL
+      wab:
+        > Reagent   Volume
+        > =======  =======
+        > a mix       4 µL
+        > b mix       3 µL
+  -
+    id: solvent-volume-split
+    mixes:
+      wa: Mix({'w', 'a'}, name='a', volume=3)
+      wb: Mix({'w', 'b'}, name='b', volume=3)
+      wab: Mix({MIXES['wa'], MIXES['wb'], 'w'})
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 7 µL
+      > a           1 µL
+      > b           2 µL
+    expected:
+      wa:
+        > Reagent     Volume
+        > ==========  ======
+        > w             2 µL
+        > a             1 µL
+      wb:
+        > Reagent   Volume
+        > =======  =======
+        > w           1 µL
+        > b           2 µL
+      wab:
+        > Reagent   Volume
+        > =======  =======
+        > w           1 µL
+        > a mix       3 µL
+        > b mix       3 µL
+  -
+    id: solvent-volume-indirect
+    # The volume of solvent in the C mix has to be set to accomodate the volume 
+    # requested for the B mix.
+    mixes:
+      wc: Mix({'w', 'c'}, name='master')
+      b: Mix({MIXES['wc'], 'b'}, volume=6, name='b')
+      wa: Mix({MIXES['b'], 'a', 'w'})
+    reaction:
+      > Reagent    Volume
+      > =======  ========
+      > w        to 10 µL
+      > a            1 µL
+      > b            2 µL
+      > c            3 µL
+    expected:
+      wc:
+        > Reagent   Volume
+        > =======  =======
+        > w        to 4 µL
+        > c           3 µL
+      b:
+        > Reagent      Volume
+        > ==========  =======
+        > master mix     4 µL
+        > b              2 µL
+      wa:
+        > Reagent       Volume
+        > ==========  ========
+        > w           to 10 µL
+        > a               1 µL
+        > b mix           6 µL
+  -
+    id: solvent-volume-multiple
+    mixes:
+      wa: Mix({'w', 'a'}, name='A', volume=2)
+      wb: Mix({MIXES['wa'], 'w', 'b'}, name='B', volume=5)
+      wc: Mix({MIXES['wb'], 'w', 'c'})
+    reaction:
+      > Reagent    Volume
+      > =======  ========
+      > w        to 10 µL
+      > a            1 µL
+      > b            2 µL
+      > c            3 µL
+    expected:
+      wa:
+        > Reagent      Volume
+        > ==========  =======
+        > w              1 µL
+        > a              1 µL
+      wb:
+        > Reagent     Stock   Volume
+        > ==========  =====  =======
+        > w                     1 µL
+        > A mix          5x     2 µL
+        > b                     2 µL
+      wc:
+        > Reagent     Stock    Volume
+        > ==========  =====  ========
+        > w                      2 µL
+        > B mix          2x      5 µL
+        > c                      3 µL
+  -
+    id: order
+    mixes:
+      bd: Mix({'b', 'd'}, name='master')
+      ac: Mix({MIXES['bd'], 'a', 'c'})
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > a           1 µL
+      > b           2 µL
+      > c           3 µL
+      > d           4 µL
+    expected:
+      bd:
+        > Reagent  Volume
+        > =======  ======
+        > b          2 µL
+        > d          4 µL
+      ac:
+        > Reagent     Volume
+        > ==========  ======
+        > a             1 µL
+        > master mix    6 µL
+        > c             3 µL
+  -
+    id: order-first-reagent-in-mix
+    mixes:
+      bc: Mix({'b', 'c'}, name='master')
+      a: Mix({MIXES['bc'], 'a'})
+    reaction:
+      > Reagent    Volume
+      > =======  ========
+      > a            1 µL
+      > b            2 µL
+      > c            3 µL
+    expected:
+      bc:
+        > Reagent  Volume
+        > =======  ======
+        > b          2 µL
+        > c          3 µL
+      a:
+        > Reagent     Volume
+        > ==========  ======
+        > a             1 µL
+        > master mix    5 µL
+  -
+    id: order-first-reagent-not-in-mix
+    mixes:
+      ac: Mix({'a', 'c'}, name='master')
+      b: Mix({MIXES['ac'], 'b'})
+    reaction:
+      > Reagent    Volume
+      > =======  ========
+      > a            1 µL
+      > b            2 µL
+      > c            3 µL
+    expected:
+      ac:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > c          3 µL
+      b:
+        > Reagent     Volume
+        > ==========  ======
+        > master mix    4 µL
+        > b             2 µL
+  -
+    id: order-first-two-reagents-in-mix
+    mixes:
+      cd: Mix({'c', 'd'}, name='master')
+      ab: Mix({MIXES['cd'], 'a', 'b'})
+    reaction:
+      > Reagent    Volume
+      > =======  ========
+      > a            1 µL
+      > b            2 µL
+      > c            3 µL
+      > d            4 µL
+    expected:
+      cd:
+        > Reagent  Volume
+        > =======  ======
+        > c          3 µL
+        > d          4 µL
+      ab:
+        > Reagent     Volume
+        > ==========  ======
+        > a             1 µL
+        > b             2 µL
+        > master mix    7 µL
+  -
+    id: order-first-reagent-in-both
+    # This is an interesting case.  The same reagent can only appear in two 
+    # mixes if that reagent is the solvent, and the user specified a volume for 
+    # one of the intermediate mixes.  In this case, we don't want to count the 
+    # solvent when considering reagent order, because the master mix isn't 
+    # really *providing* the solvent.  It's providing the non-shared reagent, 
+    # so it should be slotted in at that point.
+    mixes:
+      wb: Mix({'w', 'b'}, name='master', volume=5)
+      wa: Mix({MIXES['wb'], 'w', 'a'})
+    reaction:
+      > Reagent    Volume
+      > =======  ========
+      > w        to 10 µL
+      > a            1 µL
+      > b            2 µL
+    expected:
+      wb:
+        > Reagent  Volume
+        > =======  ======
+        > w          3 µL
+        > b          2 µL
+      wa:
+        > Reagent     Stock  Volume
+        > ==========  =====  ======
+        > w                    4 µL
+        > a                    1 µL
+        > master mix     2x    5 µL
+  -
+    id: order-multiple-children
+    mixes:
+      ae: Mix({'a', 'e'}, name='AE')
+      bd: Mix({'b', 'd'}, name='BD')
+      c: Mix({MIXES['ae'], MIXES['bd'], 'c'})
+    reaction:
+      > Reagent    Volume
+      > =======  ========
+      > a            1 µL
+      > b            2 µL
+      > c            3 µL
+      > d            4 µL
+      > e            5 µL
+    expected:
+      ae:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > e          5 µL
+      bd:
+        > Reagent  Volume
+        > =======  ======
+        > b          2 µL
+        > d          4 µL
+      c:
+        > Reagent     Stock  Volume
+        > ==========  =====  ======
+        > AE mix               6 µL
+        > BD mix               6 µL
+        > c                    3 µL
+  -
+    id: names
+    mixes:
+      a: Mix({'a'})
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > a           1 µL
+    names:
+      a: A
+    expected:
+      a:
+        > Reagent  Volume
+        > =======  ======
+        > A          1 µL
+  -
+    id: prev-mix-name
+    mixes:
+      cd: Mix({'c', 'd'}, name='CD')
+      b: Mix({MIXES['cd'], 'b'}, name='BCD')
+      a: Mix({MIXES['b'], 'a'}, name='BCD')
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > a           1 µL
+      > b           2 µL
+      > c           3 µL
+      > d           4 µL
+    expected:
+      cd:
+        > Reagent  Volume
+        > =======  ======
+        > c          3 µL
+        > d          4 µL
+      b:
+        > Reagent     Volume
+        > ==========  ======
+        > b             2 µL
+        > CD mix        7 µL
+      a:
+        > Reagent     Volume
+        > ==========  ======
+        > a             1 µL
+        > BCD mix       9 µL
+  -
+    id: stock-conc
+    mixes:
+      ab: Mix({'a', 'b'}, name='master')
+      c: Mix({MIXES['ab'], 'c'})
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > a           1 µL
+      > b           2 µL
+      > c           3 µL
+    expected:
+      ab:
+        > Reagent   Volume
+        > =======  =======
+        > a           1 µL
+        > b           2 µL
+      c:
+        > Reagent     Stock  Volume
+        > ==========  =====  ======
+        > master mix     2x    3 µL
+        > c                    3 µL
+
+test_set_mix_scales:
+  -
+    id: combos-1
+    mixes:
+      a: Mix({'a'})
+    reactions:
+      a:
+        > Reagent     Volume
+        > ==========  ======
+        > a             1 µL
+    combos:
+      a: 1
+    expected:
+      a:
+        scales: 1
+        num_reactions: 1
+  -
+    id: combos-1-extra
+    mixes:
+      a: Mix({'a'}, extra=Extra(percent=10))
+    reactions:
+      a:
+        > Reagent     Volume
+        > ==========  ======
+        > a             1 µL
+    combos:
+      a: 1
+    expected:
+      a:
+        scales: 1.1
+        num_reactions: 1
+  -
+    id: combos-11
+    mixes:
+      a: Mix({'a'})
+    reactions:
+      a:
+        > Reagent     Volume
+        > ==========  ======
+        > a             1 µL
+    combos:
+      a: 1 1
+    expected:
+      a:
+        scales: 2
+        num_reactions: 1
+  -
+    id: combos-11-extra
+    mixes:
+      a: Mix({'a'}, extra=Extra(percent=10))
+    reactions:
+      a:
+        > Reagent     Volume
+        > ==========  ======
+        > a             1 µL
+    combos:
+      a: 1 1
+    expected:
+      a:
+        scales: 2.2
+        num_reactions: 1
+  -
+    id: combos-12
+    mixes:
+      a: Mix({'a'})
+    reactions:
+      a:
+        > Reagent     Volume
+        > ==========  ======
+        > a             1 µL
+    combos:
+      a: 1 2
+    expected:
+      a:
+        scales: 1
+        num_reactions: 2
+  -
+    id: combos-12-extra
+    mixes:
+      a: Mix({'a'}, extra=Extra(percent=10))
+    reactions:
+      a:
+        > Reagent     Volume
+        > ==========  ======
+        > a             1 µL
+    combos:
+      a: 1 2
+    expected:
+      a:
+        scales: 1.1
+        num_reactions: 2
+  -
+    id: combos-11-12
+    mixes:
+      ab: Mix({'a', 'b'})
+      c: Mix({MIXES['ab'], 'c'})
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      c:
+        > Reagent     Volume
+        > ==========  ======
+        > master mix    2 µL
+        > c             1 µL
+    combos:
+      c: 1 2
+    expected:
+      ab:
+        scales: 2
+        num_reactions: 1
+      c:
+        scales: 1
+        num_reactions: 2
+  -
+    id: combos-11-12-extra
+    mixes:
+      ab: Mix({'a', 'b'})
+      c: Mix({MIXES['ab'], 'c'})
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      c:
+        > Reagent     Volume
+        > ==========  ======
+        > master mix    2 µL
+        > c             1 µL
+    combos:
+      c: 1 2
+    extra:
+      root: Extra(percent=10)
+      children: Extra(percent=10)
+    expected:
+      ab:
+        scales: 2.42
+        num_reactions: 1
+      c:
+        scales: 1.1
+        num_reactions: 2
+  -
+    id: combos-11-12-replicates
+    mixes:
+      ab: Mix({'a', 'b'})
+      c: Mix({MIXES['ab'], 'c'})
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      c:
+        > Reagent     Volume
+        > ==========  ======
+        > master mix    2 µL
+        > c             1 µL
+    combos:
+      c: 1 1 2 2
+    expected:
+      ab:
+        scales: 4
+        num_reactions: 1
+      c:
+        scales: 2
+        num_reactions: 2
+  -
+    id: combos-1111-1122-1234
+    mixes:
+      ab: Mix({'a', 'b'})
+      cd: Mix({MIXES['ab'], 'c', 'd'})
+      e: Mix({MIXES['cd'], 'e'})
+    combos:
+      c: 1 1 2 2
+      d: 1 1 2 2
+      e: 1 2 3 4
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      cd:
+        > Reagent  Volume
+        > =======  ======
+        > AB mix     2 µL
+        > c          1 µL
+        > d          1 µL
+      e:
+        > Reagent  Volume
+        > =======  ======
+        > CD mix     4 µL
+        > e          1 µL
+    expected:
+      ab:
+        scales: 4
+        num_reactions: 1
+      cd:
+        scales: 2
+        num_reactions: 2
+      e:
+        scales: 1
+        num_reactions: 4
+  -
+    id: combos-1111-1122-1234-extra
+    mixes:
+      ab: Mix({'a', 'b'})
+      cd: Mix({MIXES['ab'], 'c', 'd'})
+      e: Mix({MIXES['cd'], 'e'})
+    combos:
+      c: 1 1 2 2
+      d: 1 1 2 2
+      e: 1 2 3 4
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      cd:
+        > Reagent  Volume
+        > =======  ======
+        > AB mix     2 µL
+        > c          1 µL
+        > d          1 µL
+      e:
+        > Reagent  Volume
+        > =======  ======
+        > CD mix     4 µL
+        > e          1 µL
+    extra:
+      root: Extra(percent=10)
+      children: Extra(percent=10)
+    expected:
+      ab:
+        scales: 5.324
+        num_reactions: 1
+      cd:
+        scales: 2.42
+        num_reactions: 2
+      e:
+        scales: 1.1
+        num_reactions: 4
+  -
+    id: combos-111-112
+    mixes:
+      ab: Mix({'a', 'b'})
+      c: Mix({MIXES['ab'], 'c'})
+    combos:
+      c: 1 1 2
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      c:
+        > Reagent        Volume
+        > ==========     ======
+        > master mix       2 µL
+        > c                1 µL
+
+    expected:
+      ab:
+        scales: 3
+        num_reactions: 1
+      c:
+        scales: 1 2
+        num_reactions: 2
+  -
+    id: combos-111-112-extra
+    mixes:
+      ab: Mix({'a', 'b'})
+      c: Mix({MIXES['ab'], 'c'})
+    combos:
+      c: 1 1 2
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      c:
+        > Reagent        Volume
+        > ==========     ======
+        > master mix       2 µL
+        > c                1 µL
+    extra:
+      root: Extra(percent=10, min_volume='1.5 µL')
+      children: Extra(percent=10, min_volume='1.5 µL')
+
+    expected:
+      ab:
+        scales: 4.07
+        num_reactions: 1
+      c:
+        scales: 1.5 2.2
+        num_reactions: 2
+  -
+    id: combos-112-122-abc
+    mixes:
+      ab: Mix({'a', 'b'})
+      c: Mix({MIXES['ab'], 'c'})
+    combos:
+      a: 1 1 2
+      b: 1 1 2
+      c: 1 2 2
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      c:
+        > Reagent     Volume
+        > ==========  ======
+        > master mix    2 µL
+        > c             1 µL
+    expected:
+      ab:
+        scales: 1 2
+        num_reactions: 2
+      c:
+        scales: 1
+        num_reactions: 3
+  -
+    id: combos-112-122-abc-extra
+    mixes:
+      ab: Mix({'a', 'b'})
+      c: Mix({MIXES['ab'], 'c'})
+    combos:
+      a: 1 1 2
+      b: 1 1 2
+      c: 1 2 2
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      c:
+        > Reagent     Volume
+        > ==========  ======
+        > master mix    2 µL
+        > c             1 µL
+    extra:
+      root: Extra(percent=10)
+      children: Extra(percent=10, min_volume='1.5 µL')
+    expected:
+      ab:
+        scales: 1.5 2.42
+        num_reactions: 2
+      c:
+        scales: 1.1
+        num_reactions: 3
+  -
+    id: combos-112-122-abcd
+    mixes:
+      ab: Mix({'a', 'b'})
+      cd: Mix({MIXES['ab'], 'c', 'd'})
+    combos:
+      a: 1 1 2
+      b: 1 1 2
+      c: 1 2 2
+      d: 1 2 2
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      cd:
+        > Reagent     Volume
+        > ==========  ======
+        > master mix    2 µL
+        > c             1 µL
+        > d             1 µL
+    expected:
+      ab:
+        scales: 1 2
+        num_reactions: 2
+      cd:
+        scales: 1
+        num_reactions: 3
+  -
+    id: combos-112-122-abcd-extra
+    mixes:
+      ab: Mix({'a', 'b'})
+      cd: Mix({MIXES['ab'], 'c', 'd'})
+    combos:
+      a: 1 1 2
+      b: 1 1 2
+      c: 1 2 2
+      d: 1 2 2
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      cd:
+        > Reagent     Volume
+        > ==========  ======
+        > master mix    2 µL
+        > c             1 µL
+        > d             1 µL
+    extra:
+      root: Extra(percent=10)
+      children: Extra(percent=10, min_volume='1.5 µL')
+    expected:
+      ab:
+        scales: 1.5 2.42
+        num_reactions: 2
+      cd:
+        scales: 1.1
+        num_reactions: 3
+  -
+    id: combos-111-112-122
+    mixes:
+      ab: Mix({'a', 'b'})
+      cd: Mix({MIXES['ab'], 'c', 'd'})
+      e: Mix({MIXES['cd'], 'e'})
+    combos:
+      c: 1 1 2
+      d: 1 1 2
+      e: 1 2 2
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      cd:
+        > Reagent  Volume
+        > =======  ======
+        > AB mix     2 µL
+        > c          1 µL
+        > d          1 µL
+      e:
+        > Reagent  Volume
+        > =======  ======
+        > CD mix     4 µL
+        > e          1 µL
+    expected:
+      ab:
+        scales: 3
+        num_reactions: 1
+      cd:
+        scales: 1 2
+        num_reactions: 2
+      e:
+        scales: 1
+        num_reactions: 3
+  -
+    id: combos-111-112-122-extra
+    mixes:
+      ab: Mix({'a', 'b'})
+      cd: Mix({MIXES['ab'], 'c', 'd'})
+      e: Mix({MIXES['cd'], 'e'})
+    combos:
+      c: 1 1 2
+      d: 1 1 2
+      e: 1 2 2
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      cd:
+        > Reagent  Volume
+        > =======  ======
+        > AB mix     2 µL
+        > c          1 µL
+        > d          1 µL
+      e:
+        > Reagent  Volume
+        > =======  ======
+        > CD mix     4 µL
+        > e          1 µL
+    extra:
+      root: Extra(percent=10)
+      children: Extra(percent=10, min_volume='1.5 µL')
+    expected:
+      ab:
+        scales: 4.312
+        num_reactions: 1
+      cd:
+        scales: 1.5 2.42
+        num_reactions: 2
+      e:
+        scales: 1.1
+        num_reactions: 3
+  -
+    id: combos-11112-11223-12345
+    mixes:
+      ab: Mix({'a', 'b'})
+      cd: Mix({MIXES['ab'], 'c', 'd'})
+      e: Mix({MIXES['cd'], 'e'})
+    combos:
+      a: 1 1 1 1 2
+      b: 1 1 1 1 2
+      c: 1 1 2 2 3
+      d: 1 1 2 2 3
+      e: 1 2 3 4 5
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      cd:
+        > Reagent  Volume
+        > =======  ======
+        > AB mix     2 µL
+        > c          1 µL
+        > d          1 µL
+      e:
+        > Reagent  Volume
+        > =======  ======
+        > CD mix     4 µL
+        > e          1 µL
+    expected:
+      ab:
+        scales: 1 4
+        num_reactions: 2
+      cd:
+        scales: 1 2
+        num_reactions: 3
+      e:
+        scales: 1
+        num_reactions: 5
+  -
+    id: combos-11112-11223-12345-extra
+    mixes:
+      ab: Mix({'a', 'b'})
+      cd: Mix({MIXES['ab'], 'c', 'd'})
+      e: Mix({MIXES['cd'], 'e'})
+    combos:
+      a: 1 1 1 1 2
+      b: 1 1 1 1 2
+      c: 1 1 2 2 3
+      d: 1 1 2 2 3
+      e: 1 2 3 4 5
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      cd:
+        > Reagent  Volume
+        > =======  ======
+        > AB mix     2 µL
+        > c          1 µL
+        > d          1 µL
+      e:
+        > Reagent  Volume
+        > =======  ======
+        > CD mix     4 µL
+        > e          1 µL
+    extra:
+      root: Extra(percent=10)
+      children: Extra(percent=10, min_volume='1.5 µL')
+    expected:
+      ab:
+        scales: 1.65 5.324
+        num_reactions: 2
+      cd:
+        scales: 1.5 2.42
+        num_reactions: 3
+      e:
+        scales: 1.1
+        num_reactions: 5
+  -
+    id: combos-11211-11223-12345
+    mixes:
+      ab: Mix({'a', 'b'})
+      cd: Mix({MIXES['ab'], 'c', 'd'})
+      e: Mix({MIXES['cd'], 'e'})
+    combos:
+      a: 1 1 2 1 1
+      b: 1 1 2 1 1
+      c: 1 1 2 2 3
+      d: 1 1 2 2 3
+      e: 1 2 3 4 5
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      cd:
+        > Reagent  Volume
+        > =======  ======
+        > AB mix     2 µL
+        > c          1 µL
+        > d          1 µL
+      e:
+        > Reagent  Volume
+        > =======  ======
+        > CD mix     4 µL
+        > e          1 µL
+    expected:
+      ab:
+        scales: 1 4
+        num_reactions: 2
+      cd:
+        scales: 1 2
+        num_reactions: 4
+      e:
+        scales: 1
+        num_reactions: 5
+  -
+    id: combos-11211-11223-12345-extra
+    mixes:
+      ab: Mix({'a', 'b'})
+      cd: Mix({MIXES['ab'], 'c', 'd'})
+      e: Mix({MIXES['cd'], 'e'})
+    combos:
+      a: 1 1 2 1 1
+      b: 1 1 2 1 1
+      c: 1 1 2 2 3
+      d: 1 1 2 2 3
+      e: 1 2 3 4 5
+    reactions:
+      ab:
+        > Reagent  Volume
+        > =======  ======
+        > a          1 µL
+        > b          1 µL
+      cd:
+        > Reagent  Volume
+        > =======  ======
+        > AB mix     2 µL
+        > c          1 µL
+        > d          1 µL
+      e:
+        > Reagent  Volume
+        > =======  ======
+        > CD mix     4 µL
+        > e          1 µL
+    extra:
+      root: Extra(percent=10)
+      children: Extra(percent=10, min_volume='1.5 µL')
+    expected:
+      ab:
+        scales: 1.65 5.962
+        num_reactions: 2
+      cd:
+        scales: 1.5 2.42
+        num_reactions: 4
+      e:
+        scales: 1.1
+        num_reactions: 5
+
+test_init_components:
+  -
+    id: 0-mixes-1-reagent
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > a          1 µL
+    mixes:
+      []
+    expected:
+      [a]
+  -
+    id: 1-mix-0-reagents
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > a          1 µL
+      > b          2 µL
+    mixes:
+      - Mix({'a','b'})
+    expected:
+      [a+b]
+  -
+    id: 1-mix-1-reagent
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > a          1 µL
+      > b          2 µL
+      > c          3 µL
+    mixes:
+      - Mix({'a','b'})
+    expected:
+      [a+b,c]
+  -
+    id: 2-mixes-2-reagents
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > a          1 µL
+      > b          2 µL
+      > c          3 µL
+      > d          4 µL
+      > e          5 µL
+      > f          6 µL
+    mixes:
+      - Mix({'a','b'})
+      - Mix({'c','d'})
+    expected:
+      [a+b,c+d,e,f]
+  -
+    id: solvent-without-volume
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 6 µL
+      > a           1 µL
+      > b           2 µL
+    mixes:
+      - Mix({'w','a'})
+    expected:
+      [w+a,b]
+  -
+    id: solvent-with-volume
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 6 µL
+      > a           1 µL
+      > b           2 µL
+    mixes:
+      - Mix({'w','a'}, volume=3)
+    expected:
+      [w+a,w,b]
+  -
+    id: empty-mix
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > a          1 µL
+    mixes:
+      - Mix({})
+    expected:
+      [a]
+  -
+    id: subset
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > a          1 µL
+      > b          2 µL
+    mixes:
+      []
+    subset:
+      [a]
+    expected:
+      [a]
+  -
+    id: err-unknown-reagents
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > a           1 µL
+    mixes:
+      - Mix({'b','c'})
+    error:
+      type: UsageError
+      message: can't use reagents that aren't in the reaction: 'b', 'c'
+  -
+    id: err-unknown-reagents-subset
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > a           1 µL
+      > b           2 µL
+      > c           3 µL
+    mixes:
+      - Mix({'b','c'})
+    subset:
+      [a]
+    error:
+      type: UsageError
+      message: can't use reagents that aren't in the automix: 'b', 'c'
+  -
+    id: err-duplicate-reagents
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > a           1 µL
+      > b           1 µL
+      > c           1 µL
+    mixes:
+      - Mix({'a','b'})
+      - Mix({'b','c'})
+    error:
+      type: UsageError
+      message: can't use the same reagent in multiple mixes: 'b'
+  -
+    id: err-solvent-required-in-reaction
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > a           1 µL
+      > b           2 µL
+    mixes:
+      - Mix({'a','b'}, volume=3)
+    error:
+      type: UsageError
+      message: can't specify mix volume unless the reaction has a solvent
+  -
+    id: err-solvent-required-in-reaction-subset
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 6 µL
+      > a           1 µL
+      > b           2 µL
+    mixes:
+      - Mix({'a','b'}, volume=3)
+    subset:
+      [a,b]
+    error:
+      type: UsageError
+      message: can't specify mix volume unless the automix has a solvent
+  -
+    id: err-solvent-required-in-mix
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 6 µL
+      > a           1 µL
+      > b           2 µL
+    mixes:
+      - Mix({'a','b'}, volume=3)
+    error:
+      type: UsageError
+      message: can't specify mix volume unless the mix contains solvent
+
+test_sort_by_num_combos:
+  -
+    combos:
+      a: 1
+    expected:
+      - a
+  -
+    combos:
+      a: 1 1
+      b: 1 2
+    expected:
+      - a
+      - b
+  -
+    components:
+      [a+b,c]
+    combos:
+      a: 1 1
+      b: 1 2
+      c: 1 1
+    expected:
+      - c
+      - a+b
+  -
+    components:
+      [a+b,c]
+    combos:
+      a: 1 1
+      b: 1 2
+      c: 1 2
+    expected:
+      - a+b c
+
+test_find_matching_components:
+  -
+    combos:
+      a: 1
+    expected:
+      {}
+  -
+    combos:
+      a: 1
+      b: 1
+    expected:
+      a: a b
+      b: a b
+  -
+    combos:
+      a: 1
+      b: 2
+    expected:
+      a: a b
+      b: a b
+  -
+    combos:
+      a: 1 1
+      b: 1 1
+    expected:
+      a: a b
+      b: a b
+  -
+    combos:
+      a: 1 1
+      b: 2 2
+    expected:
+      a: a b
+      b: a b
+  -
+    combos:
+      a: 1 1
+      b: 1 2
+    expected:
+      {}
+  -
+    combos:
+      a: 1 1
+      b: 1 1
+      c: 1 1
+    expected:
+      a: a b c
+      b: a b c
+      c: a b c
+  -
+    combos:
+      a: 1 1
+      b: 1 1
+      c: 1 2
+    expected:
+      a: a b
+      b: a b
+  -
+    combos:
+      a: 1 1
+      b: 1 1
+      c: 1 1
+      d: 1 1
+    expected:
+      a: a b c d
+      b: a b c d
+      c: a b c d
+      d: a b c d
+  -
+    combos:
+      a: 1 1
+      b: 1 1
+      c: 1 1
+      d: 1 2
+    expected:
+      a: a b c
+      b: a b c
+      c: a b c
+  -
+    combos:
+      a: 1 1
+      b: 1 1
+      c: 1 2
+      d: 1 2
+    expected:
+      a: a b
+      b: a b
+      c: c d
+      d: c d
+  -
+    components:
+      [a+b,c,d]
+    combos:
+      a: 1 1 1 1
+      b: 1 1 1 1
+      c: 1 1 2 2
+      d: 1 2 3 4
+    expected:
+      {}
+  -
+    components:
+      [a+b,c,d]
+    combos:
+      a: 1 1 1 1
+      b: 1 1 2 2
+      c: 1 1 2 2
+      d: 1 2 3 4
+    expected:
+      a+b: a+b c
+      c: a+b c
+
+test_iter_merged_top_levels:
+  -
+    id: 1-1
+    levels:
+      - a
+      - b
+
+    expected:
+      - a b
+      - a+b
+  -
+    id: 1-2-matching
+    levels:
+      - a
+      - b c
+
+    matches:
+      -
+      - b+c
+
+    expected:
+      # no merge
+      - a b c
+      - a+b c
+      - a+c b
+
+      # merge a+b
+      - a b+c
+      - 
+        [[a,b+c]]
+  -
+    id: 1-2-no-matching
+    levels:
+      - a
+      - b c
+
+    expected:
+      - a+b c
+      - a+c b
+      - a b c
+  -
+    id: 2-2-matching
+    levels:
+      - a b
+      - c d
+
+    matches:
+      - a+b
+      - c+d
+
+    expected:
+      # merge neither
+      - a c b d
+      - a c b+d
+      - a+c b d
+      - a+c b+d
+      - a d b+c
+      - a+d b c
+      - a+d b+c
+
+      # merge a+b
+      - a+b c d
+      -
+        [[a+b,c],d]
+      -
+        [[a+b,d],c]
+
+      # merge c+d
+      - c+d a b
+      -
+        [[c+d,a],b]
+      -
+        [[c+d,b],a]
+
+      # merge both
+      - a+b c+d
+      -
+        [[a+b,c+d]]
+  -
+    id: 2-2-half-matching
+    levels:
+      - a b
+      - c d
+
+    matches:
+      - a+b
+      -
+
+    expected:
+      # merge neither
+      - a c b d
+      - a c b+d
+      - a+c b d
+      - a+c b+d
+      - a d b+c
+      - a+d b c
+      - a+d b+c
+
+      # merge a+b
+      - a+b c d
+      -
+        [[a+b,c],d]
+      -
+        [[a+b,d],c]
+  -
+    id: 2-2-no-matching
+    levels:
+      - a b
+      - c d
+
+    expected:
+      - a c b d
+      - a c b+d
+      - a+c b d
+      - a+c b+d
+      - a d b+c
+      - a+d b c
+      - a+d b+c
+  -
+    id: 1-4-matching
+
+    # Make sure that both matches in the second level are found, even though 
+    # only one can be mixed with the first level:
+    levels:
+      - a
+      - b c d e
+
+    matches:
+      -
+      - b+c d+e
+
+    expected:
+      # no merge
+      - a b c d e
+      - a+b c d e
+      - a+c b d e
+      - a+d b c e
+      - a+e b c d
+
+      # merge b+c
+      - a b+c d e
+      - 
+        [[a,b+c],d,e]
+      - a+d b+c e
+      - a+e b+c d
+
+      # merge d+e
+      - a b c d+e
+      - a+b c d+e
+      - a+c b d+e
+      -
+        [[a,d+e],b,c]
+
+      # merge both
+      - a b+c d+e
+      -
+        [[a,b+c],d+e]
+      -
+        [[a,d+e],b+c]
+
+test_keep_levels_with_least_pipetting:
+  -
+    id: least-pipetting
+    levels:
+      - a b c
+      - a+b c
+      - a+c b
+    combos:
+      a: 1 1 1 1 2 2 2 2
+      b: 1 1 2 2 3 3 4 4
+      c: 1 2 3 4 1 2 3 4
+    expected:
+      # 'a b c' is included because it has 3 elements.
+      # 'a+c b' is excluded because it needs more pipetting steps than 'a+b c'.
+      - a b c
+      - a+b c
+  -
+    id: equal-pipetting
+    levels:
+      - a b c
+      - a+b c
+      - a+c b
+    combos:
+      a: 1 1 1 1
+      b: 1 2 1 2 
+      c: 1 1 2 2
+    expected:
+      - a b c
+      - a+b c
+      - a+c b
+
+test_count_pipetting_steps:
+  -
+    id: a-1
+    mix:
+      [a]
+    combos:
+      a: 1
+    expected: 1
+  -
+    id: a-1-dups
+    mix:
+      [a]
+    combos:
+      a: 1 1
+    expected: 1
+  -
+    id: a-1-variable-only
+    mix:
+      [a]
+    combos:
+      {}
+    expected: 1
+  -
+    id: a-12
+    mix:
+      [a]
+    combos:
+      a: 1 2
+    expected: 2
+  -
+    id: a-12-dups
+    mix:
+      [a]
+    combos:
+      a: 1 1 2 2
+    expected: 2
+  -
+    id: ab-1
+    mix:
+      [a,b]
+    combos:
+      a: 1
+      b: 1
+    expected: 2
+  -
+    id: ab-1-dups
+    mix:
+      [a,b]
+    combos:
+      a: 1 1
+      b: 1 1
+    expected: 2
+  -
+    id: ab-1-variable-only
+    mix:
+      [a,b]
+    combos:
+      {}
+    expected: 2
+  -
+    id: ab-12
+    mix:
+      [a,b]
+    combos:
+      a: 1 1
+      b: 1 2
+    expected: 4
+  -
+    id: ab-12-dups
+    mix:
+      [a,b]
+    combos:
+      a: 1 1 1 1
+      b: 1 1 2 2
+    expected: 4
+  -
+    id: ab-12-dups-variable-only
+    mix:
+      [a,b]
+    combos:
+      b: 1 1 2 2
+    expected: 4
+  -
+    id: abc-1
+    mix:
+      [a,b,c]
+    combos:
+      a: 1
+      b: 1
+      c: 1
+    expected: 3
+  -
+    id: abc-master-mix
+    mix:
+      [a,b,c]
+    combos:
+      a: 1 1 1
+      b: 1 1 1
+      c: 1 2 3
+    expected: 9
+  -
+    id: abc-master-mix
+    mix:
+      [[a,b],c]
+    combos:
+      a: 1 1 1
+      b: 1 1 1
+      c: 1 2 3
+    expected: 2+6
+  -
+    id: abc-direct-mix
+    mix:
+      [a,b,c]
+    combos:
+      a: 1 1 1
+      b: 1 1 2
+      c: 1 2 3
+    expected: 9
+  -
+    id: abc-direct-mix
+    mix:
+      [[a,b],c]
+    combos:
+      a: 1 1 1
+      b: 1 1 2
+      c: 1 2 3
+    expected: 4+6
+  -
+    id: abcd-1122-1212
+    mix:
+      [[[a,b],c],d]
+    combos:
+      a: 1 1 1 1
+      b: 1 1 1 1
+      c: 1 1 2 2
+      d: 1 2 1 2
+    expected: 2+2+2+4+4
+  -
+    id: abcd-1122-1212
+    mix:
+      [[a,b],c,d]
+    combos:
+      a: 1 1 1 1
+      b: 1 1 1 1
+      c: 1 1 2 2
+      d: 1 2 1 2
+    expected: 2+4+4+4
+  -
+    id: level-with-no-reagents
+    mix:
+      [[a,b],[c,d]]
+    combos:
+      a: 1 1 2 2
+      b: 1 1 2 2
+      c: 1 2 1 2
+      d: 1 2 1 2
+    expected: 4+4+8
+
+test_count_adjacencies:
+  -
+    mix:
+      [a]
+    ideal_order:
+      [a]
+    expected: 0
+  -
+    mix:
+      [a,b]
+    ideal_order:
+      [a,b]
+    expected: 1
+  -
+    mix:
+      [a,b]
+    ideal_order:
+      [b,a]
+    expected: 1
+  -
+    mix:
+      [a,b,c]
+    ideal_order:
+      [a,b,c]
+    expected: 2
+  -
+    mix:
+      [[a,b],c]
+    ideal_order:
+      [a,b,c]
+    expected: 2
+  -
+    mix:
+      [a,[b,c]]
+    ideal_order:
+      [a,b,c]
+    expected: 1
+  -
+    mix:
+      [[a,c],b]
+    ideal_order:
+      [a,b,c]
+    expected: 1
+  -
+    mix:
+      [[[a,b],c],d]
+    ideal_order:
+      [a,b,c,d]
+    expected: 3
+  -
+    mix:
+      [[[a,b],d],c]
+    ideal_order:
+      [a,b,c,d]
+    expected: 1
+  -
+    id: no-order
+    mix:
+      [a,b]
+    ideal_order:
+      []
+    expected: 0
+
+test_iter_all_mixes_in_protocol_order:
+  -
+    mixes:
+      a: Mix({'a'})
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > a          1 µL
+    expected:
+      - a
+  -
+    mixes:
+      ab: Mix({'a', 'b'})
+      c: Mix({MIXES['ab'], 'c'})
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > a          1 µL
+      > b          2 µL
+      > c          3 µL
+    expected:
+      - a b
+      - a+b c
+  -
+    mixes:
+      ad: Mix({'a', 'd'})
+      bc: Mix({'b', 'c'})
+      *: Mix({MIXES['ad'], MIXES['bc']})
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > a          1 µL
+      > b          2 µL
+      > c          3 µL
+      > d          4 µL
+    expected:
+      - a d
+      - b c
+      - a+d b+c
+  -
+    mixes:
+      wa: Mix({'w', 'a'})
+      wb: Mix({'w', 'b'})
+      *: Mix({MIXES['wa'], MIXES['wb']})
+    reaction:
+      > Reagent    Volume
+      > =======  ========
+      > w        to 10 µL
+      > a            1 µL
+      > b            2 µL
+    expected:
+      - w a
+      - w b
+      - w+a w+b
+  -
+    mixes:
+      wa: Mix({'w', 'a'})
+      wab: Mix({MIXES['wa'], 'b'})
+      wc: Mix({'w', 'c'})
+      wcd: Mix({MIXES['wc'], 'd'})
+      *: Mix({MIXES['wab'], MIXES['wcd']})
+    reaction:
+      > Reagent    Volume
+      > =======  ========
+      > w        to 20 µL
+      > a            1 µL
+      > b            2 µL
+      > c            3 µL
+      > d            4 µL
+    expected:
+      - w a
+      - w+a b
+      - w c
+      - w+c d
+      -
+        [[w+a,b],[w+c,d]]
+  -
+    id: order-before
+    # Normally AD would come before BC, but here we move BC in front.
+    mixes:
+      ad: Mix({'a', 'd'})
+      bc: Mix({'b', 'c'}, order=-1)
+      *: Mix({MIXES['ad'], MIXES['bc']})
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > a          1 µL
+      > b          2 µL
+      > c          3 µL
+      > d          4 µL
+    expected:
+      - b c
+      - a d
+      - a+d b+c
+  -
+    id: order-after
+    # Normally AD would come before BC, but here we move AD in back.
+    mixes:
+      ad: Mix({'a', 'd'}, order=1)
+      bc: Mix({'b', 'c'})
+      *: Mix({MIXES['ad'], MIXES['bc']})
+    reaction:
+      > Reagent  Volume
+      > =======  ======
+      > a          1 µL
+      > b          2 µL
+      > c          3 µL
+      > d          4 µL
+    expected:
+      - b c
+      - a d
+      - a+d b+c

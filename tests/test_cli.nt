@@ -234,7 +234,7 @@ test_main:
       >      ─────────────────────────────────
       >                      8.00 µL  17.60 µL
       > 
-      >    - Add the remaining reagents:
+      >    - Setup the reactions:
       > 
       >      Reagent     Stock    Volume
       >      ───────────────────────────
@@ -258,7 +258,7 @@ test_main:
       >
       >      C: c1, c2
       > 
-      >    - Mix the reactions:
+      >    - Setup the reactions:
       > 
       >      Reagent  Stock    Volume
       >      ────────────────────────
@@ -292,7 +292,7 @@ test_main:
       >      ─────────────────────────────────
       >                      8.00 µL  19.20 µL
       > 
-      >    - Add the remaining reagents:
+      >    - Setup the reactions:
       > 
       >      Reagent     Stock    Volume
       >      ───────────────────────────

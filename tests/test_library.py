@@ -307,7 +307,5 @@ def paths(xs):
 
 def format_steps(p):
     from stepwise import format_text
-    from math import inf
-
     return [format_text(x, inf) for x in p.steps]
 

@@ -8,16 +8,21 @@ from byoc import Key, DocoptConfig, float_eval
 from inform import plural
 from itertools import groupby, permutations, repeat
 from more_itertools import (
-        pairwise, repeat_last, unique_everseen as unique, mark_ends,
+        pairwise, repeat_last, unique_everseen as unique, mark_ends, ilen, one
 )
 from reprfunc import repr_from_init
 from operator import itemgetter, not_
 from collections import Counter
 from dataclasses import dataclass
 from math import inf
+from copy import copy
 from fractions import Fraction
 
 from .reaction import Reaction, format_reaction, after
+from .mix import (
+        Mix, plan_mixes, set_mix_names, set_mix_reactions, set_mix_scales,
+        iter_mixes, iter_all_mixes_in_protocol_order,
+)
 from ..format import pl, ul, dl, table
 from ..quantity import Quantity
 from ..config import StepwiseConfig
@@ -77,7 +82,7 @@ def combos_from_docopt(args):
 
 def mixes_from_strs(mix_strs):
     return [
-            Reactions.Mix(x.split(','))
+            Mix(x.split(','))
             for x in mix_strs
     ]
 
@@ -104,12 +109,6 @@ def extra_from_docopt(args):
 
 def extra_from_dict(tolerances):
     return Extra(**tolerances)
-
-# I want to get rid of `unprocessed_mixes` and replace it with 
-# `refresh_mix_scales` and `refresh_mix_names` methods.  The big sticking point 
-# with this is that I need to be able to distinguish between user-set and 
-# automatically-generated values, because I only want to "refresh" the latter.  
-# This will require adding some beef to the Mix class.
 
 @autoprop.cache
 class Reactions(byoc.App):
@@ -163,41 +162,12 @@ class Reactions(byoc.App):
           don't have their own specification.
     """
 
-    @autoprop
-    class Mix:
-
-        def __init__(self, reagents, *, name=None, volume=None, extra=None):
-            self.reagents = set(reagents)
-            self.name = name
-            self.volume = volume
-            self.extra = extra
-
-            # Filled in by `Reactions.get_mixes()`:
-            self.reaction = None
-            self.stock_conc = None
-            self.num_reactions = None
-            self.scale = None
-
-        __repr__ = repr_from_init(
-                positional=['reagents'],
-        )
-
-    class AutoMix:
-
-        def __init__(self, reagents, init_mixes=lambda x: x):
-            self.reagents = set(reagents)
-            self.init_mixes = init_mixes
-
-        __repr__ = repr_from_init(
-                positional=['reagents'],
-        )
-
     def __init__(self, reaction, combos=None, *, replicates=None, mixes=None, extra=None):
         self.base_reaction = reaction
 
         if combos: self._user_combos = combos
         if replicates: self._user_replicates = replicates
-        if mixes: self._user_mixes = mixes
+        if mixes: self.required_mixes = mixes
         if extra: self.extra = extra
 
     def main(self):
@@ -220,17 +190,17 @@ class Reactions(byoc.App):
                 kind=x if '/' in (x := self.step_kind) else f'{x} reaction/s',
         )
 
-        if len(self.mixes) == 1 and len(self.combos) < 2:
-            step += self.get_mix_table(0)
+        if not self.mix.mixes and len(self.combos) < 2:
+            step += self.get_mix_table(self.mix)
 
         else:
             step += ul(br='\n\n')
 
-            if len(self.combos) > 1:
-                step[-1] += self.combo_step
+            if self.show_combos and len(self.combos) > 1:
+                step[-1] += self.combos_step
 
-            for i in range(len(self.mixes)):
-                step[-1] += self.get_mix_step(i)
+            for mix in self.mixes:
+                step[-1] += self.get_mix_step(mix)
 
         if self.combos.replicates > 1 and self.split_replicates:
             step += ul(f"Split into {self.combos.replicates} identical {self.base_reaction.volume:.2f} reactions.")
@@ -240,12 +210,26 @@ class Reactions(byoc.App):
 
         return step
 
+    @autoprop.cache(policy='manual')
     def get_combos(self):
-        combos = Combos(self._user_combos, self._user_replicates)
+        combos = Combos(self._user_combos or [{}], self._user_replicates)
         combos.check_reagents(self.base_reaction)
         return combos
 
-    def get_combo_step(self):
+    def set_combos(self, combos):
+        self._user_combos = combos
+
+        try:
+            autoprop.del_cached_attr(self, 'combos')
+        except AttributeError:
+            pass
+
+        try:
+            del self.mix
+        except AttributeError:
+            pass
+
+    def get_combos_step(self):
         self.combos.sort_by_appearance(self.base_reaction)
 
         if len(self.combos.distinct_cols) == 1:
@@ -265,361 +249,126 @@ class Reactions(byoc.App):
                 self.combos.format_as_table(self.base_reaction),
         )
 
-    @autoprop.cache(policy='manual')
-    def get_unprocessed_mixes(self):
-        if self._user_mixes:
-            return self._init_mixes_from_user()
-        else:
-            return self._init_mixes_from_combos(self.combos)
-    
-    def set_unprocessed_mixes(self, mixes):
-        self._user_mixes = mixes
-
-        try:
-            autoprop.del_cached_attr(self, 'unprocessed_mixes')
-            autoprop.del_cached_attr(self, 'mixes')
-        except AttributeError:
-            pass
-
-    @autoprop.cache(policy='manual')
-    def get_mixes(self):
-        mixes = self.unprocessed_mixes
-
-        self._add_missing_reagents(mixes)
-        self._add_solvent(mixes)
-        self._merge_trivial_mixes(mixes)
-        self._set_mix_names(mixes)
-        self._set_mix_reactions(mixes)
-        self._set_mix_scales(mixes)
+    def get_mix(self):
+        mix = plan_mixes(
+                self.base_reaction,
+                self.combos,
+                mixes=self.required_mixes,
+                bias=self.master_mix_bias,
+        )
+        self._refresh(mix)
 
         # TODO: remove reagents with zero volume and recalculate mixes.
 
-        return mixes
+        return mix
 
-    def set_mixes(self, mixes):
-        self._user_mixes = mixes
-
-        try:
-            autoprop.del_cached_attr(self, 'unprocessed_mixes')
-            autoprop.del_cached_attr(self, 'mixes')
-        except AttributeError:
-            pass
-
-    def del_mixes(self, mixes):
-        self._user_mixes = None
-
-        try:
-            autoprop.del_cached_attr(self, 'unprocessed_mixes')
-            autoprop.del_cached_attr(self, 'mixes')
-        except AttributeError:
-            pass
-
-    def get_mix_step(self, i):
-        mix = self.mixes[i]
+    def get_mix_step(self, mix):
         n = mix.num_reactions
-        table = self.get_mix_table(i)
+        table = self.get_mix_table(mix)
 
-        if i + 1 == len(self.mixes):
-            if i == 0:
-                return pl("Mix the reactions:", table)
-            else:
-                return pl("Add the remaining reagents:", table)
+        if mix is self.mix:
+            return pl("Setup the reactions:", table)
 
         if mix.stock_conc:
             name = f'{mix.stock_conc} {mix.name}'
         else:
             name = f'{mix.name}'
 
-        return pl(f"Make {plural(n):/{name} mix/# {name} mixes}:", table)
-
-    def get_mix_table(self, i):
-        mix = self.mixes[i]
-        return format_reaction(mix.reaction, scale=mix.scale)
-
-    def _init_mixes_from_user(self):
-        """
-        Check that the mixes include all of the reagents being varied.
-        """
-
-        mixes = []
-        reagents = set()
-
-        for mix in self._user_mixes:
-
-            if isinstance(mix, self.AutoMix):
-                keys = itemgetter(mix.reagents)
-                combos = self.combos.select(mix.reagents)
-                auto_mixes = self._init_mixes_from_combos(combos)
-                self._add_missing_reagents(auto_mixes, mix.reagents)
-                mix.init_mixes(auto_mixes)
-                mixes += auto_mixes
-
-            else:
-                # Silently ignore mixes with no reagents.  I was on the fence 
-                # about whether or not to make this an error.  On one hand, an 
-                # empty mix has a pretty clear interpretation.  On the other, 
-                # an empty mix could very well be indicative of a logic error.  
-                # That said, I decided to allow it because I can imagine 
-                # building a list of mixes in some automated way where it would 
-                # be inconvenient to prune empty lists.
-                if mix.reagents:
-                    mixes.append(mix)
-
-            # Check for duplicates:
-            dups = reagents & mix.reagents
-            if dups:
-                raise UsageError(f"{repr_join(dups)} included in multiple master mixes")
-            reagents |= mix.reagents
-
-        for key in self.combos.distinct_cols:
-            if key not in reagents:
-                raise UsageError(f"{key!r} not included in any master mix.\nThe following reagents are included: {repr_join(reagents)}")
-
-        return mixes
-
-    def _init_mixes_from_combos(self, combos):
-        """
-        Infer a reasonable set of master mixes based on the requested reagent 
-        combinations.
-        """
-        combos = list(combos.select(combos.distinct_cols))
-        ideal_order = [x.key for x in self.base_reaction]
-        graph = make_pipetting_graph(combos, ideal_order, self.master_mix_penalty)
-        groups = minimize_pipetting(graph)
-        return [self.Mix(x) for x in groups]
-
-    def _add_missing_reagents(self, mixes, all_reagents=None):
-        """
-        Create an initial master mix containing any reagents that aren't 
-        explicitly included in any of the given mixes.
-
-        This method also asserts that (i) every mix includes at least one 
-        reagent and (ii) every reagent being varied is present in one of the 
-        given mixes.  The `_init_*()` methods are responsible for raising 
-        helpful errors if either of these conditions are not met.
-        """
-
-        if all_reagents is None:
-            all_reagents = set(self.base_reaction.keys())
-
-        missing_reagents = all_reagents.copy()
-
-        for mix in mixes:
-            assert mix.reagents
-            assert isinstance(mix.reagents, set)
-            missing_reagents -= mix.reagents
-
-        if not missing_reagents:
-            return
-
-        # Verify that the mixes collectively contain every reagent with 
-        # multiple unique values.  Note that the `_init*()` methods are 
-        # actually responsible for making sure that this is the case; we're 
-        # just double-checking here.
-        assert (all_reagents - missing_reagents) >= all_reagents & self.combos.distinct_cols
-
-        mix = self.Mix(missing_reagents)
-        mixes.insert(0, mix)
-
-    def _add_solvent(self, mixes):
-        solvent = self.base_reaction.solvent
-        if not solvent:
-            return
-
-        for group in self._iter_volume_groups(mixes):
-            group.solvent_mix.reagents.add(solvent)
-
-    def _merge_trivial_mixes(self, mixes):
-        # It doesn't make sense to setup a "master mix" with only a single 
-        # reagent.  If this would happen, we can simply remove the mix in 
-        # question and add its reagent in the next mix instead.
-        # 
-        # This is only a concern for the first mix.  Every other mix has at 
-        # least two reagents: one for the previous mix, and one because it is 
-        # an error for mixes to have no reagents of their own.  Only the first 
-        # mix doesn't have a previous mix.
-
-        if len(mixes[0].reagents) == 1 and len(mixes) > 1:
-            mixes[1].reagents |= mixes[0].reagents
-            del mixes[0]
-
-    @autoprop.ignore
-    def _set_mix_names(self, mixes):
-        """
-        Assign a name to each mix.
-
-        - If there is only one master mix (two mixes total), it will simply be 
-          named "master mix".
-
-        - Any mixes containing only reagents that are the same in every combo 
-          will also be named "master mix".  Note that it is possible for 
-          several mixes to be named "master mix", but only if you specify mixes 
-          manually.
-
-        - Any remaining mixes will be named after the reagents that differ 
-          between combos.
-        """
-        order_map = {x.key: i for i, x in enumerate(self.base_reaction)}
-        by_order = lambda x: order_map[x]
-        name_reagents = self.combos.distinct_cols
-
-        for i, mix in enumerate(mixes):
-            if mix.name:
-                continue
-
-            reagents = mix.reagents & name_reagents
-            only_master_mix = (i == 0) and (len(mixes) == 2)
-
-            if not reagents or only_master_mix:
-                mix.name = 'master'
-            else:
-                mix.name = '/'.join(
-                        self.base_reaction[k].name
-                        for k in sorted(reagents, key=by_order)
-                )
-
-    @autoprop.ignore
-    def _set_mix_reactions(self, mixes):
-        """
-        Create a reaction for each mix.  This process includes (i) copying the 
-        reagents from the base reaction that are relevant to each step, (ii) 
-        renaming reagents that don't vary, and (iii) adding references to 
-        previous master mixes.
-        """
-
-        # Copy the base reaction and remove any reagents we don't want:
-
-        for mix in mixes:
-            mix.reaction = rxn = self.base_reaction.copy()
-
-            for key in rxn.keys():
-                if key in mix.reagents:
-                    try:
-                        names = self.combos.unique_values_by_col[key]
-                    except KeyError:
-                        pass
-                    else:
-                        if len(names) == 1:
-                            rxn[key].name = names[0]
-                else:
-                    with rxn.hold_solvent_volume():
-                        del rxn[key]
-
-        # Set each mix to the requested volume.
-
-        for group in self._iter_volume_groups(mixes):
-            group.solvent_mix.reaction.volume = group.volume - sum(
-                    x.reaction.volume
-                    for x in group.iter_mixes_after_solvent()
-            )
-
-        # Add references to the previous master mixes:
-
-        solvent = self.base_reaction.solvent
-        prev_reagents = set()
-
-        for prev, mix in pairwise(mixes):
-            key = f'{prev.name} mix'
-
-            # Try to match the order of reagents in the original reaction as 
-            # best as possible:
-
-            i = 0
-            prev_reagents |= prev.reagents
-
-            for k in self.base_reaction.keys():
-                if k in mix.reagents:
-                    i = after(k)
-                elif k in prev_reagents:
-                    break
-
-            mix.reaction.insert_reagent(key, i)
-            mix.reaction[key].volume = prev.reaction.volume
-
-            # If the master mix has a nice stock concentration, include it in 
-            # the protocol:
-            
-            if not prev.stock_conc:
-                stock_conc = self.base_reaction.volume / prev.reaction.volume
-                if stock_conc.is_integer():
-                    prev.stock_conc = f'{int(stock_conc)}x'
-
-            mix.reaction[key].stock_conc = prev.stock_conc
-
-    @autoprop.ignore
-    def _set_mix_scales(self, mixes):
-        """
-        Calculate (i) how many reactions to setup for each step and (ii) how 
-        much to scale each reaction.
-
-        Note that this method must be called after `_set_mix_reactions()`.
-        """
-
-        # Account for the combinations of reagents we need to make:
-
-        cumulative_reagents = set()
-
-        for mix in mixes:
-            cumulative_reagents |= mix.reagents & self.combos.cols
-            combo_counts = Counter(
-                    self.combos.select_ordered_rows(cumulative_reagents)
-            )
-            mix.num_reactions = len(combo_counts) or 1
-            mix.scale = max(combo_counts.values(), default=1) * \
-                    self.combos.replicates
-
-        # Account for the extra volume requested by the user:
-
-        cumulative_factor = 1
-        if self.last_mix_extra or (self.combos.replicates > 1):
-            extra_defaults = repeat(self.extra)
+        # Don't use plural() here, because the mix names can contain slashes, 
+        # and that would mess up the formatting.
+        if n == 1:
+            step = f"Make {name} mix:"
         else:
-            extra_defaults = repeat_last([Extra(), self.extra])
+            step = f"Make {n} {name} mixes:"
 
-        for mix, extra_default in zip(reversed(mixes), extra_defaults):
-            extra = mix.extra or extra_default
-            scale = extra.increase_scale(mix.scale, mix.reaction)
-            cumulative_factor *= scale / mix.scale
-            mix.scale *= cumulative_factor
+        return pl(step, table)
 
-    def _iter_volume_groups(self, mixes):
-        volume_group = _VolumeGroup()
-        solvent = self.base_reaction.solvent
-        unit = self.base_reaction.volume.unit
+    def get_mix_table(self, mix):
+        return format_reaction(mix.reaction, scale=mix.scales)
 
-        for _, is_last, mix in mark_ends(mixes):
-            volume_group.add_mix(mix, solvent)
+    def get_mixes(self):
+        return list(iter_all_mixes_in_protocol_order(
+                self.mix,
+                self.base_reaction,
+        ))
 
-            if mix.volume:
-                if not solvent:
-                    raise UsageError(f"can't set mix volume to {mix.volume}: the reaction has no solvent.")
-                if is_last:
-                    raise UsageError(f"can't set mix volume to {mix.volume}: no subsequent mixes to restore total reaction volume")
+    def refresh(self):
+        try: del self.mix
+        except AttributeError: pass
 
-                volume_group.volume = Quantity(mix.volume, unit)
-                yield volume_group
+        self._refresh(self.mix)
 
-                volume_group = _VolumeGroup()
+    def refresh_names(self):
+        """
+        Update the names of all the reagents in all the mixes.
 
-        # Return without yielding anything if there's no solvent.  This helps 
-        # simplify calling code.  It would be more natural to do this check at 
-        # the beginning of the function, but we want the error-checking that 
-        # happens in the for loop.  Note that even though it looks like we may 
-        # have already yielded in the for-loop, we never would have gotten that 
-        # far without solvent.
+        This is necessary after changing the name of an automatically-generated 
+        mix (but not if you simply provided a pre-calculated mix with a 
+        non-default name to the constructor).
+        """
+        self._refresh_names(self.mix)
 
-        if not solvent:
-            return
+    def refresh_reactions(self):
+        """
+        Recalculate the reaction table for each mix.
 
-        volume_group.volume = self.base_reaction.volume
-        yield volume_group
+        This is necessary after making changes to mix volumes.  Note however 
+        that if you assigned a volume to a mix that previously didn't have one 
+        (or vice versa), a full refresh is required because the entire reaction 
+        setup could change.  Setting or unsetting a mix volume can change which 
+        reactions have solvent, which can change the number of pipetting steps 
+        required to setup the reactions, which can change the whole master mix 
+        scheme.
+        """
+        self._refresh_reactions(self.mix)
+
+    def refresh_scales(self):
+        """
+        Recalculate how much to scale each reaction.
+
+        This is necessary after changing the *extra* attributes associated with 
+        either this `Reactions` object or any of the mixes.
+        """
+        self._refresh_scales(self.mix)
+
+    def _refresh(self, mix):
+        self._refresh_names(mix)
+
+    def _refresh_names(self, mix):
+        set_mix_names(mix, self.base_reaction, self.combos.distinct_cols)
+        self._refresh_reactions(mix)
+
+    def _refresh_reactions(self, mix):
+        reagent_names = {
+                k: one(v) for k, v in self.combos.unique_values_by_col.items()
+                if len(v) == 1
+        }
+        set_mix_reactions(mix, self.base_reaction, reagent_names)
+        self._refresh_scales(mix)
+
+    def _refresh_scales(self, mix):
+        if self.last_mix_extra or (self.combos.replicates > 1):
+            default_extra = self.extra
+        else:
+            default_extra = Extra()
+
+        set_mix_scales(mix, self.combos, default_extra, self.extra)
+
+        try: del self.mixes
+        except AttributeError: pass
+
+        try: del self.step
+        except AttributeError: pass
+
+        try: del self.protocol
+        except AttributeError: pass
 
     docopt_usage = """\
 Setup one or more reactions.
 
 Usage:
     reaction <reagent;stock;conc;volume>... [-C <reagents>] [-c <combo>]...
-        [-r <replicates>] [-v <volume>] [-m <reagents>]... [-M <penalty>]
+        [-r <replicates>] [-v <volume>] [-m <reagents>]... [-M <bias>]
         [-S <step>] [-s <kind>] [-i <instruction>]... [-x <percent>]
         [-X <volume>] [options]
 
@@ -692,16 +441,18 @@ Options:
         present in exactly one master mix.  Use commas to separate multiple 
         reagents in a single mix.
 
-    -M --mix-penalty
-        Set the penalty for creating master mixes.  To give some background, 
-        this program determines whether or not to make master mixes by 
-        calculating the number of pipetting steps that would be required to 
-        setup the same reactions with or without.  A master mix is only made if 
-        doing so would reduce this number.  This penalty is added to the number 
-        of pipetting steps for the master mix case, effectively discouraging 
-        the program from making master mixes unless they really help.  The 
-        default penalty is 0.  Note that this option is ignored if `--mix` is 
-        specified.
+    -M --mix-bias
+        Set the bias for creating master mixes.  To give some background, this 
+        program determines whether or not to make master mixes by calculating 
+        the number of pipetting steps that would be required to setup the same 
+        reactions with or without.  Master mixes are only made when doing so 
+        doesn't increase this number.  This "bias" is added to the number of 
+        pipetting steps for the master mix case.  So, by setting the bias to a 
+        positive number, you discourage the program from making master mixes 
+        unless they really help.  By setting the bias to a negative number, you 
+        encourage the program to make master mixes even when it would mean more 
+        pipetting.  The default bias is 0.  Note that this option is ignored if 
+        `--mix` is specified.
 
     -S --step <str>
         The text introducing the reaction.  "Setup {n:# reaction/s}:" is the 
@@ -720,6 +471,11 @@ Options:
         given value doesn't contain a slash, it will be suffixed with 
         "reaction/s".  Note that this option cannot be used with `--step`, 
         because `--step` overwrites the text introducing the reaction.
+
+    --hide-combos
+        Don't include the list of all the reagent combinations to setup in the 
+        protocol, e.g. when this information would be clear from prior steps in 
+        the protocol.
 
     -i --instruction <str>
         An instruction on how to setup the reaction, e.g. to keep reagents on 
@@ -759,8 +515,8 @@ Configuration:
         ${path}
         %endfor
 
-    reactions.mix_penalty
-        See `--mix-penalty`.
+    reactions.mix_bias
+        See `--mix-bias`.
 
     reactions.extra.percent
         See `--extra-percent`.
@@ -792,7 +548,7 @@ Configuration:
             Key(DocoptConfig, '--replicates', cast=int),
             default=1,
     )
-    _user_mixes = byoc.param(
+    required_mixes = byoc.param(
             Key(DocoptConfig, '--mix', cast=mixes_from_strs),
             default=None,
     )
@@ -803,6 +559,10 @@ Configuration:
     step_kind = byoc.param(
             Key(DocoptConfig, '--step-kind'),
             default="reaction/s",
+    )
+    show_combos = byoc.param(
+            Key(DocoptConfig, '--hide-combos', cast=not_),
+            default=True,
     )
     instructions = byoc.param(
             Key(DocoptConfig, '--instruction', cast=ul.from_iterable),
@@ -816,9 +576,9 @@ Configuration:
             Key(DocoptConfig, '--last-mix-extra'),
             default=False,
     )
-    master_mix_penalty = byoc.param(
-            Key(DocoptConfig, '--mix-penalty', cast=float),
-            Key(StepwiseConfig, 'mix_penalty'),
+    master_mix_bias = byoc.param(
+            Key(DocoptConfig, '--mix-bias', cast=float),
+            Key(StepwiseConfig, 'mix_bias'),
             default=0,
     )
     extra = byoc.param(
@@ -863,7 +623,7 @@ class Combos:
         yield from self._combos
 
     def __len__(self):
-        return max(len(self._combos), 1)
+        return len(self._combos)
 
     def get_cols(self):
         return set(self._combos[0].keys()) if self._combos else set()
@@ -1010,6 +770,28 @@ class Extra:
         self.volume = volume
         self.min_volume = min_volume
 
+    def fork(self, **kwargs):
+        extra = copy(self)
+
+        known_attrs = [
+                'fraction',
+                'percent',
+                'reactions',
+                'volume',
+                'min_volume',
+        ]
+
+        for attr in known_attrs:
+            try:
+                setattr(extra, attr, kwargs.pop(attr))
+            except KeyError:
+                pass
+
+        if kwargs:
+            raise TypeError(f"fork() got unexpected keyword argument(s): {repr_join(kwargs)}")
+
+        return extra
+
     def get_percent(self):
         return 100 * self.fraction
 
@@ -1026,122 +808,5 @@ class Extra:
         ))
 
     __repr__ = repr_from_init(skip=['percent'])
-
-class _VolumeGroup:
-
-    def __init__(self):
-        self.volume = None
-        self.mixes = []
-        self._solvent_index = None
-
-    def add_mix(self, mix, solvent):
-        if solvent in mix.reagents:
-            self._solvent = len(self.mixes)
-        self.mixes.append(mix)
-
-    def iter_mixes_after_solvent(self):
-        yield from self.mixes[self.solvent_index+1:]
-
-    @property
-    def solvent_mix(self):
-        return self.mixes[self.solvent_index]
-
-    @property
-    def solvent_index(self):
-        return self._solvent_index or 0
-
-def make_pipetting_graph(combos, ideal_order=None, split_penalty=0):
-    """
-    Create a graph where the nodes are reagents and the edge weights are the 
-    number of pipetting steps required to created every desired combination of 
-    those reagents.
-
-    There are two ways to pipet each pair of reagents: either by merging the 
-    reagents into a single master mix or splitting them into separate master 
-    mixes.  Whichever requires fewer pipetting steps will be used.  Each edge 
-    will also have a boolean "split" attribute indicating which approach was 
-    used.
-
-    Note that the edges are not symmetric.  In other words, the order in which 
-    the reagents are added matters.
-    """
-    g = nx.DiGraph()
-
-    if not combos:
-        return g
-
-    g.add_nodes_from(combos[0].keys())
-
-    if ideal_order:
-        order_map = {k: i for i, k in enumerate(ideal_order)}
-    
-    for a, b in permutations(g.nodes, 2):
-        ab_combos = sorted(map(itemgetter(a, b), combos))
-
-        merge_weight = 2 * len(list(groupby(ab_combos)))
-        split_weight = split_penalty
-        for _, group in groupby(ab_combos, key=itemgetter(0)):
-            split_weight += 1 + len(list(groupby(group, key=itemgetter(1))))
-
-        weight = min(merge_weight, split_weight)
-        split = split_weight < merge_weight
-
-        if ideal_order:
-            order = (order_map[b] - order_map[a] != 1)
-        else:
-            order = 0
-
-        g.add_edge(a, b, weight=weight, order=order, split=split)
-
-    return g
-    
-def minimize_pipetting(g):
-    """
-    Find the best order in which to mix the given reagents.
-
-    This is a realization of the Traveling Salesman problem: we want the 
-    lowest-weight path that includes every reagent exactly once.  I wrote a 
-    simple brute-force implementation, because I don't anticipate ever having a 
-    significant number of reagents, and I like that this brute-force algorithm 
-    outputs its results in lexicographical order.  In other words, this 
-    algorithm is O(N!), but I expect N<5 in almost all cases.
-
-    After finding the best path, the algorithm also interprets the 
-    splits/merges encoded in each edge, to group the reagents into master 
-    mixes.
-    """
-    if not g:
-        return []
-
-    best_weight = inf,
-    best_tour = None
-
-    def weights(g, tour):
-        weight = itemgetter('weight', 'order')
-        yield from (
-                weight(g.edges[a, b])
-                for a, b in pairwise(tour)
-        )
-
-    def tuple_sum(xs):
-        return tuple(map(sum, zip(*xs)))
-
-    for tour in permutations(g.nodes):
-        weight = tuple_sum(weights(g, tour))
-
-        if weight < best_weight:
-            best_weight = weight
-            best_tour = tour
-
-    groups = [{best_tour[0]}]
-
-    for a, b in pairwise(best_tour):
-        if g.edges[a, b]['split']:
-            groups.append(set())
-        groups[-1].add(b)
-
-    return groups
-
-
 
 

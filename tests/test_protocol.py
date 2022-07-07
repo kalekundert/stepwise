@@ -5,7 +5,6 @@ import subprocess as subp
 from pytest import raises
 from stepwise import Protocol, ProtocolIO, ParseError
 from stepwise import pl, ul, ol, dl, pre, table
-from math import inf
 from functools import partial
 from param_helpers import *
 
