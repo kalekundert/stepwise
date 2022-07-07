@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.38.0 (2022-07-07)
+### Feature
+* Allow non-linear master mix setups ([`15c1ded`](https://github.com/kalekundert/stepwise/commit/15c1dedc93c981c140b8935b0d348e64705210fb))
+* Allow intermediate mixes to have custom volumes ([`34c054e`](https://github.com/kalekundert/stepwise/commit/34c054ec4f88921477b022f3b5c0be71e083174a))
+* Implement `dl.from_iterable()` ([`2c76187`](https://github.com/kalekundert/stepwise/commit/2c76187b9297f3b20a80d3b6ab4d0d20f6e73d57))
+
 ## v0.37.0 (2022-06-14)
 ### Feature
 * Reorder reagents within a reaction ([`1be1557`](https://github.com/kalekundert/stepwise/commit/1be1557bdaaedf732f13b0893eacc927c7704c81))
