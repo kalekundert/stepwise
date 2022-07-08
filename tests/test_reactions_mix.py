@@ -116,12 +116,13 @@ def test_set_mix_names(mixes, reaction, notable_reagents, expected):
     for k, name in expected.items():
         assert mixes[k].name == name
 
-@parametrize_from_file(schema=defaults(names={}))
-def test_set_mix_reactions(mixes, reaction, names, expected):
+@parametrize_from_file(schema=defaults(names={}, kwargs={}))
+def test_set_mix_reactions(mixes, reaction, names, kwargs, expected):
     mix = eval_mix(mixes)
     rxn = eval_reaction(reaction)
+    kwargs = with_sw.eval(kwargs)
 
-    set_mix_reactions(mix, rxn, names)
+    set_mix_reactions(mix, rxn, names, **kwargs)
 
     for k, expected_rxn in expected.items():
         expected_rxn = eval_reaction(expected_rxn)
@@ -222,3 +223,9 @@ def test_iter_all_mixes_in_protocol_order(mixes, reaction, expected):
     actual = list(iter_all_mixes_in_protocol_order(mix, rxn))
     expected = parse_mixes(expected)
     assert actual == expected
+
+@parametrize_from_file(schema=with_sw.eval)
+def test_format_stock_conc(func, conc, expected):
+    assert func(None, conc) == expected
+
+

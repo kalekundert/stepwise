@@ -1297,6 +1297,89 @@ test_reactions_mixes:
         > master mix    5 µL
       scale: 1.1
       num_reactions: 2
+  -
+    id: format-mix-name
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > w        to 6 µL
+        > a           1 µL
+        > b           2 µL
+      combos:
+        -
+          a: 1
+        -
+          a: 2
+      exec:
+        > def mock_format(mix):
+        >     return 'FORMAT'
+        >
+        > rxns.format_mix_name = mock_format
+
+    expected:
+      reagents:
+        - a
+      mixes:
+        -
+          name: FORMAT
+          reagents:
+            - w
+            - b
+          reaction:
+            > Reagent  Volume
+            > =======  ======
+            > w          3 µL
+            > b          2 µL
+          scale: 2
+          num_reactions: 1
+      reaction:
+        > Reagent     Volume
+        > ==========  ======
+        > FORMAT mix    5 µL
+        > a             1 µL
+      scale: 1
+      num_reactions: 2
+  -
+    id: format-mix-stock-conc
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > w        to 6 µL
+        > a           1 µL
+        > b           2 µL
+      combos:
+        -
+          a: 1
+        -
+          a: 2
+      exec:
+        > rxns.format_mix_stock_conc = lambda mix, conc: f'{conc:.1f}x'
+
+    expected:
+      reagents:
+        - a
+      mixes:
+        -
+          name: master
+          reagents:
+            - w
+            - b
+          reaction:
+            > Reagent  Volume
+            > =======  ======
+            > w          3 µL
+            > b          2 µL
+          scale: 2
+          num_reactions: 1
+      reaction:
+        > Reagent     Stock  Volume
+        > ==========  =====  ======
+        > master mix   1.2x    5 µL
+        > a                    1 µL
+      scale: 1
+      num_reactions: 2
 
 test_combos_init:
   -

@@ -21,7 +21,7 @@ from fractions import Fraction
 from .reaction import Reaction, format_reaction, after
 from .mix import (
         Mix, plan_mixes, set_mix_names, set_mix_reactions, set_mix_scales,
-        iter_mixes, iter_all_mixes_in_protocol_order,
+        iter_mixes, iter_all_mixes_in_protocol_order, format_stock_conc_as_int,
 )
 from ..format import pl, ul, dl, table
 from ..quantity import Quantity
@@ -169,6 +169,9 @@ class Reactions(byoc.App):
         if replicates: self._user_replicates = replicates
         if mixes: self.required_mixes = mixes
         if extra: self.extra = extra
+
+        self.format_mix_name = lambda mix: None
+        self.format_mix_stock_conc = format_stock_conc_as_int
 
     def main(self):
         byoc.load(self)
@@ -335,7 +338,12 @@ class Reactions(byoc.App):
         self._refresh_names(mix)
 
     def _refresh_names(self, mix):
-        set_mix_names(mix, self.base_reaction, self.combos.distinct_cols)
+        set_mix_names(
+                mix,
+                self.base_reaction,
+                self.combos.distinct_cols,
+                self.format_mix_name,
+        )
         self._refresh_reactions(mix)
 
     def _refresh_reactions(self, mix):
@@ -343,7 +351,12 @@ class Reactions(byoc.App):
                 k: one(v) for k, v in self.combos.unique_values_by_col.items()
                 if len(v) == 1
         }
-        set_mix_reactions(mix, self.base_reaction, reagent_names)
+        set_mix_reactions(
+                mix,
+                self.base_reaction,
+                reagent_names,
+                self.format_mix_stock_conc,
+        )
         self._refresh_scales(mix)
 
     def _refresh_scales(self, mix):

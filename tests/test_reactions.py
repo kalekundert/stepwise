@@ -352,41 +352,6 @@ def test_reactions_refresh_scales():
     rxns.extra = Extra(percent=10)
     rxns.refresh_scales()
 
-    assert rxns.step == pl(
-            "Setup 2 reactions:",
-            ul(
-              pl(
-                "Use the following reagents:",
-                dl(('a', '1, 2')),
-              ),
-              pl(
-                "Make master mix:",
-                table(
-                  header=["Reagent", "Volume", "2.2x"],  # <---
-                  rows=[
-                      ["w", "3.00 µL", "6.60 µL"],       # <---
-                      ["b", "2.00 µL", "4.40 µL"],       # <---
-                  ],
-                  footer=["", "5.00 µL", "11.00 µL"],    # <---
-                  align=list("<>>"),
-                ),
-              ),
-              pl(
-                "Setup the reactions:",
-                table(
-                  header=["Reagent", "Volume"],
-                  rows=[
-                      ["master mix", "5.00 µL"],
-                      ["a", "1.00 µL"],
-                  ],
-                  footer=["", "6.00 µL"],
-                  align=list("<>"),
-                ),
-              ),
-              br='\n\n',
-            ),
-    ), 'after'
-
 @parametrize_from_file
 def test_reactions_combos_step(reactions, expected):
     rxns = exec_reactions(reactions)
@@ -495,7 +460,7 @@ def test_extra(extra, scale, reaction, expected, expected_repr):
     assert extra.increase_scale(scale, rxn) == approx(expected)
 
 def test_extra_fork_unknown_arg():
-    with pytest.raises(TypeError, match="unexpected keyword argument\(s\): 'unknown_attr'"):
+    with pytest.raises(TypeError, match=r"unexpected keyword argument\(s\): 'unknown_attr'"):
         Extra().fork(unknown_attr=0)
 
 

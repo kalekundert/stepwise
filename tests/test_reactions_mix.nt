@@ -337,10 +337,10 @@ test_set_mix_reactions:
         > a           1 µL
         > b           2 µL
       c:
-        > Reagent     Stock  Volume
-        > ==========  =====  ======
-        > master mix     2x    3 µL
-        > c                    3 µL
+        > Reagent     Volume
+        > ==========  ======
+        > master mix    3 µL
+        > c             3 µL
   -
     id: solvent
     mixes:
@@ -409,11 +409,11 @@ test_set_mix_reactions:
         > w        to 3 µL
         > b           2 µL
       wa:
-        > Reagent     Stock   Volume
-        > ==========  =====  =======
-        > w                  to 6 µL
-        > a                     1 µL
-        > master mix     2x     3 µL
+        > Reagent      Volume
+        > ==========  =======
+        > w           to 6 µL
+        > a              1 µL
+        > master mix     3 µL
   -
     id: solvent-volume-fork
     mixes:
@@ -523,17 +523,17 @@ test_set_mix_reactions:
         > w              1 µL
         > a              1 µL
       wb:
-        > Reagent     Stock   Volume
-        > ==========  =====  =======
-        > w                     1 µL
-        > A mix          5x     2 µL
-        > b                     2 µL
+        > Reagent      Volume
+        > ==========  =======
+        > w              1 µL
+        > A mix          2 µL
+        > b              2 µL
       wc:
-        > Reagent     Stock    Volume
-        > ==========  =====  ========
-        > w                      2 µL
-        > B mix          2x      5 µL
-        > c                      3 µL
+        > Reagent       Volume
+        > ==========  ========
+        > w               2 µL
+        > B mix           5 µL
+        > c               3 µL
   -
     id: order
     mixes:
@@ -650,11 +650,11 @@ test_set_mix_reactions:
         > w          3 µL
         > b          2 µL
       wa:
-        > Reagent     Stock  Volume
-        > ==========  =====  ======
-        > w                    4 µL
-        > a                    1 µL
-        > master mix     2x    5 µL
+        > Reagent     Volume
+        > ==========  ======
+        > w             4 µL
+        > a             1 µL
+        > master mix    5 µL
   -
     id: order-multiple-children
     mixes:
@@ -681,11 +681,11 @@ test_set_mix_reactions:
         > b          2 µL
         > d          4 µL
       c:
-        > Reagent     Stock  Volume
-        > ==========  =====  ======
-        > AE mix               6 µL
-        > BD mix               6 µL
-        > c                    3 µL
+        > Reagent     Volume
+        > ==========  ======
+        > AE mix        6 µL
+        > BD mix        6 µL
+        > c             3 µL
   -
     id: names
     mixes:
@@ -741,6 +741,8 @@ test_set_mix_reactions:
       > a           1 µL
       > b           2 µL
       > c           3 µL
+    kwargs:
+      format_stock_conc: format_stock_conc_as_int
     expected:
       ab:
         > Reagent   Volume
@@ -2292,3 +2294,30 @@ test_iter_all_mixes_in_protocol_order:
       - b c
       - a d
       - a+d b+c
+
+test_format_stock_conc:
+  -
+    func: format_stock_conc_as_int
+    conc: 1.0
+    expected: '1x'
+  -
+    func: format_stock_conc_as_int
+    conc: 1.5
+    expected: None
+  -
+    func: format_stock_conc_as_int_ratio
+    conc: 1
+    expected: '1x'
+  -
+    func: format_stock_conc_as_int_ratio
+    conc: 1.5
+    expected: '3/2x'
+  -
+    func: format_stock_conc_as_int_ratio
+    conc: 11/8
+    expected: '11/8x'
+  -
+    func: format_stock_conc_as_int_ratio
+    # Too many sig figs.
+    conc: 111/8
+    expected: None

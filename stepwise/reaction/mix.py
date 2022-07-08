@@ -185,7 +185,7 @@ def plan_automixes(mixes, *args, **kwargs):
 
     return processed
 
-def set_mix_names(mix, reaction, notable_reagents):
+def set_mix_names(mix, reaction, notable_reagents, format_name=lambda x: None):
     """
     Assign a name to each mix.
 
@@ -203,17 +203,17 @@ def set_mix_names(mix, reaction, notable_reagents):
     """
     children = list(iter_all_mixes(mix))
     
-    if len(children) == 1:
-        children[0].default_name = 'master'
-        return
-
     order_map = make_order_map(reaction.keys())
     by_order = lambda x: order_map[x]
 
     for child in children:
+        if name := format_name(child):
+            child.default_name = name
+            continue
+
         reagents = notable_reagents & set(iter_reagents(child))
 
-        if not reagents:
+        if not reagents or len(children) == 1:
             child.default_name = 'master'
         else:
             child.default_name = '/'.join(
@@ -221,7 +221,13 @@ def set_mix_names(mix, reaction, notable_reagents):
                     for k in sorted(reagents, key=by_order)
             )
 
-def set_mix_reactions(mix, base_reaction, reagent_names, solvent_volume=None):
+def set_mix_reactions(
+        mix,
+        base_reaction,
+        reagent_names,
+        format_stock_conc=lambda m, c: None,
+        solvent_volume=None,
+    ):
     """
     Create a reaction for each mix.  This process includes (i) copying the 
     reagents from the base reaction that are relevant to each step, (ii) 
@@ -300,7 +306,13 @@ def set_mix_reactions(mix, base_reaction, reagent_names, solvent_volume=None):
         # Recursively configure the reaction for the child mix, because we'll 
         # need to know its volume in the following steps:
 
-        set_mix_reactions(child, base_reaction, reagent_names, solvent_volume)
+        set_mix_reactions(
+                child,
+                base_reaction,
+                reagent_names,
+                format_stock_conc,
+                solvent_volume,
+        )
 
         # Try to match the order of reagents in the original reaction as best 
         # as possible:
@@ -329,8 +341,8 @@ def set_mix_reactions(mix, base_reaction, reagent_names, solvent_volume=None):
         
         if not child.stock_conc:
             stock_conc = base_reaction.volume / child.reaction.volume
-            if stock_conc.is_integer():
-                child.stock_conc = f'{int(stock_conc)}x'
+            if x := format_stock_conc(child, stock_conc):
+                child.stock_conc = x
 
         rxn[key].stock_conc = child.stock_conc
 
@@ -798,6 +810,29 @@ def make_mix_graph(mix):
             g.add_edge(child, parent)
 
     return g
+
+def format_stock_conc_as_int(mix, conc):
+    if conc.is_integer():
+        return f'{int(conc)}x'
+
+def format_stock_conc_as_int_ratio(mix, conc, sig_figs=2):
+    """
+    Try to format the given concentration as a "nice" ratio, e.g. "3/2x".
+
+    The current implementation only works for numbers that have exact floating 
+    point representations, which I think means just ratios with power-of-two 
+    denominators.  However, this might be expanded in the future.
+    """
+    a, b = conc.as_integer_ratio()
+
+    def count_sig_figs(x):
+        return len(str(x).rstrip('0'))
+
+    if b == 1:
+        return f'{a}x'
+
+    if all(count_sig_figs(x) <= sig_figs for x in (a,b)):
+        return f'{a}/{b}x'
 
 
 
