@@ -1090,7 +1090,7 @@ def format_reaction(rxn, *, scale=1, show_1x=True, show_stocks=None, show_concs=
         # This is a hack to deal with tables that have different volume 
         # unit scale factors.  It would be better to make the unit handling 
         # more powerful.
-        if v.value > 1000 and v.unit in ('uL', 'µL'):
+        if v.value > 2000 and v.unit in ('uL', 'µL'):
             v = Quantity(v.value / 1000, 'mL')
         return f'{v:.2f}'
 
