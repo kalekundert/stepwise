@@ -211,6 +211,11 @@ def test_count_adjacencies(mix, ideal_order, expected):
     assert count_adjacencies(mix, order_map) == expected
 
 @parametrize_from_file
+def test_find_depth(mix, expected):
+    mix = parse_mix(mix)
+    assert find_depth(mix) == int(expected)
+
+@parametrize_from_file
 def test_iter_all_mixes_in_protocol_order(mixes, reaction, expected):
     mix = eval_mix(mixes)
     rxn = eval_reaction(reaction)

@@ -57,6 +57,21 @@ test_plan_mixes:
     expected:
       [[a,b],c]
   -
+    id: tiebreaker-depth
+    # I don't know if this is the simplest example, but it's something that 
+    # came up in a real protocol.  The order of the reagents is important, 
+    # though.  If the two constant reagents are adjacent, the desired reaction 
+    # setup wins out purely on the basis keeping them together.
+    combos:
+      a:
+      b: 1 1 2 2 3 3
+      c: 1 2 1 2 1 2
+      d: 1 2 1 2 1 2
+      e:
+
+    expected:
+      [[[a,e],[c,d]],b]
+  -
     id: no-master-mix
     combos:
       a:
@@ -2130,6 +2145,40 @@ test_count_adjacencies:
     ideal_order:
       []
     expected: 0
+
+test_find_depth:
+  -
+    mix:
+      [a]
+    expected: 0
+  -
+    mix:
+      [a,b]
+    expected: 0
+  -
+    mix:
+      [a,[b,c]]
+    expected: 1
+  -
+    mix:
+      [a,[b,c],[d,e]]
+    expected: 1
+  -
+    mix:
+      [a,[b,[c,d]]]
+    expected: 2
+  -
+    mix:
+      [a,[b,[c,d],[e,f]]]
+    expected: 2
+  -
+    mix:
+      [a,[b,[c,d]],[e,f]]
+    expected: 2
+  -
+    mix:
+      [a,[b,[c,d]],[e,[f,g]]]
+    expected: 2
 
 test_iter_all_mixes_in_protocol_order:
   -

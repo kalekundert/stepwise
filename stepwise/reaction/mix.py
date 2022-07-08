@@ -132,6 +132,7 @@ def plan_mixes(reaction, combos, *, mixes=None, subset=None, bias=0):
     - Most compatible with *ideal_order*.
     """
     memo = {}
+    solvent = reaction.solvent
 
     mixes = plan_automixes(mixes or [], reaction, combos, bias=bias)
     components = init_components(reaction, mixes, subset)
@@ -142,11 +143,13 @@ def plan_mixes(reaction, combos, *, mixes=None, subset=None, bias=0):
     best_num_pipetting_steps = inf
     best_num_mixes = 0
     best_num_adjacencies = 0
+    best_depth = inf
 
-    for mix in iter_complete_mixes(levels, combos, reaction.solvent, memo):
+    for mix in unique(iter_complete_mixes(levels, combos, solvent, memo)):
         n = count_pipetting_steps(mix, combos, memo)
         n_mix = ilen(iter_all_mixes(mix))
         n_adj = count_adjacencies(mix, order_map)
+        n_depth = find_depth(mix)
         n += n_mix * bias
 
         is_best = n < best_num_pipetting_steps
@@ -154,12 +157,15 @@ def plan_mixes(reaction, combos, *, mixes=None, subset=None, bias=0):
             is_best = n_mix > best_num_mixes
             if n_mix == best_num_mixes:
                 is_best = n_adj > best_num_adjacencies
+                if n_adj == best_num_adjacencies:
+                    is_best = n_depth < best_depth
 
         if is_best:
             best_mix = mix
             best_num_pipetting_steps = n
             best_num_mixes = n_mix
             best_num_adjacencies = n_adj
+            best_depth = n_depth
 
     return best_mix
 
@@ -671,6 +677,14 @@ def count_pipetting_steps(components, combos, memo=None):
 
     return n_steps
 
+def count_combos(component_or_components, combos):
+    components = always_iterable(component_or_components)
+    reagents = list(iter_all_reagents(components))
+    return len({
+            tuple(combo.get(k) for k in reagents)
+            for combo in combos
+    })
+
 def count_adjacencies(components, order_map):
     if not order_map:
         return 0
@@ -693,13 +707,9 @@ def count_adjacencies(components, order_map):
 
     return n_adj
 
-def count_combos(component_or_components, combos):
-    components = always_iterable(component_or_components)
-    reagents = list(iter_all_reagents(components))
-    return len({
-            tuple(combo.get(k) for k in reagents)
-            for combo in combos
-    })
+def find_depth(mix):
+    mixes = mix.mixes
+    return 1 + max(find_depth(x) for x in mixes) if mixes else 0
 
 def iter_reagents(components):
     for component in components:
