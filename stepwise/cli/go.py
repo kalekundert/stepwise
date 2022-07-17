@@ -38,11 +38,12 @@ Options:
 Configuration:
     The settings described below can be set in the following files:
 
-        {0.dirs.user_config_dir}
-        {0.dirs.site_config_dir}
+        % for p in app.config_paths:
+        ${p}
+        %endfor
 
     go.printer:
-        The printer to use if --printer is not specified.  If this setting is 
+        The printer to use if `--printer` is not specified.  If this setting is 
         not specified either, the default is taken from `lpstat -d`.  You can 
         set this default by running `lpoptions -d <printer name>`.
 
@@ -55,7 +56,8 @@ Configuration:
 
     printer.<name>.paps_flags
         Flags to pass to `paps`, the program used to convert text to 
-        postscript.  These flags can control things like font, paper size, etc.
+        postscript.  These flags can control things like font, paper size, etc.  
+        Note that you may have to use homebrew to install paps on Mac.
 
     printer.<name>.lpr_flags
         Flags to pass to `lpr`, the program used to send the print job to a 
@@ -87,6 +89,7 @@ Configuration:
             Key(StepwiseConfig, 'go.printer'),
             default_factory=get_default_printer_name,
     )
+    config_paths = byoc.config_attr()
 
     def main(self):
         byoc.load(self)
