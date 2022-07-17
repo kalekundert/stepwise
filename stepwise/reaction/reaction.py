@@ -156,6 +156,11 @@ class Reaction:
         return cls.from_cols(cols)
 
     @classmethod
+    def from_df(cls, df):
+        cols = df.to_dict('list')
+        return cls.from_cols(cols)
+
+    @classmethod
     def from_rows(cls, rows):
         keys = set()
         for row in rows:

@@ -30,6 +30,9 @@ from ..utils import unanimous, repr_join
 from ..errors import *
 
 def reaction_from_docopt(args):
+    if '--config-file' in args:
+        return reaction_from_xlsx(args['--config-file'], 0)
+
     reagent_strs = args['<reagent;stock;conc;volume>']
     cols = {
             'reagent': [],
@@ -57,6 +60,8 @@ def reaction_from_docopt(args):
     return rxn
 
 def combos_from_docopt(args):
+    if '--config-file' in args:
+        return combos_from_xlsx(args['--config-file'], 1)
 
     def parse_combo(combo_str, header=None):
         if not combo_str:
@@ -79,6 +84,16 @@ def combos_from_docopt(args):
             dict(zip(header, row))
             for row in rows
     ]
+
+def reaction_from_xlsx(path, sheet):
+    import pandas as pd
+    df = pd.read_excel(path, sheet_name=sheet, dtype=str)
+    return Reaction.from_df(df)
+
+def combos_from_xlsx(path, sheet):
+    import pandas as pd
+    df = pd.read_excel(path, sheet_name=sheet, dtype=str)
+    return df.to_dict('records')
 
 def mixes_from_strs(mix_strs):
     return [
@@ -169,9 +184,6 @@ class Reactions(byoc.App):
         if replicates: self._user_replicates = replicates
         if mixes: self.required_mixes = mixes
         if extra: self.extra = extra
-
-        self.format_mix_name = lambda mix: None
-        self.format_mix_stock_conc = format_stock_conc_as_int
 
     def main(self):
         byoc.load(self)
@@ -380,10 +392,10 @@ class Reactions(byoc.App):
 Setup one or more reactions.
 
 Usage:
-    reaction <reagent;stock;conc;volume>... [-C <reagents>] [-c <combo>]...
-        [-r <replicates>] [-v <volume>] [-m <reagents>]... [-M <bias>]
-        [-S <step>] [-s <kind>] [-i <instruction>]... [-x <percent>]
-        [-X <volume>] [options]
+    reaction (<reagent;stock;conc;volume>... | -f <config>) [-C <reagents>]
+        [-c <combo>]... [-r <replicates>] [-v <volume>] [-m <reagents>]...
+        [-M <bias>] [-S <step>] [-s <kind>] [-i <instruction>]... 
+        [-x <percent>] [-X <volume>] [options]
 
 Arguments:
     <reagent;stock;conc;volume>
@@ -421,6 +433,27 @@ Arguments:
         concentration, only the volume will be used.
 
 Options:
+    -f --config-file <path>
+        The path to an XLS or XLSX file specifying (i) the reagents comprising 
+        the reaction and (ii) what combinations of reagents to setup.  The file 
+        should contain two sheets.  The first should have the following 
+        columns:
+
+        - "Reagent"
+        - "Stock Conc" or "Stock"
+        - "Final Conc" or "Final"
+        - "Volume"
+
+        See the decription of the <reagent;stock;conc;volume> argument for the 
+        specific meanings of these columns.  Each row in this sheet defines a 
+        reagent that will be included in the reaction, and you can define as 
+        many reagents as you'd like.
+
+        The second sheet should have a column names that exactly match 
+        "Reagent" values from the first sheet.  Each row should name a 
+        combination of reagent variants that should be mixed together.  This 
+        table corresponds to the `--combo-reagents` and `--combo` options.
+        
     -C --combo-reagents <reagents>
         The names of the reagents to vary when setting up the reactions, 
         separated by commas.  Each reagent name must exactly match one of the 
@@ -576,6 +609,12 @@ Configuration:
     show_combos = byoc.param(
             Key(DocoptConfig, '--hide-combos', cast=not_),
             default=True,
+    )
+    format_mix_name = byoc.param(
+            default=lambda mix: None,
+    )
+    format_mix_stock_conc = byoc.param(
+            default=format_stock_conc_as_int,
     )
     instructions = byoc.param(
             Key(DocoptConfig, '--instruction', cast=ul.from_iterable),
