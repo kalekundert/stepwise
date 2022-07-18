@@ -60,11 +60,11 @@ Plasmids and fragments:
 ====  =====  ====================================  ==================================
 Name  Ready  Synthesis                             Cleanup
 ====  =====  ====================================  ==================================
-p216      n  gibson f169,f172		                   transform; sequence o266; miniprep
-p217	    n  gibson f169,f173		                   transform; sequence o266; miniprep
-f169	    n  pcr template=p186 primers=o359,sr71   spin-cleanup
-f172	    y  order vendor=IDT
-f173	    y  order vendor=IDT
+p216      n  gibson f169,f172                      transform; sequence o266; miniprep
+p217      n  gibson f169,f173                      transform; sequence o266; miniprep
+f169      n  pcr template=p186 primers=o359,sr71   spin-cleanup
+f172      y  order vendor=IDT
+f173      y  order vendor=IDT
 ====  =====  ====================================  ==================================
 
 Oligos:
