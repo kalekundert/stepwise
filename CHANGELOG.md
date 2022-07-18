@@ -2,6 +2,11 @@
 
 <!--next-version-placeholder-->
 
+## v0.39.1 (2022-07-18)
+### Fix
+* More robustly parse reactions/combos from XLSX files ([`bb8d214`](https://github.com/kalekundert/stepwise/commit/bb8d2146f6f8ca2bb7260ace40b8c39efec09790))
+* Show config paths in `sw go` usage ([`1546678`](https://github.com/kalekundert/stepwise/commit/15466780886c348f6a1ac561074cb72f4f43e0a6))
+
 ## v0.39.0 (2022-07-17)
 ### Feature
 * Load reactions from XLSX files ([`80586ef`](https://github.com/kalekundert/stepwise/commit/80586ef33246b05b3f24fc48f9c9d769a72cc2e2))
