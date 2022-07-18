@@ -599,8 +599,7 @@ test_main:
         > - B
     stdout:
       > a
-      > b
-      > .*\
+      > b.*\
       > conditions
       > echo
       > reaction

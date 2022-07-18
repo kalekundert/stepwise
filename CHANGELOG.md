@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v0.39.0 (2022-07-17)
+### Feature
+* Load reactions from XLSX files ([`80586ef`](https://github.com/kalekundert/stepwise/commit/80586ef33246b05b3f24fc48f9c9d769a72cc2e2))
+* Provide hooks for formatting mix names/concs ([`3ee947a`](https://github.com/kalekundert/stepwise/commit/3ee947ac52ebbdcb041a373a57eacc89280d4a0c))
+* Prefer reaction setups with less depth ([`48bc467`](https://github.com/kalekundert/stepwise/commit/48bc467b100c789ac317b9dff5498adcb92e47b9))
+
+### Fix
+* Don't convert to mL until 2000 µL ([`dadd453`](https://github.com/kalekundert/stepwise/commit/dadd4536a2f6550cfd63fbd73d97b3a2aefb83ce))
+
 ## v0.38.0 (2022-07-07)
 ### Feature
 * Allow non-linear master mix setups ([`15c1ded`](https://github.com/kalekundert/stepwise/commit/15c1dedc93c981c140b8935b0d348e64705210fb))
