@@ -4,7 +4,6 @@ import pytest
 
 from stepwise import Protocol, UsageError
 from stepwise.cli.stash.model import *
-from stepwise.testing import check_command
 
 @pytest.fixture
 def empty_db():
@@ -31,6 +30,12 @@ def full_db(empty_db):
 
     db.commit()
     return db
+
+@pytest.fixture
+def check_command(tmp_path):
+    from stepwise.testing import check_command as f
+    from functools import partial
+    return partial(f, home=tmp_path)
 
 def query_helper(*cols):
     return lambda db: ul([x._asdict() for x in db.query(*cols).all()])
@@ -1046,24 +1051,24 @@ def test_api_unreadable_protocol(empty_db, capsys):
 
 
 @pytest.fixture
-def empty_stash():
+def empty_stash(check_command):
     check_command('sw stash clear')
     check_command('sw stash reset')
 
 @pytest.fixture
-def full_stash(empty_stash):
+def full_stash(empty_stash, check_command):
     check_command('sw step X | sw stash -m M')
     check_command('sw step Y | sw stash -c A')
     check_command('sw step Z | sw stash -d 1')
 
 
 @pytest.mark.slow
-def test_cli_ls_empty(empty_stash):
+def test_cli_ls_empty(empty_stash, check_command):
     check_command('sw stash ls', '^No stashed protocols.$')
     check_command('sw stash', '^No stashed protocols.$')
 
 @pytest.mark.slow
-def test_cli_ls_full(full_stash):
+def test_cli_ls_full(full_stash, check_command):
     check_command('sw stash ls -D', '''\
 #  Dep  Name  Category  Message
 ───────────────────────────────
@@ -1073,7 +1078,7 @@ def test_cli_ls_full(full_stash):
 ''')
 
 @pytest.mark.slow
-def test_cli_ls_categories(empty_stash):
+def test_cli_ls_categories(empty_stash, check_command):
     check_command('sw step X | sw stash -c A')
     check_command('sw step Y | sw stash -c A,B')
 
@@ -1102,7 +1107,7 @@ No matching protocols found.
 ''')
 
 @pytest.mark.slow
-def test_cli_ls_dependencies(empty_stash):
+def test_cli_ls_dependencies(empty_stash, check_command):
     check_command('sw step 1 | sw stash')
     check_command('sw step 2 | sw stash -d 1')
     check_command('sw step 3 | sw stash -d 1')
@@ -1165,7 +1170,7 @@ No matching protocols found.
 ''')
 
 @pytest.mark.slow
-def test_cli_ls_completed(empty_stash):
+def test_cli_ls_completed(empty_stash, check_command):
     check_command('sw step 1 | sw stash')
     check_command('sw step 2 | sw stash')
     check_command('sw stash drop 2')
@@ -1184,12 +1189,12 @@ def test_cli_ls_completed(empty_stash):
 ''')
 
 @pytest.mark.slow
-def test_cli_add(empty_stash):
+def test_cli_add(empty_stash, check_command):
     # Tested adequately by the `full_stash` fixture.
     pass
 
 @pytest.mark.slow
-def test_cli_edit(empty_stash):
+def test_cli_edit(empty_stash, check_command):
     check_command('sw step X | sw stash')
     check_command('sw step Y | sw stash')
     check_command('sw stash -a', '''\
@@ -1270,7 +1275,7 @@ def test_cli_edit(empty_stash):
 ''')
 
 @pytest.mark.slow
-def test_cli_peek(full_stash):
+def test_cli_peek(full_stash, check_command):
     check_command('sw stash peek 1', '''\
 {DATE}
 
@@ -1287,7 +1292,7 @@ def test_cli_peek(full_stash):
 ''')
 
 @pytest.mark.slow
-def test_cli_pop(full_stash):
+def test_cli_pop(full_stash, check_command):
     check_command('sw stash pop 1', '''\
 {DATE}
 
@@ -1312,7 +1317,7 @@ def test_cli_pop(full_stash):
 ''')
 
 @pytest.mark.slow
-def test_cli_pipe(full_stash):
+def test_cli_pipe(full_stash, check_command):
     check_command('sw step A | sw stash peek 1 | sw step B', '''\
 {DATE}
 
@@ -1340,9 +1345,8 @@ def test_cli_pipe(full_stash):
 3\\. B
 ''')
 
-
 @pytest.mark.slow
-def test_cli_drop_restore(full_stash):
+def test_cli_drop_restore(full_stash, check_command):
     check_command('sw stash drop 1')
     check_command('sw stash', '''\
 #  Name  Category  Message
@@ -1368,7 +1372,7 @@ def test_cli_drop_restore(full_stash):
 ''')
 
 @pytest.mark.slow
-def test_cli_clear(full_stash):
+def test_cli_clear(full_stash, check_command):
     check_command('sw stash clear')
     check_command('sw stash', '^No stashed protocols.$')
     check_command('sw stash -a', '''\
@@ -1380,7 +1384,7 @@ def test_cli_clear(full_stash):
 ''')
 
 @pytest.mark.slow
-def test_cli_reset(empty_stash):
+def test_cli_reset(empty_stash, check_command):
     check_command('sw step 1 | sw stash')
     check_command('sw step 2 | sw stash -c A -d 1')
     check_command('sw stash -D', '''\

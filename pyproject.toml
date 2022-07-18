@@ -22,7 +22,6 @@ requires = [
   'voluptuous',
   'pandas>=1.2',
   'networkx',
-  'openpyxl',
 ]
 classifiers = [
   'Programming Language :: Python :: 3',
@@ -34,8 +33,10 @@ tests = [
   'pytest',
   'pytest-cov',
   'pytest-unordered',
+  'pytest_tmp_files',
   'coveralls',
   'parametrize_from_file',
+  'openpyxl',
   'rtoml',
   're_assert',
 ]

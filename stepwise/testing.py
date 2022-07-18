@@ -3,10 +3,9 @@ from re_assert import Matches
 from pathlib import Path
 
 DATE = r'\w+ \d{1,2}, \d{4}'
-HOME = 'dummy_home'
 
 def check_command(cmd, stdout='^$', stderr='^$', return_code=0, env={}, home=None):
-    home = Path(home if home is not None else HOME)
+    home = Path(home if home is not None else '.')
 
     if not home.is_absolute():
         caller = inspect.stack()[1]

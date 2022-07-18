@@ -2,6 +2,7 @@ import byoc
 import autoprop
 import networkx as nx
 import sys
+import re
 import math
 
 from byoc import Key, DocoptConfig, float_eval
@@ -92,7 +93,22 @@ def reaction_from_xlsx(path, sheet):
 
 def combos_from_xlsx(path, sheet):
     import pandas as pd
-    df = pd.read_excel(path, sheet_name=sheet, dtype=str)
+    try:
+        df = pd.read_excel(path, sheet_name=sheet, dtype=str).fillna('')
+
+    except ValueError as err:
+        # `ValueError` is raised when the given worksheet isn't found, but it 
+        # is raised in other contexts as well.  Unfortunately, the only way to 
+        # make sure we have the right error is to parse the error message.  It 
+        # would be more robust to pare the file ourselves using `openpyxl`, but 
+        # this would add a lot of complexity and remove a lot of flexibility 
+        # that pandas provides.
+
+        if re.match(r'Worksheet index \d+ is invalid, \d+ worksheets found', str(err)):
+            return []
+        else:
+            raise
+
     return df.to_dict('records')
 
 def mixes_from_strs(mix_strs):

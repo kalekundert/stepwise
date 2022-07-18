@@ -89,6 +89,10 @@ test_main:
   -
     id: builtin-conditions
     cmd: sw conditions conditions.csv
+    tmp_files:
+      conditions.csv:
+        > "Condition A",-,-,+,+
+        > "Condition B",-,+,-,+
     stdout:
       > ^{DATE}
       >
@@ -103,6 +107,13 @@ test_main:
   -
     id: builtin-conditions
     cmd: sw conditions conditions.xlsx
+    tmp_files:
+      conditions.xlsx:
+        type: xlsx
+        sheets:
+          conditions:
+            > "Condition A",-,-,+,+
+            > "Condition B",-,+,-,+
     stdout:
       > ^{DATE}
       >
@@ -303,6 +314,80 @@ test_main:
     stderr: ^$
     return_code: 0
   -
+    id: builtin-future-reaction-xlsx
+    cmd: sw future/reaction -f rxn.xlsx
+    tmp_files:
+      rxn.xlsx:
+        type: xlsx
+        sheets:
+          reaction:
+            > Reagent,Stock,Conc,Volume
+            > A,,,to 10 µL
+            > B,10x,,1 µL
+            > C,5x,1x
+          combos:
+            > C
+            > c1
+            > c2
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw future/reaction -f rxn.xlsx
+      > 
+      > 1. Setup 2 reactions:
+      > 
+      >    - Use the following reagents:
+      >
+      >      C: c1, c2
+      > 
+      >    - Make master mix:
+      > 
+      >      Reagent  Stock   Volume      2.2x
+      >      ─────────────────────────────────
+      >      A               7.00 µL  15.40 µL
+      >      B          10x  1.00 µL   2.20 µL
+      >      ─────────────────────────────────
+      >                      8.00 µL  17.60 µL
+      > 
+      >    - Setup the reactions:
+      > 
+      >      Reagent     Stock    Volume
+      >      ───────────────────────────
+      >      master mix          8.00 µL
+      >      C              5x   2.00 µL
+      >      ───────────────────────────
+      >                         10.00 µL
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-future-reaction-xlsx-no-combos
+    cmd: sw future/reaction -f rxn.xlsx
+    tmp_files:
+      rxn.xlsx:
+        type: xlsx
+        sheets:
+          reaction:
+            > Reagent,Stock,Conc,Volume
+            > A,,,to 10 µL
+            > B,10x,,1 µL
+            > C,5x,1x
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw future/reaction -f rxn.xlsx
+      > 
+      > 1. Setup 1 reaction:
+      > 
+      >    Reagent  Stock    Volume
+      >    ────────────────────────
+      >    A                7.00 µL
+      >    B          10x   1.00 µL
+      >    C           5x   2.00 µL
+      >    ────────────────────────
+      >                    10.00 µL
+    stderr: ^$
+    return_code: 0
+  -
     id: builtin-future-step
     cmd: sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' -S 'Prepare {n:# {kind}}:' -s 'buffer/s'
     stdout:
@@ -381,6 +466,16 @@ test_main:
   -
     id: pipeline-nested
     cmd: sw nested A | sw nested B | sw nested C
+    tmp_files:
+      .config/stepwise/conf.toml:
+        > [search]
+        > find = []
+        > path = ['~/protocols']
+      protocols/nested.sh:
+        contents:
+          > #!/usr/bin/env bash
+          > sw step $1
+        mode: 744
     stdout:
       > ^{DATE}
       >
@@ -393,7 +488,7 @@ test_main:
       > 2\. B
       >
       > 3\. C
-    stderr: ^$
+    stderr: .*
     return_code: 0
   -
     id: heredoc
@@ -452,8 +547,17 @@ test_main:
   -
     id: ls
     cmd: sw ls
+    tmp_files:
+      .config/stepwise/conf.toml:
+        > [search]
+        > find = []
+        > path = ['~/protocols']
+      protocols/a.txt:
+        > - A
+      protocols/b.txt:
+        > - B
     stdout:
-      > .*/dummy_home/protocols
+      > .*/protocols
       >   a
       >   b
       > .*\
@@ -462,19 +566,37 @@ test_main:
       >   echo
       >   reaction
       >   step
-    stderr: ^$
+    stderr: .*
     return_code: 0
   -
     id: ls-d
     cmd: sw ls -d
+    tmp_files:
+      .config/stepwise/conf.toml:
+        > [search]
+        > find = []
+        > path = ['~/protocols']
+      protocols/a.txt:
+        > - A
+      protocols/b.txt:
+        > - B
     stdout:
-      > .*/dummy_home/protocols
+      > .*/protocols
       > .*stepwise\.builtins
     stderr: ^$
     return_code: 0
   -
     id: ls-p
     cmd: sw ls -p
+    tmp_files:
+      .config/stepwise/conf.toml:
+        > [search]
+        > find = []
+        > path = ['~/protocols']
+      protocols/a.txt:
+        > - A
+      protocols/b.txt:
+        > - B
     stdout:
       > a
       > b
@@ -670,7 +792,16 @@ test_main:
   -
     id: which
     cmd: sw which a
-    stdout: .*/dummy_home/protocols/a.txt$
+    tmp_files:
+      .config/stepwise/conf.toml:
+        > [search]
+        > find = []
+        > path = ['~/protocols']
+      protocols/a.txt:
+        > - A
+      protocols/b.txt:
+        > - B
+    stdout: .*/protocols/a.txt$
     stderr: ^$
     return_code: 0
 

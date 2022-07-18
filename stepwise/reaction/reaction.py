@@ -157,7 +157,7 @@ class Reaction:
 
     @classmethod
     def from_df(cls, df):
-        cols = df.to_dict('list')
+        cols = df.fillna('').to_dict('list')
         return cls.from_cols(cols)
 
     @classmethod
