@@ -205,7 +205,7 @@ test_reactions_protocol:
         >       dl(('a', '1, 2')),
         >     ),
         >     pl(
-        >       "Setup the reactions:",
+        >       "Setup 2 reactions:",
         >       table(
         >         header=["Reagent", "Volume", "2x"],
         >         rows=[
@@ -309,7 +309,7 @@ test_reactions_protocol:
         >       ),
         >     ),
         >     pl(
-        >       "Setup the reactions:",
+        >       "Setup 2 reactions:",
         >       table(
         >         header=["Reagent", "Volume", "2x"],
         >         rows=[
@@ -540,7 +540,7 @@ test_reactions_protocol:
         >       ),
         >     ),
         >     pl(
-        >       "Setup the reactions:",
+        >       "Setup 8 reactions:",
         >       table(
         >         header=["Reagent", "Volume", "2x"],
         >         rows=[
