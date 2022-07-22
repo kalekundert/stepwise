@@ -214,7 +214,15 @@ def test_count_adjacencies(mix, ideal_order, expected):
 @parametrize_from_file
 def test_find_depth(mix, expected):
     mix = parse_mix(mix)
-    assert find_depth(mix) == int(expected)
+    depths = find_mix_depths(mix)
+    assert depths[mix] == int(expected)
+
+@parametrize_from_file
+def test_find_reagent_depths(mixes, reagents, expected):
+    mix = eval_mix(mixes)
+    depths = find_mix_depths(mix)
+    expected = tuple(Schema([Int])(expected))
+    assert find_reagent_depths(reagents, depths) == expected
 
 @parametrize_from_file
 def test_iter_all_mixes_in_protocol_order(mixes, reaction, expected):

@@ -57,6 +57,26 @@ test_plan_mixes:
     expected:
       [[a,b],c]
   -
+    id: tiebreaker-early-reagents
+    reaction:
+      > Reagent  Volume  Flags
+      > =======  ======  ========
+      > a          1 µL
+      > b          2 µL
+      > c          3 µL  mm.early
+    combos:
+      b: 1 2 1 2
+      c: 1 1 2 2
+
+    # - Same number of pipetting steps with or without a master mix: tie goes 
+    #   to the master mix because it's more accurate.
+    # - Same number of pipetting steps if the master mix is {a,b} or {a,c}.  
+    #   Prefer {a,c} because it puts the flagged reagent as early as possible.  
+    #   Without this flag, {a,b} would be preferred because it keeps the 
+    #   reagents in order (see `tiebreaker-order`).
+    expected:
+      [[a,c],b]
+  -
     id: tiebreaker-depth
     # I don't know if this is the simplest example, but it's something that 
     # came up in a real protocol.  The order of the reagents is important, 
@@ -2181,6 +2201,34 @@ test_find_depth:
     mix:
       [a,[b,[c,d]],[e,[f,g]]]
     expected: 2
+
+test_find_reagent_depths:
+  -
+    id: a
+    mixes:
+      a: Mix({'a'})
+    reagents:
+      [a]
+    expected:
+      [0]
+  -
+    id: ab
+    mixes:
+      ab: Mix({'a', 'b'})
+    reagents:
+      [a,b]
+    expected:
+      [0,0]
+  -
+    id: ab-c
+    mixes:
+      ab: Mix({'a', 'b'})
+      c: Mix({MIXES['ab'], 'c'})
+    reagents:
+      [a,b,c]
+    expected:
+      [0,0,1]
+
 
 test_iter_all_mixes_in_protocol_order:
   -

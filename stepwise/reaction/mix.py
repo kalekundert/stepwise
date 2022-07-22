@@ -9,10 +9,12 @@ from itertools import chain, product, combinations
 from more_itertools import (
         first, ilen, unique_everseen as unique, always_iterable, flatten,
 )
+from dataclasses import dataclass
 from collections import Counter
 from reprfunc import repr_from_init
 from operator import itemgetter
-from math import inf
+from math import copysign, inf
+from typing import Tuple
 
 # Terminology:
 # - "reagent": a string containing the name of one individual reagent to 
@@ -105,6 +107,50 @@ class AutoMix:
             positional=['components'],
     )
 
+@dataclass
+class Score:
+    num_pipetting_steps: int
+    num_mixes: int
+    num_adjacencies: int
+    root_depth: int
+    early_reagent_depths: Tuple[int, ...]
+
+    def __lt__(self, other):
+        # Lower scores are considered better.  Think of the score as "the 
+        # number of pipetting steps it would take to setup these mixes, plus a 
+        # bunch of tiebreakers".
+
+        if other is None:
+            return True
+
+        a, b = self.num_pipetting_steps, other.num_pipetting_steps
+
+        if a < b: return True
+        if a > b: return False
+
+        # If it would take the same amount of pipetting to setup the reaction 
+        # with or without a master mix, prefer to make the master mix because 
+        # it will make the pipetting more accurate and consistent.
+
+        a, b = self.num_mixes, other.num_mixes
+
+        if a > b: return True
+        if a < b: return False
+
+        a, b = self.early_reagent_depths, other.early_reagent_depths
+        ab = sum(a) - sum(b)
+        assert len(a) == len(b)
+
+        if ab < 0: return True
+        if ab > 0: return False
+
+        a, b = self.num_adjacencies, other.num_adjacencies
+
+        if a > b: return True
+        if a < b: return False
+
+        return self.root_depth < other.root_depth
+
 def plan_mixes(reaction, combos, *, mixes=None, subset=None, bias=0):
     """
     Find the best set of master mixes to use when preparing the given 
@@ -136,36 +182,19 @@ def plan_mixes(reaction, combos, *, mixes=None, subset=None, bias=0):
 
     mixes = plan_automixes(mixes or [], reaction, combos, bias=bias)
     components = init_components(reaction, mixes, subset)
-    order_map = make_order_map(reaction.keys())
     levels = sort_by_num_combos(components, combos)
 
     best_mix = None
-    best_num_pipetting_steps = inf
-    best_num_mixes = 0
-    best_num_adjacencies = 0
-    best_depth = inf
+    best_score = None
+
+    early_reagents = find_early_reagents(reaction)
+    order_map = make_order_map(reaction.keys())
 
     for mix in unique(iter_complete_mixes(levels, combos, solvent, memo)):
-        n = count_pipetting_steps(mix, combos, memo)
-        n_mix = ilen(iter_all_mixes(mix))
-        n_adj = count_adjacencies(mix, order_map)
-        n_depth = find_depth(mix)
-        n += n_mix * bias
-
-        is_best = n < best_num_pipetting_steps
-        if n == best_num_pipetting_steps:
-            is_best = n_mix > best_num_mixes
-            if n_mix == best_num_mixes:
-                is_best = n_adj > best_num_adjacencies
-                if n_adj == best_num_adjacencies:
-                    is_best = n_depth < best_depth
-
-        if is_best:
+        score = score_mix(mix, combos, bias, early_reagents, order_map, memo)
+        if score < best_score:
             best_mix = mix
-            best_num_pipetting_steps = n
-            best_num_mixes = n_mix
-            best_num_adjacencies = n_adj
-            best_depth = n_depth
+            best_score = score
 
     return best_mix
 
@@ -641,6 +670,20 @@ def drop_levels_with_volume_but_not_solvent(levels, solvent):
         ):
             yield level
 
+def find_early_reagents(reaction):
+    return [x.key for x in reaction.iter_reagents_by_flag('mm.early')]
+
+def score_mix(mix, combos, bias, early_reagents, order_map, memo):
+    n_mix = ilen(iter_all_mixes(mix))
+    n_pipet = count_pipetting_steps(mix, combos, memo) + n_mix * bias
+    n_adj = count_adjacencies(mix, order_map)
+
+    depths = find_mix_depths(mix)
+    root_depth = depths[mix]
+    reagent_depths = find_reagent_depths(early_reagents, depths)
+
+    return Score(n_pipet, n_mix, n_adj, root_depth, reagent_depths)
+
 def count_pipetting_steps(components, combos, memo=None):
     """
     Return the number of pipetting steps it would take to prepare each 
@@ -719,9 +762,25 @@ def count_adjacencies(components, order_map):
 
     return n_adj
 
-def find_depth(mix):
-    mixes = mix.mixes
-    return 1 + max(find_depth(x) for x in mixes) if mixes else 0
+def find_mix_depths(mix):
+
+    def find_depth(mix, depths):
+        mixes = mix.mixes
+        depth = 1 + max(find_depth(x, depths) for x in mixes) if mixes else 0
+        depths[mix] = depth
+        return depth
+
+    depths = {}
+    find_depth(mix, depths)
+    return depths
+
+def find_reagent_depths(reagents, mix_depths):
+    reagent_depths = {}
+    for mix, depth in mix_depths.items():
+        for reagent in mix.reagents:
+            reagent_depths[reagent] = depth
+
+    return tuple(reagent_depths[k] for k in reagents)
 
 def iter_reagents(components):
     for component in components:
