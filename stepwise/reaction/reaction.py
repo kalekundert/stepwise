@@ -204,8 +204,10 @@ class Reaction:
         # Use consistent column names:
 
         column_aliases = {
-                'reagent': {
+                'key': {
                     'Key',
+                },
+                'reagent': {
                     'Reagent',
                 },
                 'stock_conc': {
@@ -289,6 +291,7 @@ class Reaction:
             if key not in cols:
                 cols[key] = num_rows * [default]
         
+        optional_column('key')
         optional_column('stock_conc')
         optional_column('conc')
         optional_column('name')
@@ -329,6 +332,10 @@ class Reaction:
             reagent = rxn[key]
             reagent.flags = parse_comma_set(cols['flags'][i])
             reagent.master_mix = parse_bool(cols['master_mix'][i])
+
+            if (x := cols['key'][i]):
+                reagent.key = x
+                key = x
 
             if (x := cols['name'][i]):
                 reagent.name = x

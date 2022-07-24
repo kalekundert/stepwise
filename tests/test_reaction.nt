@@ -1175,6 +1175,12 @@ test_reaction_from_cols:
       reagent:
         - 'w'
         - 'x'
+      key:
+        - 'w*'
+        - ''
+      name:
+        - ''
+        - 'x*'
       stock_conc:
         - ''
         - '2x'
@@ -1184,7 +1190,10 @@ test_reaction_from_cols:
       master_mix:
         - 'y'
         - 'n'
-      note:
+      flags:
+        - 'a'
+        - 'b,c'
+      ignore:
         - 'lorem'
         - 'ipsum'
 
@@ -1192,13 +1201,17 @@ test_reaction_from_cols:
       volume: Q('8 µL')
       reagents:
         -
+          key: 'w*'
           name: 'w'
           volume: Q('5 µL')
+          flags: {'a'}
           master_mix: True
         -
-          name: 'x'
+          key: 'x'
+          name: 'x*'
           volume: Q('3 µL')
           stock_conc: '2x'
+          flags: {'b','c'}
           master_mix: False
   -
     id: assume-master-mix-if-col-missing
