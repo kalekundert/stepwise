@@ -111,9 +111,9 @@ class AutoMix:
 class Score:
     num_pipetting_steps: int
     num_mixes: int
+    num_careful_reactions: int
     num_adjacencies: int
-    root_depth: int
-    early_reagent_depths: Tuple[int, ...]
+    depth: int
 
     def __lt__(self, other):
         # Lower scores are considered better.  Think of the score as "the 
@@ -137,19 +137,20 @@ class Score:
         if a > b: return True
         if a < b: return False
 
-        a, b = self.early_reagent_depths, other.early_reagent_depths
-        ab = sum(a) - sum(b)
-        assert len(a) == len(b)
+        # Fewer reactions means larger volumes, which is what we want for 
+        # reagents that needed to be pipetted carefully.
 
-        if ab < 0: return True
-        if ab > 0: return False
+        a, b = self.num_careful_reactions, other.num_careful_reactions
+
+        if a < b: return True
+        if a > b: return False
 
         a, b = self.num_adjacencies, other.num_adjacencies
 
         if a > b: return True
         if a < b: return False
 
-        return self.root_depth < other.root_depth
+        return self.depth < other.depth
 
 def plan_mixes(reaction, combos, *, mixes=None, subset=None, bias=0):
     """
@@ -187,11 +188,11 @@ def plan_mixes(reaction, combos, *, mixes=None, subset=None, bias=0):
     best_mix = None
     best_score = None
 
-    early_reagents = find_early_reagents(reaction)
+    careful_reagents = find_careful_reagents(reaction)
     order_map = make_order_map(reaction.keys())
 
     for mix in unique(iter_complete_mixes(levels, combos, solvent, memo)):
-        score = score_mix(mix, combos, bias, early_reagents, order_map, memo)
+        score = score_mix(mix, combos, bias, careful_reagents, order_map, memo)
         if score < best_score:
             best_mix = mix
             best_score = score
@@ -670,19 +671,17 @@ def drop_levels_with_volume_but_not_solvent(levels, solvent):
         ):
             yield level
 
-def find_early_reagents(reaction):
-    return [x.key for x in reaction.iter_reagents_by_flag('mm.early')]
+def find_careful_reagents(reaction):
+    return [x.key for x in reaction.iter_reagents_by_flag('careful')]
 
-def score_mix(mix, combos, bias, early_reagents, order_map, memo):
+def score_mix(mix, combos, bias, careful_reagents, order_map, memo):
     n_mix = ilen(iter_all_mixes(mix))
     n_pipet = count_pipetting_steps(mix, combos, memo) + n_mix * bias
+    n_care = count_combos_by_reagent(mix, careful_reagents, combos)
     n_adj = count_adjacencies(mix, order_map)
+    depth = find_depth(mix)
 
-    depths = find_mix_depths(mix)
-    root_depth = depths[mix]
-    reagent_depths = find_reagent_depths(early_reagents, depths)
-
-    return Score(n_pipet, n_mix, n_adj, root_depth, reagent_depths)
+    return Score(n_pipet, n_mix, sum(n_care.values()), n_adj, depth)
 
 def count_pipetting_steps(components, combos, memo=None):
     """
@@ -740,6 +739,21 @@ def count_combos(component_or_components, combos):
             for combo in combos
     })
 
+def count_combos_by_reagent(mix, reagents, combos):
+    mixes = {}
+
+    for child in iter_all_mixes(mix, include_given=True):
+        for reagent in child.reagents:
+            mixes[reagent] = child
+
+    n_combos = {}
+
+    for reagent in reagents:
+        child = mixes[reagent]
+        n_combos[reagent] = count_combos(iter_all_reagents(child), combos)
+
+    return n_combos
+
 def count_adjacencies(components, order_map):
     if not order_map:
         return 0
@@ -762,25 +776,9 @@ def count_adjacencies(components, order_map):
 
     return n_adj
 
-def find_mix_depths(mix):
-
-    def find_depth(mix, depths):
-        mixes = mix.mixes
-        depth = 1 + max(find_depth(x, depths) for x in mixes) if mixes else 0
-        depths[mix] = depth
-        return depth
-
-    depths = {}
-    find_depth(mix, depths)
-    return depths
-
-def find_reagent_depths(reagents, mix_depths):
-    reagent_depths = {}
-    for mix, depth in mix_depths.items():
-        for reagent in mix.reagents:
-            reagent_depths[reagent] = depth
-
-    return tuple(reagent_depths[k] for k in reagents)
+def find_depth(mix):
+    mixes = mix.mixes
+    return 1 + max(find_depth(x) for x in mixes) if mixes else 0
 
 def iter_reagents(components):
     for component in components:
@@ -827,11 +825,12 @@ def iter_all_mixes_in_protocol_order(mix, reaction):
     Yield every mix in the order it should be prepared.
 
     The most important requirement is that upstream mixes must be prepared 
-    before downstream mixes.  After that, an effort is made to sort the mixes 
-    by the order in which the reagents appear in the base reaction.  This makes 
-    the order deterministic, which is good for (i) testing and (ii) not 
-    confusing the user by re-ordering the mixes every time the protocol is 
-    generated.
+    before downstream mixes.  After that, an effort is made to present the 
+    mixes in an intuitive order.  Mixes with the fewest combos come first, and 
+    ties are broken by trying to maintain the order in which the reagents 
+    appear in the base reaction.  This makes the order deterministic, which is 
+    good for (i) testing and (ii) not confusing the user by re-ordering the 
+    mixes every time the protocol is generated.
     """
     g = make_mix_graph(mix)
     rxn_order_map = make_order_map(reaction.keys())
@@ -845,7 +844,7 @@ def iter_all_mixes_in_protocol_order(mix, reaction):
                 ),
                 default=0,
         )
-        return mix.order, rxn_order
+        return mix.order, mix.num_reactions, rxn_order
 
     yield from nx.lexicographical_topological_sort(g, by_rxn_order)
 

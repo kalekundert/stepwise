@@ -205,6 +205,13 @@ def test_count_pipetting_steps(mix, combos, expected):
     assert count_pipetting_steps(mix, combos) == expected
 
 @parametrize_from_file
+def test_count_combos_by_reagent(mix, reagents, combos, expected):
+    mix = parse_mix(mix)
+    combos = parse_combos(combos)
+    expected = Schema({str: Int})(expected)
+    assert count_combos_by_reagent(mix, reagents, combos) == expected
+
+@parametrize_from_file
 def test_count_adjacencies(mix, ideal_order, expected):
     mix = parse_mix(mix)
     order_map = make_order_map(ideal_order)
@@ -214,15 +221,7 @@ def test_count_adjacencies(mix, ideal_order, expected):
 @parametrize_from_file
 def test_find_depth(mix, expected):
     mix = parse_mix(mix)
-    depths = find_mix_depths(mix)
-    assert depths[mix] == int(expected)
-
-@parametrize_from_file
-def test_find_reagent_depths(mixes, reagents, expected):
-    mix = eval_mix(mixes)
-    depths = find_mix_depths(mix)
-    expected = tuple(Schema([Int])(expected))
-    assert find_reagent_depths(reagents, depths) == expected
+    assert find_depth(mix) == int(expected)
 
 @parametrize_from_file
 def test_iter_all_mixes_in_protocol_order(mixes, reaction, expected):

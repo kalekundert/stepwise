@@ -57,13 +57,13 @@ test_plan_mixes:
     expected:
       [[a,b],c]
   -
-    id: tiebreaker-early-reagents
+    id: tiebreaker-careful-reagents
     reaction:
       > Reagent  Volume  Flags
-      > =======  ======  ========
+      > =======  ======  =======
       > a          1 µL
       > b          2 µL
-      > c          3 µL  mm.early
+      > c          3 µL  careful
     combos:
       b: 1 2 1 2
       c: 1 1 2 2
@@ -71,9 +71,10 @@ test_plan_mixes:
     # - Same number of pipetting steps with or without a master mix: tie goes 
     #   to the master mix because it's more accurate.
     # - Same number of pipetting steps if the master mix is {a,b} or {a,c}.  
-    #   Prefer {a,c} because it puts the flagged reagent as early as possible.  
-    #   Without this flag, {a,b} would be preferred because it keeps the 
-    #   reagents in order (see `tiebreaker-order`).
+    #   Prefer {a,c} because that only requires the flagged reagent to be 
+    #   pipetted twice (instead of 4 times).  Without this flag, {a,b} would be 
+    #   preferred because it keeps the reagents in order (see 
+    #   `tiebreaker-order`).
     expected:
       [[a,c],b]
   -
@@ -326,12 +327,12 @@ test_set_mix_names:
       cd: Mix({MIXES['ab'], 'c', 'd'})
       e: Mix({MIXES['cd'], 'e'})
     reaction:
-      > Key  Name  Volume
-      > ===  ====  ======
-      > a            1 µL
-      > b            2 µL
-      > c    c*      3 µL
-      > d    d*      4 µL
+      > Reagent  Key  Volume
+      > =======  ===  ======
+      > a               1 µL
+      > b               2 µL
+      > c*       c      3 µL
+      > d*       d      4 µL
     notable_reagents:
       [c,d,e]
     expected:
@@ -2105,6 +2106,59 @@ test_count_pipetting_steps:
       d: 1 2 1 2
     expected: 4+4+8
 
+test_count_combos_by_reagent:
+  -
+    id: empty
+    mix:
+      [a]
+    reagents: 
+      []
+    combos:
+      a: 1
+    expected:
+      {}
+  -
+    id: 1-reagent-1-combo
+    mix:
+      [a]
+    reagents: 
+      [a]
+    combos:
+      a: 1
+    expected:
+      a: 1
+  -
+    id: 1-reagent-2-combos
+    mix:
+      [a]
+    reagents: 
+      [a]
+    combos:
+      a: 1 2
+    expected:
+      a: 2
+  -
+    id: 1-reagent-2-combos-with-dups
+    mix:
+      [a]
+    reagents: 
+      [a]
+    combos:
+      a: 1 2 1 2
+    expected:
+      a: 2
+  -
+    mix:
+      [[a],b]
+    reagents: 
+      [a,b]
+    combos:
+      a: 1 2 1 2
+      b: 1 1 2 2
+    expected:
+      a: 2
+      b: 4
+
 test_count_adjacencies:
   -
     mix:
@@ -2201,34 +2255,6 @@ test_find_depth:
     mix:
       [a,[b,[c,d]],[e,[f,g]]]
     expected: 2
-
-test_find_reagent_depths:
-  -
-    id: a
-    mixes:
-      a: Mix({'a'})
-    reagents:
-      [a]
-    expected:
-      [0]
-  -
-    id: ab
-    mixes:
-      ab: Mix({'a', 'b'})
-    reagents:
-      [a,b]
-    expected:
-      [0,0]
-  -
-    id: ab-c
-    mixes:
-      ab: Mix({'a', 'b'})
-      c: Mix({MIXES['ab'], 'c'})
-    reagents:
-      [a,b,c]
-    expected:
-      [0,0,1]
-
 
 test_iter_all_mixes_in_protocol_order:
   -
