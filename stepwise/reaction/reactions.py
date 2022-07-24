@@ -298,8 +298,8 @@ class Reactions(byoc.App):
         table = self.get_mix_table(mix)
 
         if mix is self.mix:
-            n_reps = self.combos.replicates
-            return pl(f"Setup {n if n_reps > 1 else 'the'} reactions:", table)
+            show_n = (self.combos.replicates > 1) and self.split_replicates
+            return pl(f"Setup {n if show_n else 'the'} reactions:", table)
 
         if mix.stock_conc:
             name = f'{mix.stock_conc} {mix.name}'
