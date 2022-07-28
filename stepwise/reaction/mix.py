@@ -767,7 +767,7 @@ def count_adjacencies(components, order_map):
             n_adj += abs(order_map[b] - order_map[a]) == 1
 
         # When comparing to reagents in upstream mixes, order does matter:
-        child_reagents = flatten(x.reagents for x in iter_mixes(mix))
+        child_reagents = set(flatten(x.reagents for x in iter_mixes(mix)))
         for b in mix.reagents:
             for a in child_reagents:
                 if order_map[b] - order_map[a] == 1:
