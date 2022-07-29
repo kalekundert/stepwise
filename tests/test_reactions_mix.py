@@ -166,36 +166,37 @@ def test_init_components(reaction, mixes, subset, expected, error):
     with error:
         assert init_components(rxn, required_mixes, subset) == expected
 
-@parametrize_from_file(schema=defaults(components=None))
-def test_sort_by_num_combos(components, combos, expected):
-    components, combos = parse_components_and_combos(components, combos)
-    expected = parse_levels(expected)
-    assert sort_by_num_combos(components, combos) == expected
+def test_init_partial_mix():
+    assert PartialMix({'a', 'b'}) == {'a', 'b'}
+    assert PartialMix({'a', PartialMix({'b', 'c'})}) == {'a', 'b', 'c'}
+    assert PartialMix({PartialMix({'a', 'b'}), 'c'}) == {'a', 'b', 'c'}
+    assert PartialMix({PartialMix({'a', 'b'}), PartialMix({'c', 'd'})}) == {'a', 'b', 'c', 'd'}
 
 @parametrize_from_file(schema=defaults(components=None))
-def test_find_matching_components(components, combos, expected):
+def test_levels_init(components, combos, expected):
     components, combos = parse_components_and_combos(components, combos)
-    expected = {
-            parse_component(k): parse_components(v)
-            for k, v in expected.items()
-    }
-    assert find_matching_components(components, combos) == expected
+    expected = with_sw.eval(expected, keys=True)
+    levels = Levels(components, combos)
 
-@parametrize_from_file(schema=defaults(matches=([], [])))
-def test_iter_merged_top_levels(levels, matches, expected):
-    level_1, level_2 = parse_levels(levels)
-    matches_1, matches_2 = (parse_matches(x) for x in matches)
-    actual = set(iter_merged_top_levels(level_1, level_2, matches_1, matches_2))
-    expected = set(parse_levels(expected))
-    assert actual == expected
+    assert levels.dict_view == expected
+    assert len(levels) == len(expected)
+    assert levels.top == expected[min(expected)]
 
-@parametrize_from_file
-def test_keep_levels_with_least_pipetting(levels, combos, expected):
-    levels = parse_levels(levels)
-    combos = parse_combos(combos)
-    actual = set(keep_levels_with_least_pipetting(levels, combos))
-    expected = set(parse_levels(expected))
-    assert actual == expected
+@parametrize_from_file(schema=defaults(components=None))
+def test_levels_copy_update(components, combos, update, expected):
+    components, combos = parse_components_and_combos(components, combos)
+    update_mix = with_sw.eval(update)
+    expected = with_sw.eval(expected, keys=True)
+
+    levels_orig = Levels(components, combos)
+    expected_orig = levels_orig.dict_view.copy()
+
+    levels_copy = levels_orig.copy()
+    levels_copy.remove(set(iter_all_reagents(update_mix)))
+    levels_copy.add(update_mix)
+
+    assert levels_orig.dict_view == expected_orig
+    assert levels_copy.dict_view == expected
 
 @parametrize_from_file
 def test_count_pipetting_steps(mix, combos, expected):
