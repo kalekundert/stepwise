@@ -2,6 +2,26 @@
 
 <!--next-version-placeholder-->
 
+## v0.40.0 (2022-08-01)
+### Feature
+* Override keys in reagent tables ([`693b53b`](https://github.com/kalekundert/stepwise/commit/693b53b1ef78e869b5cd8eec33b0e1d35a87d5e1))
+* Score careful reagents on combos, not depth ([`521a730`](https://github.com/kalekundert/stepwise/commit/521a730fcd5be713d50894a4e9382031f355db7f))
+* Count reactions when making replicates ([`18a6557`](https://github.com/kalekundert/stepwise/commit/18a6557b86a588531dc371fef54f7068af87b72d))
+* Put flagged reagents in earlier master mixes ([`42a493a`](https://github.com/kalekundert/stepwise/commit/42a493ad7a82d4c5530f6e3f42c63f1547376317))
+
+### Fix
+* Consider adding multiple reagents to each master mix ([`144b55b`](https://github.com/kalekundert/stepwise/commit/144b55b4f45fe404963df6348b638d2db8485834))
+* Don't reuse iterator when counting adjacencies ([`4e93c37`](https://github.com/kalekundert/stepwise/commit/4e93c37da405e4e7449847589f6d82d6b5a6db8f))
+* Correctly work out when replicates are shown ([`1668db1`](https://github.com/kalekundert/stepwise/commit/1668db1f62cb893bcb310bb786f3924134a4dbff))
+
+### Documentation
+* Remove extraneous tabs ([`30ee15f`](https://github.com/kalekundert/stepwise/commit/30ee15f89a7b3f4818fa3e57151545a413d05da9))
+* Move the README example into its own section ([`0e99563`](https://github.com/kalekundert/stepwise/commit/0e99563f8fd41cfa3b63a2646344ccb05421ab3c))
+* Try to make slightly accessible to new users ([`9be57d2`](https://github.com/kalekundert/stepwise/commit/9be57d24b7d3e87fe6b45f961ebf1e242c6a9f53))
+
+### Performance
+* Profile and optimize `plan_mixes()` ([`ad2bd56`](https://github.com/kalekundert/stepwise/commit/ad2bd56fe297ec9d2dd0c28b9074ad80d66c47b5))
+
 ## v0.39.1 (2022-07-18)
 ### Fix
 * More robustly parse reactions/combos from XLSX files ([`bb8d214`](https://github.com/kalekundert/stepwise/commit/bb8d2146f6f8ca2bb7260ace40b8c39efec09790))
