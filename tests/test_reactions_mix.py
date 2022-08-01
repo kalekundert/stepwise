@@ -173,30 +173,10 @@ def test_init_partial_mix():
     assert PartialMix({PartialMix({'a', 'b'}), PartialMix({'c', 'd'})}) == {'a', 'b', 'c', 'd'}
 
 @parametrize_from_file(schema=defaults(components=None))
-def test_levels_init(components, combos, expected):
+def test_mix_matching_components(components, combos, expected):
     components, combos = parse_components_and_combos(components, combos)
-    expected = with_sw.eval(expected, keys=True)
-    levels = Levels(components, combos)
-
-    assert levels.dict_view == expected
-    assert len(levels) == len(expected)
-    assert levels.top == expected[min(expected)]
-
-@parametrize_from_file(schema=defaults(components=None))
-def test_levels_copy_update(components, combos, update, expected):
-    components, combos = parse_components_and_combos(components, combos)
-    update_mix = with_sw.eval(update)
-    expected = with_sw.eval(expected, keys=True)
-
-    levels_orig = Levels(components, combos)
-    expected_orig = levels_orig.dict_view.copy()
-
-    levels_copy = levels_orig.copy()
-    levels_copy.remove(set(iter_all_reagents(update_mix)))
-    levels_copy.add(update_mix)
-
-    assert levels_orig.dict_view == expected_orig
-    assert levels_copy.dict_view == expected
+    expected = set(with_sw.eval(expected))
+    assert mix_matching_components(components, combos) == expected
 
 @parametrize_from_file
 def test_count_pipetting_steps(mix, combos, expected):

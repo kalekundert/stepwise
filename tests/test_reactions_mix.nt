@@ -90,6 +90,10 @@ test_plan_mixes:
     # allowed:
     #
     #   [[[a,e],c,d],b]   2*1 + 3*2 + 2*6 = 20
+    #
+    # Compared to:
+    #
+    #   [[[a,e],[c,d]],b]   2*1 + 2*2 + 2*2 + 2*6 = 22
 
     combos:
       a:
@@ -1641,56 +1645,57 @@ test_init_components:
       type: UsageError
       message: can't specify mix volume unless the mix contains solvent
 
-test_levels_init:
+test_mix_matching_components:
   -
     id: 1-reagent
     combos:
       a: 1
     expected:
-      1: {'a'}
+      - 'a'
   -
     id: 2-reagents
     combos:
       a: 1
       b: 1
     expected:
-      1: {PartialMix('ab')}
+      - PartialMix('ab')
   -
     id: 2-reagents
     combos:
       a: 1
       b: 2
     expected:
-      1: {PartialMix('ab')}
+      - PartialMix('ab')
   -
     id: 2-reagents
     combos:
       a: 1 1
       b: 1 1
     expected:
-      1: {PartialMix('ab')}
+      - PartialMix('ab')
   -
     id: 2-reagents
     combos:
       a: 1 1
       b: 2 2
     expected:
-      1: {PartialMix('ab')}
+      - PartialMix('ab')
   -
     id: 2-reagents
     combos:
       a: 1 1
       b: 1 2
     expected:
-      1: {'a'}
-      2: {'b'}
+      - 'a'
+      - 'b'
   -
     id: 2-reagents
     combos:
       a: 1 2 1 2
       b: 1 1 2 2
     expected:
-      2: {'a', 'b'}
+      - 'a'
+      - 'b'
   -
     id: 2-components
     components:
@@ -1700,8 +1705,8 @@ test_levels_init:
       b: 1 2
       c: 1 1
     expected:
-      1: {'c'}
-      2: {Mix('ab')}
+      - Mix('ab')
+      - 'c'
   -
     id: 2-components
     components:
@@ -1711,7 +1716,7 @@ test_levels_init:
       b: 1 2
       c: 1 2
     expected:
-      2: {PartialMix({Mix('ab'), 'c'})}
+      - PartialMix({Mix('ab'), 'c'})
   -
     id: 3-reagents
     combos:
@@ -1719,7 +1724,7 @@ test_levels_init:
       b: 1
       c: 1
     expected:
-      1: {PartialMix('abc')}
+      - PartialMix('abc')
   -
     id: 3-reagents
     combos:
@@ -1727,8 +1732,8 @@ test_levels_init:
       b: 1 1
       c: 1 2
     expected:
-      1: {PartialMix('ab')}
-      2: {'c'}
+      - PartialMix('ab')
+      - 'c'
   -
     id: 3-reagents
     combos:
@@ -1736,8 +1741,8 @@ test_levels_init:
       b: 1 2
       c: 1 2
     expected:
-      1: {'a'}
-      2: {PartialMix('bc')}
+      - 'a'
+      - PartialMix('bc')
   -
     id: 3-reagents
     combos:
@@ -1745,9 +1750,9 @@ test_levels_init:
       b: 1 1 2
       c: 1 2 3
     expected:
-      1: {'a'}
-      2: {'b'}
-      3: {'c'}
+      - 'a'
+      - 'b'
+      - 'c'
   -
     id: 3-reagents
     combos:
@@ -1755,7 +1760,8 @@ test_levels_init:
       b: 1 2 1 2
       c: 1 1 2 2
     expected:
-      2: {PartialMix('ab'), 'c'}
+      - PartialMix('ab')
+      - 'c'
   -
     id: 3-reagents
     combos:
@@ -1763,8 +1769,9 @@ test_levels_init:
       b: 1 2 1 2
       c: 1 1 2 2
     expected:
-      1: {'a'}
-      2: {'b', 'c'}
+      - 'a'
+      - 'b'
+      - 'c'
   -
     id: 3-reagents
     combos:
@@ -1772,8 +1779,9 @@ test_levels_init:
       b: 1 1 2 2
       c: 1 2 3 4
     expected:
-      2: {'a', 'b'}
-      4: {'c'}
+      - 'a'
+      - 'b'
+      - 'c'
   -
     id: 4-reagents
     combos:
@@ -1782,7 +1790,7 @@ test_levels_init:
       c: 1
       d: 1
     expected:
-      1: {PartialMix('abcd')}
+      - PartialMix('abcd')
   -
     id: 4-reagents
     combos:
@@ -1791,8 +1799,8 @@ test_levels_init:
       c: 1 1
       d: 1 2
     expected:
-      1: {PartialMix('abc')}
-      2: {'d'}
+      - PartialMix('abc')
+      - 'd'
   -
     id: 4-reagents
     combos:
@@ -1801,8 +1809,8 @@ test_levels_init:
       c: 1 2
       d: 1 2
     expected:
-      1: {PartialMix('ab')}
-      2: {PartialMix('cd')}
+      - PartialMix('ab')
+      - PartialMix('cd')
   -
     id: 4-reagents
     combos:
@@ -1811,7 +1819,8 @@ test_levels_init:
       c: 1 1 2 2
       d: 1 1 2 2
     expected:
-      2: {PartialMix('ab'), PartialMix('cd')}
+      - PartialMix('ab')
+      - PartialMix('cd')
   -
     id: 4-components
     components:
@@ -1822,9 +1831,9 @@ test_levels_init:
       c: 1 1 2 2
       d: 1 2 3 4
     expected:
-      1: {Mix('ab')}
-      2: {'c'}
-      4: {'d'}
+      - Mix('ab')
+      - 'c'
+      - 'd'
   -
     id: 4-components
     components:
@@ -1835,103 +1844,8 @@ test_levels_init:
       c: 1 1 2 2
       d: 1 2 3 4
     expected:
-      2: {PartialMix({Mix('ab'), 'c'})}
-      4: {'d'}
-
-test_levels_copy_update:
-  -
-    combos:
-      a: 1
-    update: PartialMix('a')
-    expected:
-      1: {PartialMix('a')}
-  -
-    combos:
-      a: 1 1
-      b: 1 2
-    update: PartialMix('a')
-    expected:
-      1: {PartialMix('a')}
-      2: {'b'}
-  -
-    combos:
-      a: 1 1
-      b: 1 2
-    update: PartialMix('ab')
-    expected:
-      2: {PartialMix('ab')}
-  -
-    id: drop-from-first-level-merge
-    combos:
-      a: 1 1
-      b: 1 2
-    update: PartialMix({Mix('ab')})
-    expected:
-      2: {PartialMix({Mix('ab')})}
-  -
-    id: drop-from-first-level-merge
-    combos:
-      a: 1 2 1 2
-      b: 1 1 2 2
-      c: 1 2 3 4
-    update: PartialMix('ab')
-    expected:
-      4: {PartialMix('abc')}
-  -
-    id: drop-from-first-level-no-merge
-    combos:
-      a: 1 2 1 2 1 2 1 2
-      b: 1 1 2 2 1 1 2 2
-      c: 1 1 1 1 2 2 2 2
-    update: PartialMix('ab')
-    expected:
-      2: {'c'}
-      4: {PartialMix('ab')}
-  -
-    id: drop-from-first-level-no-merge
-    combos:
-      a: 1 2 1 2 1 2 1 2
-      b: 1 1 2 2 1 1 2 2
-      c: 1 1 2 2 3 3 4 4
-    update: PartialMix('ab')
-    expected:
-      4: {PartialMix('ab'), 'c'}
-  -
-    id: drop-from-second-level-merge
-    combos:
-      a: 1 1
-      b: 1 1
-      c: 1 2
-    update: PartialMix('abc')
-    expected:
-      2: {PartialMix('abc')}
-  -
-    id: drop-from-second-level-no-merge
-    combos:
-      a: 1 1 1 1
-      b: 1 2 1 2
-      c: 1 1 2 2
-    update: PartialMix('ab')
-    expected:
-      2: {PartialMix('ab'), 'c'}
-  -
-    id: level-already-exists-merge
-    combos:
-      a: 1 2 1 2
-      b: 1 1 2 2
-      c: 1 2 3 4
-    update: PartialMix('ab')
-    expected:
-      4: {PartialMix('abc')}
-  -
-    id: level-already-exists-no-merge
-    combos:
-      a: 1 1 1 1
-      b: 1 2 1 2
-      c: 1 1 2 2
-    update: PartialMix('ab')
-    expected:
-      2: {PartialMix('ab'), 'c'}
+      - PartialMix({Mix('ab'), 'c'})
+      - 'd'
 
 test_count_pipetting_steps:
   -

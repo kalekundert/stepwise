@@ -5,20 +5,15 @@ from .reaction import Reaction, after
 from ..utils import repr_join
 from ..errors import UsageError
 
-from itertools import chain, product, combinations
+from itertools import product, combinations
 from more_itertools import (
         first, ilen, unique_everseen as unique, always_iterable, flatten,
 )
-from heapq import heapify, heappush, heappop
 from dataclasses import dataclass
 from collections import Counter
-from reprfunc import repr_from_init, repr_from_attrs
-from functools import partial
+from reprfunc import repr_from_init
 from operator import itemgetter
-from math import copysign, inf
-from typing import Tuple
-from types import MappingProxyType
-from copy import copy
+from math import inf
 
 # Terminology:
 # - "reagent": a string containing the name of one individual reagent to 
@@ -28,17 +23,8 @@ from copy import copy
 #   mixed together, possibly before being added to other mixes.
 #
 # - "component": a generic term for either a reagent or a mix.
-#
-# - "level": a set of components that all have no more than a certain number of 
-#   variants.  The algorithm for finding the optimal way to setup a reaction 
-#   involves forming master mixes between components in the same or adjacent 
-#   levels, then recursively merging the top two levels until only one remains.
 
 # Potential optimizations:
-# - If `bias=0`, I might be able to merge all matching components in the 
-#   initial levels.  The rest of the algorithm would be the same.  The question 
-#   is just whether there are any cases where prematurely merging these 
-#   components would give the wrong result.
 # - Cache calls to `count_combos()`.  Basically I would use the same `memo` 
 #   dictionary, but I would make it two-level: `memo[func][input]`.  I might 
 #   also write a bit of code to help manage that.
@@ -135,112 +121,6 @@ class PartialMix(frozenset):
 
         return super().__new__(cls, merge_partial_mixes(components))
 
-@autoprop
-class Levels:
-    """
-    A data structure that separates each reaction component based on the number 
-    of variants it has.
-    """
-
-    # This probably doesn't need to be its own class anymore.  I needed a class 
-    # when I was using heaps and treating the first level specially, but now a 
-    # simple dict would be fine.
-    #
-    # Using dict would simply testing, because I could make whatever levels I 
-    # want without having to go through the constructor.  But it also makes 
-    # everything public.  Not sure if that's a good idea...
-
-    # - Make copies in the most time- and space-efficient way possible.
-    # - Each level a collection of reagents, mixes, and partial mixes.
-    # - Invariant: reagents that vary together are grouped into partial mixes
-
-    def __init__(self, components, combos):
-        self._levels = levels = {}
-        self._combos = combos
-
-        for component in components:
-            n = count_combos(component, combos)
-            levels.setdefault(n, set()).add(component)
-
-        for n in levels:
-            self._merge_identically_varying_components(n)
-
-        self._levels = {k: frozenset(v) for k, v in self._levels.items()}
-
-    def __len__(self):
-        return len(self._levels)
-
-    def copy(self):
-        """
-        Make a copy of this data structure that can be modified independently 
-        from the original.
-
-        This method takes advantage of the fact that levels are immutable (i.e. 
-        they are frozen sets), and thus can be shared between copies.  It also 
-        assumes that the given combos are will not be modified.
-        """
-        obj = self.__class__.__new__(self.__class__)
-        obj._levels = copy(self._levels)
-        obj._combos = self._combos
-        return obj
-
-    def add(self, mix):
-        n = count_combos(mix, self._combos)
-
-        if n in self._levels:
-            self._levels[n] |= {mix}
-            self._merge_identically_varying_components(n)
-        else:
-            self._levels[n] = frozenset({mix})
-
-    def remove(self, components):
-        for k in self._levels:
-            self._levels[k] -= components
-
-        self._levels = {k: v for k, v in self._levels.items() if v}
-
-    def get_top(self):
-        k = min(self._levels)
-        return self._levels[k]
-
-    def get_dict_view(self):
-        return MappingProxyType(self._levels)
-
-    def iter_components(self):
-        for components in self._levels.values():
-            yield from components
-
-    def contains_mix(self, mix):
-        for level in self._levels.values():
-            if any(mix == x for x in iter_all_mixes(level)):
-                return True
-        return False
-
-    def _merge_identically_varying_components(self, n):
-        groups = []
-        group_map = {}
-
-        for a, b in combinations(self._levels[n], 2):
-            n_ab = count_combos({a, b}, self._combos)
-            if n == n_ab:
-                try:
-                    group = group_map[a]
-                except KeyError:
-                    try:
-                        group = group_map[b]
-                    except KeyError:
-                        group = set()
-                        groups.append(group)
-
-                group |= {a, b}
-                group_map[a] = group_map[b] = group
-
-        for group in groups:
-            self._levels[n] -= group
-            self._levels[n] |= {PartialMix(group)}
-
-    __repr__ = repr_from_attrs('_levels')
-
 @dataclass
 class Score:
     num_pipetting_steps: int
@@ -317,7 +197,10 @@ def plan_mixes(reaction, combos, *, mixes=None, subset=None, bias=0):
     mixes = plan_automixes(mixes or [], reaction, combos, bias=bias)
     components = init_components(reaction, mixes, subset)
     filters = [
-            partial(require_solvent_with_volume, solvent=reaction.solvent),
+            lambda remove, add, cand: \
+                    require_solvent_with_volume(add, reaction.solvent),
+            lambda remove, add, cand: \
+                    prune_suboptimal_mixes(add, combos, cand, {}, memo),
     ]
 
     best_mix = None
@@ -326,11 +209,8 @@ def plan_mixes(reaction, combos, *, mixes=None, subset=None, bias=0):
     careful_reagents = find_careful_reagents(reaction)
     order_map = make_order_map(reaction.keys())
 
-    i = 0
     for mix in unique(iter_complete_mixes(components, combos, filters, memo)):
-        i += 1
         score = score_mix(mix, combos, bias, careful_reagents, order_map, memo)
-        debug(i, mix, score, score < best_score)
         if score < best_score:
             best_mix = mix
             best_score = score
@@ -652,11 +532,11 @@ def iter_complete_mixes(components, combos, filters=None, memo=None):
     """
     filters = filters or []
 
-    def find_best_pairs(levels):
+    def find_best_pairs(components):
         best_pairs = []
         best_num_combos = inf
 
-        for pair in combinations(levels.iter_components(), 2):
+        for pair in combinations(components, 2):
             n = count_combos(pair, combos)
             if n == best_num_combos:
                 best_pairs.append(pair)
@@ -666,7 +546,7 @@ def iter_complete_mixes(components, combos, filters=None, memo=None):
 
         return best_pairs
 
-    def make_partial_mixes(pairs):
+    def mix_pairs(pairs):
         for a1, b1 in pairs:
             a2 = iter_possible_components(a1)
             b2 = iter_possible_components(b1)
@@ -686,9 +566,6 @@ def iter_complete_mixes(components, combos, filters=None, memo=None):
         else:
             yield [x]
 
-    def pass_all_filters(components):
-        return all(f(components) for f in always_iterable(filters))
-
     def mix_from_component(component):
         if isinstance(component, Mix):
             return component
@@ -697,8 +574,8 @@ def iter_complete_mixes(components, combos, filters=None, memo=None):
         else:
             return Mix({component})
 
-    candidates = [Levels(components, combos)]
-    best_num_pipetting_steps = {}
+    components = mix_matching_components(components, combos)
+    candidates = [components]
 
     while candidates:
         # Contrary to my expectations, a depth-first search (i.e. pop the last 
@@ -706,11 +583,10 @@ def iter_complete_mixes(components, combos, filters=None, memo=None):
         # I've only tested this with the 'parallel-master-mixes' test case, 
         # though.
         
-        levels = candidates.pop()
-        debug(levels)
+        components = candidates.pop()
 
-        if len(levels) == 1 and len(levels.top) == 1:
-            yield mix_from_component(first(levels.top))
+        if len(components) == 1:
+            yield mix_from_component(first(components))
             continue
 
         # We only consider the pairs that have the fewest combos at each 
@@ -718,47 +594,49 @@ def iter_complete_mixes(components, combos, filters=None, memo=None):
         # think of a case where it generates the wrong answer, but I'm not 
         # totally sure that no such cases exist.
 
-        pairs = find_best_pairs(levels)
+        pairs = find_best_pairs(components)
 
-        for components, partial_mix in make_partial_mixes(pairs):
-            if not pass_all_filters(partial_mix):
-                continue
-
-            # Prune any solutions that arrive at any mix in a sub-optimal way.
-            # I kind of want to break this logic into its own function, to 
-            # logically separate searching from pruning and to make it easier 
-            # to implement additional pruning strategies.  But do so would also 
-            # add a lot of complexity, so I'll wait until I actually have the 
-            # need to do so.
-            #
-            # I've manually profiled this code on a few test cases.  It saves 
-            # some time (0.144s vs 0.200s) for the 'parallel-master-mixes' 
-            # test, but otherwise seems to be a wash.  Presumably it matters 
-            # more for more complicated reaction setups.
-
-            suboptimal = set()
-
-            for mix in iter_mixes(partial_mix):
-                n_pipet = count_pipetting_steps(mix, combos, memo)
-                n_best = best_num_pipetting_steps.get(mix.all_reagents, inf)
-
-                if n_pipet < n_best:
-                    suboptimal.add(mix.all_reagents)
-                    best_num_pipetting_steps[mix.all_reagents] = n_pipet
-                if n_pipet > n_best:
-                    break
-
-            else:
-                if suboptimal:
-                    candidates = [
-                            x for x in candidates
-                            if not any(x.contains_mix(y) for y in suboptimal)
-                    ]
-
-                candidate = levels.copy()
-                candidate.remove(components)
-                candidate.add(partial_mix)
+        for components_to_remove, mix_to_add in mix_pairs(pairs):
+            filtered_candidates = candidates[:]
+            if all(
+                    f(components_to_remove, mix_to_add, filtered_candidates)
+                    for f in filters
+            ):
+                candidate = components - components_to_remove | {mix_to_add}
+                candidates = filtered_candidates
                 candidates.append(candidate)
+
+def mix_matching_components(components, combos):
+    levels = {}
+
+    for component in components:
+        n = count_combos(component, combos)
+        levels.setdefault(n, set()).add(component)
+
+    for n in levels:
+        groups = []
+        group_map = {}
+
+        for a, b in combinations(levels[n], 2):
+            n_ab = count_combos({a, b}, combos)
+            if n == n_ab:
+                try:
+                    group = group_map[a]
+                except KeyError:
+                    try:
+                        group = group_map[b]
+                    except KeyError:
+                        group = set()
+                        groups.append(group)
+
+                group |= {a, b}
+                group_map[a] = group_map[b] = group
+
+        for group in groups:
+            levels[n] -= group
+            levels[n] |= {PartialMix(group)}
+
+    return frozenset().union(*levels.values())
 
 def require_solvent_with_volume(components, solvent):
     """
@@ -779,6 +657,36 @@ def require_solvent_with_volume(components, solvent):
             not x.volume or any(iter_all_mixes_with_solvent(x, solvent))
             for x in iter_mixes(components)
     )
+
+def prune_suboptimal_mixes(
+        new_components,
+        combos,
+        candidates,
+        best_num_pipetting_steps,
+        memo=None,
+):
+    def contains_mix(components, mix):
+        return any(mix == x for x in iter_all_mixes(components))
+
+    suboptimal = set()
+
+    for mix in iter_mixes(new_components):
+        n_pipet = count_pipetting_steps(mix, combos, memo)
+        n_best = best_num_pipetting_steps.get(mix.all_reagents, inf)
+
+        if n_pipet < n_best:
+            suboptimal.add(mix.all_reagents)
+            best_num_pipetting_steps[mix.all_reagents] = n_pipet
+        if n_pipet > n_best:
+            return False
+
+    if suboptimal:
+        candidates[:] = [
+                x for x in candidates
+                if not any(contains_mix(x, y) for y in suboptimal)
+        ]
+
+    return True
 
 def find_careful_reagents(reaction):
     return [x.key for x in reaction.iter_reagents_by_flag('careful')]
@@ -840,7 +748,7 @@ def count_pipetting_steps(components, combos, memo=None):
 
     return n_steps
 
-def count_combos(component_or_components, combos, memo=None):
+def count_combos(component_or_components, combos):
     components = always_iterable(component_or_components)
     reagents = frozenset(iter_all_reagents(components))
     return len({
@@ -1002,6 +910,4 @@ def format_stock_conc_as_int_ratio(mix, conc, sig_figs=2):
 
     if all(count_sig_figs(x) <= sig_figs for x in (a,b)):
         return f'{a}/{b}x'
-
-
 
