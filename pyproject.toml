@@ -81,6 +81,5 @@ ignore_generated_commits = true
 generated_commits = ['^Merge']
 
 [tool.semantic_release]
-branch = 'release'
 version_variable = 'stepwise/__init__.py:__version__'
 build_command = 'python -m pip install flit && flit build'
