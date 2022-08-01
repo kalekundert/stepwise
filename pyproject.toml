@@ -76,7 +76,7 @@ filterwarnings = "ignore::PendingDeprecationWarning:Bio.Alphabet"
 
 [tool.pccc]
 header_length = 72
-types = ["chore", "docs", "feat", "fix", "refactor", "style", "test"]
+types = ["chore", "docs", "feat", "fix", "refactor", "style", "test", "perf"]
 ignore_generated_commits = true
 generated_commits = ['^Merge']
 

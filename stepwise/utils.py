@@ -49,3 +49,18 @@ def sort_plugins(plugins):
 def load_and_sort_plugins(group, default_priority=None):
     return sort_plugins(load_plugins(group, default_priority))
 
+class EmptyMemo:
+
+    def __setitem__(self, key, value):
+        pass
+
+    def __contains__(self, key):
+        return False
+
+EMPTY_MEMO = EmptyMemo()
+
+def get_memo(memo, func):
+    if memo is None: return EMPTY_MEMO
+    if memo is EMPTY_MEMO: return EMPTY_MEMO
+    return memo.setdefault(func, {})
+

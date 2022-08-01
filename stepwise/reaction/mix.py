@@ -2,7 +2,7 @@ import autoprop
 import networkx as nx
 
 from .reaction import Reaction, after
-from ..utils import repr_join
+from ..utils import get_memo, repr_join
 from ..errors import UsageError
 
 from itertools import product, combinations
@@ -23,11 +23,6 @@ from math import inf
 #   mixed together, possibly before being added to other mixes.
 #
 # - "component": a generic term for either a reagent or a mix.
-
-# Potential optimizations:
-# - Cache calls to `count_combos()`.  Basically I would use the same `memo` 
-#   dictionary, but I would make it two-level: `memo[func][input]`.  I might 
-#   also write a bit of code to help manage that.
 
 @autoprop
 class Mix:
@@ -196,11 +191,9 @@ def plan_mixes(reaction, combos, *, mixes=None, subset=None, bias=0):
 
     mixes = plan_automixes(mixes or [], reaction, combos, bias=bias)
     components = init_components(reaction, mixes, subset)
+    components = mix_matching_components(components, combos, memo)
     filters = [
-            lambda remove, add, cand: \
-                    require_solvent_with_volume(add, reaction.solvent),
-            lambda remove, add, cand: \
-                    prune_suboptimal_mixes(add, combos, cand, {}, memo),
+            lambda mix: require_solvent_with_volume(mix, reaction.solvent),
     ]
 
     best_mix = None
@@ -209,7 +202,7 @@ def plan_mixes(reaction, combos, *, mixes=None, subset=None, bias=0):
     careful_reagents = find_careful_reagents(reaction)
     order_map = make_order_map(reaction.keys())
 
-    for mix in unique(iter_complete_mixes(components, combos, filters, memo)):
+    for mix in unique(iter_complete_mixes(components, combos, filters)):
         score = score_mix(mix, combos, bias, careful_reagents, order_map, memo)
         if score < best_score:
             best_mix = mix
@@ -513,7 +506,7 @@ def init_components(reaction, required_mixes, subset=None):
 
     return (reagents - already_seen) | required_mixes 
 
-def iter_complete_mixes(components, combos, filters=None, memo=None):
+def iter_complete_mixes(components, combos, filters, memo=None):
     """
     Yield mixes that include every component from all of the given levels.
 
@@ -530,14 +523,13 @@ def iter_complete_mixes(components, combos, filters=None, memo=None):
     This function may yield the same mix multiple times, so the caller should 
     account for this.
     """
-    filters = filters or []
 
     def find_best_pairs(components):
         best_pairs = []
         best_num_combos = inf
 
         for pair in combinations(components, 2):
-            n = count_combos(pair, combos)
+            n = count_combos(pair, combos, memo)
             if n == best_num_combos:
                 best_pairs.append(pair)
             elif n < best_num_combos:
@@ -574,43 +566,27 @@ def iter_complete_mixes(components, combos, filters=None, memo=None):
         else:
             return Mix({component})
 
-    components = mix_matching_components(components, combos)
-    candidates = [components]
+    if len(components) == 1:
+        yield mix_from_component(first(components))
+        return
 
-    while candidates:
-        # Contrary to my expectations, a depth-first search (i.e. pop the last 
-        # candidate) seems to give better pruning that a breadth-first search.  
-        # I've only tested this with the 'parallel-master-mixes' test case, 
-        # though.
-        
-        components = candidates.pop()
+    # We only consider the pairs that have the fewest combos at each 
+    # iteration, so this is a greedy algorithm.  I haven't been able to 
+    # think of a case where it generates the wrong answer, but I'm not 
+    # totally sure that no such cases exist.
 
-        if len(components) == 1:
-            yield mix_from_component(first(components))
-            continue
+    pairs = find_best_pairs(components)
 
-        # We only consider the pairs that have the fewest combos at each 
-        # iteration, so this is a greedy algorithm.  I haven't been able to 
-        # think of a case where it generates the wrong answer, but I'm not 
-        # totally sure that no such cases exist.
+    for components_to_remove, mix_to_add in mix_pairs(pairs):
+        if all(f(mix_to_add) for f in filters):
+            merged = components - components_to_remove | {mix_to_add}
+            yield from iter_complete_mixes(merged, combos, filters)
 
-        pairs = find_best_pairs(components)
-
-        for components_to_remove, mix_to_add in mix_pairs(pairs):
-            filtered_candidates = candidates[:]
-            if all(
-                    f(components_to_remove, mix_to_add, filtered_candidates)
-                    for f in filters
-            ):
-                candidate = components - components_to_remove | {mix_to_add}
-                candidates = filtered_candidates
-                candidates.append(candidate)
-
-def mix_matching_components(components, combos):
+def mix_matching_components(components, combos, memo=None):
     levels = {}
 
     for component in components:
-        n = count_combos(component, combos)
+        n = count_combos(component, combos, memo)
         levels.setdefault(n, set()).add(component)
 
     for n in levels:
@@ -618,7 +594,7 @@ def mix_matching_components(components, combos):
         group_map = {}
 
         for a, b in combinations(levels[n], 2):
-            n_ab = count_combos({a, b}, combos)
+            n_ab = count_combos((a, b), combos, memo)
             if n == n_ab:
                 try:
                     group = group_map[a]
@@ -694,7 +670,7 @@ def find_careful_reagents(reaction):
 def score_mix(mix, combos, bias, careful_reagents, order_map, memo):
     n_mix = ilen(iter_all_mixes(mix))
     n_pipet = count_pipetting_steps(mix, combos, memo) + n_mix * bias
-    n_care = count_combos_by_reagent(mix, careful_reagents, combos)
+    n_care = count_combos_by_reagent(mix, careful_reagents, combos, memo)
     n_adj = count_adjacencies(mix, order_map)
     depth = find_depth(mix)
 
@@ -726,6 +702,7 @@ def count_pipetting_steps(components, combos, memo=None):
     each unique combination.
     """
     assert not isinstance(components, str)
+    memo = get_memo(memo, count_pipetting_steps)
 
     # Convert to `frozenset` because we may be passed levels (which are 
     # `frozensets`) and mixes (which are `Mix` instances) that contain the same 
@@ -734,29 +711,36 @@ def count_pipetting_steps(components, combos, memo=None):
     # knowledge no such input is ever given.
     components = frozenset(components)
 
-    if memo is not None and components in memo:
+    if components in memo:
         return memo[components]
     
-    n_combos = count_combos(components, combos)
+    n_combos = count_combos(components, combos, memo)
     n_steps = n_combos * len(components)
 
     for mix in iter_mixes(components):
         n_steps += count_pipetting_steps(mix, combos, memo)
 
-    if memo is not None:
-        memo[components] = n_steps
-
+    memo[components] = n_steps
     return n_steps
 
-def count_combos(component_or_components, combos):
+def count_combos(component_or_components, combos, memo=None):
+    memo = get_memo(memo, count_combos)
+
     components = always_iterable(component_or_components)
     reagents = frozenset(iter_all_reagents(components))
-    return len({
+
+    if reagents in memo:
+        return memo[reagents]
+    
+    n_combos = len({
             tuple(combo.get(k) for k in reagents)
             for combo in combos
     })
 
-def count_combos_by_reagent(mix, reagents, combos):
+    memo[reagents] = n_combos
+    return n_combos
+
+def count_combos_by_reagent(mix, reagents, combos, memo=None):
     mixes = {}
 
     for child in iter_all_mixes(mix, include_given=True):
@@ -767,7 +751,8 @@ def count_combos_by_reagent(mix, reagents, combos):
 
     for reagent in reagents:
         child = mixes[reagent]
-        n_combos[reagent] = count_combos(iter_all_reagents(child), combos)
+        reagents_it = iter_all_reagents(child)
+        n_combos[reagent] = count_combos(reagents_it, combos, memo=None)
 
     return n_combos
 
