@@ -256,6 +256,24 @@ test_main:
     stderr: ^$
     return_code: 0
   -
+    id: builtin-future-reaction-volume
+    cmd: sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' -v 20
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' -v 20
+      >
+      > 1. Setup 1 reaction:
+      >
+      >    Reagent  Stock    Volume
+      >    ────────────────────────
+      >    A               18.00 µL
+      >    B          10x   2.00 µL
+      >    ────────────────────────
+      >                    20.00 µL
+    stderr: ^$
+    return_code: 0
+  -
     id: builtin-future-reaction-mixes
     cmd: sw future/reaction 'A;;;to 10 µL' 'B;10x;;1 µL' 'C;5x;1x;' -C C -c c1 -c c2 -m A,B,C
     stdout:
@@ -385,6 +403,52 @@ test_main:
       >    C           5x   2.00 µL
       >    ────────────────────────
       >                    10.00 µL
+    stderr: ^$
+    return_code: 0
+  -
+    id: builtin-future-reaction-xlsx-volume
+    cmd: sw future/reaction -f rxn.xlsx -v 20
+    tmp_files:
+      rxn.xlsx:
+        type: xlsx
+        sheets:
+          reaction:
+            > Reagent,Stock,Conc,Volume
+            > A,,,to 10 µL
+            > B,10x,,1 µL
+            > C,5x,1x
+          combos:
+            > C
+            > c1
+            > c2
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw future/reaction -f rxn.xlsx -v 20
+      > 
+      > 1. Setup 2 reactions:
+      > 
+      >    - Use the following reagents:
+      >
+      >      C: c1, c2
+      > 
+      >    - Make master mix:
+      > 
+      >      Reagent  Stock    Volume      2.2x
+      >      ──────────────────────────────────
+      >      A               14.00 µL  30.80 µL
+      >      B          10x   2.00 µL   4.40 µL
+      >      ──────────────────────────────────
+      >                      16.00 µL  35.20 µL
+      > 
+      >    - Setup the reactions:
+      > 
+      >      Reagent     Stock    Volume
+      >      ───────────────────────────
+      >      master mix         16.00 µL
+      >      C              5x   4.00 µL
+      >      ───────────────────────────
+      >                         20.00 µL
     stderr: ^$
     return_code: 0
   -

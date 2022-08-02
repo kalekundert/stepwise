@@ -32,28 +32,29 @@ from ..errors import *
 
 def reaction_from_docopt(args):
     if '--config-file' in args:
-        return reaction_from_xlsx(args['--config-file'], 0)
+        rxn = reaction_from_xlsx(args['--config-file'], 0)
 
-    reagent_strs = args['<reagent;stock;conc;volume>']
-    cols = {
-            'reagent': [],
-            'stock_conc': [],
-            'conc': [],
-            'volume': [],
-    }
-    for reagent_str in reagent_strs:
-        fields = reagent_str.split(';')
-        if len(fields) != 4:
-            raise UsageError(f"expected 4 semicolon-separated fields, not {len(fields)}: {reagent_str}")
+    else:
+        reagent_strs = args['<reagent;stock;conc;volume>']
+        cols = {
+                'reagent': [],
+                'stock_conc': [],
+                'conc': [],
+                'volume': [],
+        }
+        for reagent_str in reagent_strs:
+            fields = reagent_str.split(';')
+            if len(fields) != 4:
+                raise UsageError(f"expected 4 semicolon-separated fields, not {len(fields)}: {reagent_str}")
 
-        reagent, stock_conc, conc, volume = fields
+            reagent, stock_conc, conc, volume = fields
 
-        cols['reagent'].append(reagent)
-        cols['stock_conc'].append(stock_conc)
-        cols['conc'].append(conc)
-        cols['volume'].append(volume)
+            cols['reagent'].append(reagent)
+            cols['stock_conc'].append(stock_conc)
+            cols['conc'].append(conc)
+            cols['volume'].append(volume)
 
-    rxn = Reaction.from_cols(cols)
+        rxn = Reaction.from_cols(cols)
 
     if '--volume' in args:
         rxn.hold_ratios.volume = float_eval(args['--volume']), rxn.volume.unit
