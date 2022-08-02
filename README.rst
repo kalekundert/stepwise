@@ -11,7 +11,7 @@ Stepwise
 .. image:: https://img.shields.io/readthedocs/stepwise.svg
    :target: https://stepwise.readthedocs.io/en/latest/?badge=latest
 
-.. image:: https://img.shields.io/github/workflow/status/kalekundert/stepwise/Test%20and%20release/master
+.. image:: https://img.shields.io/github/workflow/status/kalekundert/stepwise/Test/master
    :target: https://github.com/kalekundert/stepwise/actions
 
 .. image:: https://img.shields.io/coveralls/kalekundert/stepwise.svg
