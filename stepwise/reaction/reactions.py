@@ -423,28 +423,33 @@ Arguments:
 
         name:
             The name of the reagent.  This can be any string, and will be 
-            included verbatim in the reagent table.
+            included verbatim in the reaction table.
 
         stock:
-            The stock concentration of the reagent.  This is only required if a 
-            final concentration (see below) is also specified.  
-
-            This is optional , but if 
-            specified, should include a unit.
+            The stock concentration of the reagent.  If a final concentration 
+            is also specified, this must be a value with a unit so that an 
+            appropriate volume can be calculated.  Otherwise, this can be any 
+            string, and will be included verbatim in the reaction table.
 
         conc:
-            The final concentration of the reagent.  
+            The final concentration of the reagent.  This is optional, but if 
+            specified, the unit must match the stock concentration.  Metric 
+            prefixes are (unfortunately) not understood at this time, so if you 
+            want to specify a 1000x dilution of a 1M stock, you would have to 
+            specify stock and final concentrations of '1000 mM' and '1 mM' (or 
+            '1M' and '0.001M').
 
         volume:
             The volume of the reagent.  This can be specified in one of two 
             forms.  The first form is simply a value with a unit (e.g. '1 µL'), 
             in which case the reagent will have the specified volume.  The 
             second form is also a value with a unit, but prefixed by the string 
-            "to" (e.g. 'to 10 µL').  In this case, the whole reaction will 
-            have the specified volume, and the volume of the reagent itself 
-            will be the difference between the total volume and the volumes of 
-            all the other reagents.  Every reagent must have the same volume 
-            unit.
+            "to" (e.g. 'to 10 µL').  In this case, the whole reaction will have 
+            the specified volume, and the volume of the reagent itself will be 
+            the difference between the total volume and the volumes of all the 
+            other reagents.  Only one reagent (sometimes referred to as the 
+            "solvent") can use this "to" form.  Every reagent must have the 
+            same volume unit.
 
         For each reagent, you must specify either (i) a volume or (ii) stock 
         and final concentrations.  If you specify a volume and a final 
@@ -528,7 +533,7 @@ Options:
         The kind of reaction being setup.  This value will be included in the 
         text introducing the reaction.  For example, if given "PCR", the 
         reaction might be introduced as "Setup 1 PCR reaction" or "Setup 2 PCR 
-        reactions" (depending on `--num-reactions`).
+        reactions" (depending on `--combo` and `--replicates`).
 
         If the given value contains one or more slashes, they will be used to 
         control pluralization.  See `inform.plural()` for details.  If the 
