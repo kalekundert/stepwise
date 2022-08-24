@@ -1,15 +1,16 @@
 [build-system]
-requires = ["flit"]
-build-backend = "flit.buildapi"
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
 
-[tool.flit.metadata]
-module = "stepwise"
-author = "Kale Kundert"
-author-email = "kale@thekunderts.net"
-home-page = 'https://github.com/kalekundert/stepwise'
-description-file = 'README.rst'
+[project]
+name = "stepwise"
+authors = [
+  {name = "Kale Kundert", email = "kale@thekunderts.net"},
+]
+readme = "README.rst"
+dynamic = ["version", "description"]
 requires-python = "~=3.8"
-requires = [
+dependencies = [
   'byoc',
   'arrow',
   'autoprop',
@@ -28,7 +29,7 @@ classifiers = [
   'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
 ]
 
-[tool.flit.metadata.requires-extra]
+[project.optional-dependencies]
 tests = [
   'pytest',
   'pytest-cov',
@@ -46,21 +47,21 @@ docs = [
   'autoclasstoc',
 ]
 
-[tool.flit.metadata.urls]
+[project.urls]
 'Documentation' = 'https://stepwise.readthedocs.io/en/latest/'
 'Version Control' = 'https://github.com/kalekundert/stepwise'
 'Bug Tracker' = 'https://github.com/kalekundert/stepwise/issues'
 'Continuous Integration' = 'https://github.com/kalekundert/stepwise/actions'
 'Test Coverage' = 'https://coveralls.io/github/kalekundert/stepwise'
 
-[tool.flit.scripts]
+[project.scripts]
 stepwise = "stepwise.cli.main:main"
 sw = "stepwise.cli.main:main"
 
-[tool.flit.entrypoints."stepwise.protocols"]
+[project.entry-points."stepwise.protocols"]
 builtins = "stepwise:Builtins"
 
-[tool.flit.entrypoints."stepwise.commands"]
+[project.entry-points."stepwise.commands"]
 ls = "stepwise.cli.ls:List"
 which = "stepwise.cli.which:Which"
 edit = "stepwise.cli.edit:Edit"
