@@ -853,6 +853,71 @@ test_main:
     stderr: .*error.*: pattern 'A' not found in protocol
     return_code: 1
   -
+    id: skip
+    cmd: sw step A | sw step B | sw skip
+    # Can't really update the commands list, because there's no way to know 
+    # which commands go with which steps.  Plus, in general, I can't think of 
+    # any reason to invoke a command and then skip all of its steps.
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      > \$ sw step B
+      >
+      > 1. A
+    stderr: ^$
+    return_code: 0
+  -
+    id: skip-first
+    cmd: sw step A | sw step B | sw skip 1
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      > \$ sw step B
+      >
+      > 1. B
+    stderr: ^$
+    return_code: 0
+  -
+    id: skip-first-two
+    cmd: sw step A | sw step B | sw step C | sw skip :2
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      > \$ sw step B
+      > \$ sw step C
+      >
+      > 1. C
+    stderr: ^$
+    return_code: 0
+  -
+    id: skip-last
+    cmd: sw step A | sw step B | sw skip -- -1
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      > \$ sw step B
+      >
+      > 1. A
+    stderr: ^$
+    return_code: 0
+  -
+    id: skip-last-two
+    cmd: sw step A | sw step B | sw step C | sw skip -- -2:
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      > \$ sw step B
+      > \$ sw step C
+      >
+      > 1. A
+    stderr: ^$
+    return_code: 0
+  -
     id: which
     cmd: sw which a
     tmp_files:

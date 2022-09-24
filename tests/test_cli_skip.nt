@@ -1,0 +1,130 @@
+test_parse_index:
+  -
+    id: err-no-steps
+    step_str: 1
+    n_steps: 0
+    error:
+      type: ValueError
+      message: no previous steps
+  -
+    id: err-0-index
+    step_str: 0
+    n_steps: 2
+    error:
+      type: ValueError
+      message: no step with index 0: indexing starts at 1
+  -
+    id: positive-first
+    step_str: 1
+    n_steps: 2
+    expected: 0
+  -
+    id: positive-last
+    step_str: 2
+    n_steps: 2
+    expected: 1
+  -
+    id: err-positive-out-of-bounds
+    step_str: 3
+    n_steps: 2
+    error:
+      type: ValueError
+      message: no step with index 3: only 2 steps
+  -
+    id: err-positive-out-of-bounds-plural
+    step_str: 2
+    n_steps: 1
+    error:
+      type: ValueError
+      message: no step with index 2: only 1 step
+  -
+    id: negative-last
+    step_str: -1
+    n_steps: 2
+    expected: 1
+  -
+    id: negative-first
+    step_str: -2
+    n_steps: 2
+    expected: 0
+  -
+    id: err-negative-out-of-bounds
+    step_str: -3
+    n_steps: 2
+    error:
+      type: ValueError
+      message: no step with index -3: only 2 steps
+  -
+    id: err-negative-out-of-bounds-plural
+    step_str: -2
+    n_steps: 1
+    error:
+      type: ValueError
+      message: no step with index -2: only 1 step
+
+test_parse_indices:
+  -
+    id: positive-first
+    steps_str: 1
+    n_steps: 2
+    expected: 0
+  -
+    id: positive-last
+    steps_str: 2
+    n_steps: 2
+    expected: 1
+  -
+    id: positive-first-two
+    steps_str: 1:2
+    n_steps: 3
+    expected: [0, 1]
+  -
+    id: positive-first-two-implicit
+    steps_str: :2
+    n_steps: 3
+    expected: [0, 1]
+  -
+    id: positive-last-two
+    steps_str: 2:3
+    n_steps: 3
+    expected: [1, 2]
+  -
+    id: positive-last-two-implicit
+    steps_str: 2:
+    n_steps: 3
+    expected: [1, 2]
+  -
+    id: negative-first
+    steps_str: -2
+    n_steps: 2
+    expected: 0
+  -
+    id: negative-last
+    steps_str: -1
+    n_steps: 2
+    expected: 1
+  -
+    id: negative-first-two
+    steps_str: -3:-2
+    n_steps: 3
+    expected: [0, 1]
+  -
+    id: negative-first-two-implicit
+    steps_str: :-2
+    n_steps: 3
+    expected: [0, 1]
+  -
+    id: negative-last-two
+    steps_str: -2:-1
+    n_steps: 3
+    expected: [1, 2]
+  -
+    id: negative-last-two-implicit
+    steps_str: -2:
+    n_steps: 3
+    expected: [1, 2]
+  -
+    id: all-implicit
+    steps_str: :
+    n_steps: 3
+    expected: [0, 1, 2]
