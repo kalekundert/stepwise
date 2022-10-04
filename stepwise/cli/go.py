@@ -14,12 +14,18 @@ class Go(StepwiseCommand):
 Make copies of a protocol before starting an experiment.
 
 Usage:
-    stepwise go [-fFP] [-o PATH] [-p NAME]
+    stepwise go [-fFP] [-o PATH] [-O SUFFIX] [-p NAME]
 
 Options:
     -o --output PATH
         The name of the file where the protocol will be recorded.  By default, 
         this name will follow the pattern: `YYYYMMDD_all_protocol_names.txt`
+
+    -O --output-suffix SUFFIX
+        A string to add to the end of the default output file name (but before 
+        the default file extension).  This is useful to distinguish between two 
+        protocols that would otherwise have the same name (e.g. `sw make p1` 
+        and `sw make p2`).
 
     -f --force
         Overwrite existing files.
@@ -72,6 +78,10 @@ Configuration:
             Key(DocoptConfig, '--output'),
             default=None,
     )
+    output_suffix = byoc.param(
+            Key(DocoptConfig, '--output-suffix'),
+            default='',
+    )
     send_to_file = byoc.param(
             Key(DocoptConfig, '--no-file', cast=not_),
             default=True,
@@ -104,7 +114,7 @@ Configuration:
 
         # Write the protocol to a file.
         if self.send_to_file:
-            path = Path(self.output_path or f'{io.protocol.pick_slug()}.txt')
+            path = Path(self.output_path or f'{io.protocol.pick_slug()}{self.output_suffix}.txt')
             if path.exists() and not self.overwrite_file:
                 print(f"'{path}' already exists, use '-f' to overwrite.")
                 print(f"Aborting; protocol NOT sent to printer.")
