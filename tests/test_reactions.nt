@@ -380,6 +380,55 @@ test_reactions_protocol:
         >   ul('d', 'e'),
         > )
   -
+    id: 2-mixes-1-combo
+    # This is an unusual combination, but it can happen if the user forces some 
+    # reagents into their own mix.  This happens often with PCR reactions, as 
+    # the primers are often forced into their own mix.
+    reactions:
+      base:
+        > Reagent   Volume
+        > =======  =======
+        > a           1 µL
+        > b           2 µL
+        > c           3 µL
+      combos:
+        []
+      mixes:
+        - Mix(['b', 'c'])
+    
+    expected:
+      -
+        > pl(
+        >   "Setup 1 reaction:",
+        >   ul(
+        >     pl(
+        >       "Make master mix:",
+        >       table(
+        >         header=["Reagent", "Volume"],
+        >         rows=[
+        >             ["b", "2.00 µL"],
+        >             ["c", "3.00 µL"],
+        >         ],
+        >         footer=["", "5.00 µL"],
+        >         align=list("<>"),
+        >       ),
+        >     ),
+        >     pl(
+        >       "Setup the reaction:",
+        >       table(
+        >         header=["Reagent", "Volume"],
+        >         rows=[
+        >             ["a", "1.00 µL"],
+        >             ["master mix", "5.00 µL"],
+        >         ],
+        >         footer=["", "6.00 µL"],
+        >         align=list("<>"),
+        >       ),
+        >     ),
+        >     br='\n\n',
+        >   ),
+        > )
+  -
     id: 3-mixes
     reactions:
       base:
@@ -835,6 +884,23 @@ test_reactions_combos_dl:
       > dl(
       >     ('a', '1, 3'),
       >     ('b', '2, 4'),
+      > )
+  -
+    id: reagent-names-with-commas
+    reactions:
+      base:
+        > Reagent  Key   Volume
+        > =======  ===  =======
+        > a*       a       1 µL
+        > b*       b       2 µL
+      combos:
+        -
+          a: 1,2
+        -
+          a: 3,4
+    expected:
+      > dl(
+      >     ('a*', '1,2; 3,4'),
       > )
 
 # - reagents with volume=0

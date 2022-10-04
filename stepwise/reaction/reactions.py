@@ -300,7 +300,7 @@ class Reactions(byoc.App):
 
         if mix is self.mix:
             show_n = (self.combos.replicates > 1) and self.split_replicates
-            return pl(f"Setup {n if show_n else 'the'} reactions:", table)
+            return pl(f"Setup {n if show_n else 'the'} {plural(n):reaction/s}:", table)
 
         if mix.stock_conc:
             name = f'{mix.stock_conc} {mix.name}'
@@ -788,8 +788,12 @@ class Combos:
         )
 
     def format_as_dl(self, rxn):
+        def join(items):
+            sep = '; ' if any(',' in x for x in items) else ', '
+            return sep.join(items)
+
         return dl(*(
-                (rxn[k].name, ', '.join(self.distinct_values_by_col[k]))
+                (rxn[k].name, join(self.distinct_values_by_col[k]))
                 for k in self.ordered_cols
                 if k in self.distinct_values_by_col
         ))
