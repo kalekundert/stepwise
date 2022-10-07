@@ -842,6 +842,53 @@ class Extra:
     volume: float
     min_volume: float
 
+    @classmethod
+    def from_string(cls, extra_str):
+
+        def parse_extra(extra_str):
+            extra_str = extra_str.strip()
+
+            if not extra_str:
+                return Extra()
+
+            if extra_str.endswith('%'):
+                percent = float(extra_str[:-1])
+                return Extra(percent=percent)
+
+            if extra_str.endswith('x'):
+                reactions = float(extra_str[:-1])
+                return Extra(reactions=reactions)
+
+            if extra_str.startswith('>'):
+                min_volume = Quantity.from_string(extra_str[1:])
+                return Extra(min_volume=min_volume)
+
+            try:
+                volume = Quantity.from_string(extra_str)
+                return Extra(volume=volume)
+
+            except ValueError:
+                raise ValueError(f"{extra_str!r} cannot be interpreted as an amount of extra master mix to prepare")
+
+        return cls.merge(
+                parse_extra(x)
+                for x in extra_str.split(',')
+        )
+
+    @classmethod
+    def merge(cls, extras):
+        extra = cls()
+        extras = list(extras)
+
+        if extras:
+            extra.fraction = max(x.fraction for x in extras)
+            extra.reactions = max(x.reactions for x in extras)
+            extra.volume = max(x.volume for x in extras)
+            extra.min_volume = max(x.min_volume for x in extras)
+
+        return extra
+
+
     def __init__(self, *, fraction=0, percent=None, reactions=0, volume=0, min_volume=0):
         self.fraction = fraction
         if percent is not None: self.percent = percent

@@ -439,14 +439,27 @@ def test_combos_sort_by_appearance(combos, reaction, ordered_cols, ordered_rows)
 
 
 @parametrize_from_file(
+        schema=with_py.error_or('expected'),
+)
+def test_extra_init(extra, expected, error):
+    # Guard against accidentally copying-and-pasting the input into the output.
+    assert extra != expected
+
+    expected = with_sw.eval(expected)
+
+    with error:
+        extra = with_sw.eval(extra)
+        assert extra == expected
+
+@parametrize_from_file(
         schema=[
-            cast(scale=float, expected=float),
+            cast(scale=float, expected=float, check_repr=with_py.eval),
             defaults(reaction='', expected_repr=''),
         ],
 )
-def test_extra(extra, scale, reaction, expected, expected_repr):
+def test_extra_increase_scale(extra, scale, reaction, expected, expected_repr):
     if not expected_repr:
-        expected_repr = extra.replace('Extra().fork(', 'Extra(')
+        expected_repr = extra
 
     extra = with_sw.eval(extra)
 
@@ -458,10 +471,6 @@ def test_extra(extra, scale, reaction, expected, expected_repr):
 
     assert repr(extra) == expected_repr
     assert extra.increase_scale(scale, rxn) == approx(expected)
-
-def test_extra_fork_unknown_arg():
-    with pytest.raises(TypeError, match=r"unexpected keyword argument\(s\): 'unknown_attr'"):
-        Extra().fork(unknown_attr=0)
 
 
 @parametrize_from_file(

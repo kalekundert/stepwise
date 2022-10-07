@@ -2125,21 +2125,190 @@ test_combos_have_all_possible:
         y: d
     expected: True
 
-test_extra:
+test_extra_init:
+  # - Everything at once
+  -
+    extra: Extra.from_string('')
+    expected: Extra()
+  -
+    extra: Extra.from_string(' ')
+    expected: Extra()
+  -
+    extra: Extra.from_string('10%')
+    expected: Extra(percent=10)
+  -
+    extra: Extra.from_string(' 10%')
+    expected: Extra(percent=10)
+  -
+    extra: Extra.from_string('10% ')
+    expected: Extra(percent=10)
+  -
+    extra: Extra.from_string('1x')
+    expected: Extra(reactions=1)
+  -
+    extra: Extra.from_string(' 1x')
+    expected: Extra(reactions=1)
+  -
+    extra: Extra.from_string('1x ')
+    expected: Extra(reactions=1)
+  -
+    extra: Extra.from_string('10 µL')
+    expected: Extra(volume=Quantity(10, 'µL'))
+  -
+    extra: Extra.from_string(' 10 µL')
+    expected: Extra(volume=Quantity(10, 'µL'))
+  -
+    extra: Extra.from_string('10 µL ')
+    expected: Extra(volume=Quantity(10, 'µL'))
+  -
+    extra: Extra.from_string('>1 µL')
+    expected: Extra(min_volume=Quantity(1, 'µL'))
+  -
+    extra: Extra.from_string(' >1 µL')
+    expected: Extra(min_volume=Quantity(1, 'µL'))
+  -
+    extra: Extra.from_string('>1 µL ')
+    expected: Extra(min_volume=Quantity(1, 'µL'))
+  -
+    extra: Extra.from_string('error')
+    error: ValueError
+  -
+    extra: Extra.from_string('10%,1x,10µL,>1µL')
+    expected:
+      > Extra(
+      >     fraction=0.1,
+      >     reactions=1,
+      >     volume=Quantity(10, 'µL'), 
+      >     min_volume=Quantity(1, 'µL'),
+      > )
+  -
+    extra: Extra.from_string('10%, 1x, 10 µL, >1 µL')
+    expected:
+      > Extra(
+      >     fraction=0.1,
+      >     reactions=1,
+      >     volume=Quantity(10, 'µL'), 
+      >     min_volume=Quantity(1, 'µL'),
+      > )
+  -
+    id: merge-empty
+    extra: Extra.merge([])
+    expected: Extra()
+  -
+    id: merge-fraction
+    extra:
+      > Extra.merge([
+      >     Extra(fraction=0.1),
+      >     Extra(fraction=0.2),
+      > ])
+    expected: Extra(fraction=0.2)
+  -
+    id: merge-percent
+    extra:
+      > Extra.merge([
+      >     Extra(percent=20),
+      >     Extra(percent=10),
+      > ])
+    expected: Extra(percent=20)
+  -
+    id: merge-fraction-percent
+    extra:
+      > Extra.merge([
+      >     Extra(fraction=0.1),
+      >     Extra(percent=20),
+      >     Extra(fraction=0.3),
+      >     Extra(percent=40),
+      > ])
+    expected: Extra(fraction=0.4)
+  -
+    id: merge-fraction-percent
+    extra:
+      > Extra.merge([
+      >     Extra(fraction=0.2),
+      >     Extra(percent=10),
+      >     Extra(fraction=0.4),
+      >     Extra(percent=30),
+      > ])
+    expected: Extra(fraction=0.4)
+  -
+    id: merge-reactions
+    extra:
+      > Extra.merge([
+      >     Extra(reactions=1),
+      >     Extra(reactions=2),
+      > ])
+    expected: Extra(reactions=2)
+  -
+    id: merge-volume
+    extra:
+      > Extra.merge([
+      >     Extra(volume='3 µL'),
+      >     Extra(volume='2 µL'),
+      > ])
+    expected: Extra(volume='3 µL')
+  -
+    id: merge-min-volume
+    extra:
+      > Extra.merge([
+      >     Extra(min_volume='3 µL'),
+      >     Extra(min_volume='4 µL'),
+      > ])
+    expected: Extra(min_volume='4 µL')
+  -
+    id: merge-everything
+    extra:
+      > Extra.merge([
+      >     Extra(fraction=0.1, reactions=2, volume='10 µL', min_volume='2 µL'),
+      >     Extra(fraction=0.2, reactions=1, volume='15 µL', min_volume='1 µL'),
+      > ])
+    expected:
+      > Extra(
+      >     fraction=0.2,
+      >     reactions=2,
+      >     volume='15 µL',
+      >     min_volume='2 µL',
+      > )
+  -
+    extra: Extra().fork()
+    expected: Extra()
+  -
+    extra: Extra().fork(fraction=0.1)
+    expected: Extra(fraction=0.1)
+  -
+    extra: Extra().fork(percent=10)
+    expected: Extra(percent=10)
+  -
+    extra: Extra().fork(reactions=1)
+    expected: Extra(reactions=1)
+  -
+    extra: Extra().fork(volume='2 µL')
+    expected: Extra(volume='2 µL')
+  -
+    extra: Extra().fork(min_volume='3 µL')
+    expected: Extra(min_volume='3 µL')
+  -
+    extra: Extra().fork(unknown_attr=0)
+    error: TypeError
+  -
+    extra: Extra(fraction=0.5, reactions=1, volume='5 µL', min_volume='6 µL').fork(fraction=1)
+    expected: Extra(fraction=1, reactions=1, volume='5 µL', min_volume='6 µL')
+  -
+    extra: Extra(fraction=0.5, reactions=1, volume='5 µL', min_volume='6 µL').fork(reactions=2)
+    expected: Extra(fraction=0.5, reactions=2, volume='5 µL', min_volume='6 µL')
+  -
+    extra: Extra(fraction=0.5, reactions=1, volume='5 µL', min_volume='6 µL').fork(volume='10 µL')
+    expected: Extra(fraction=0.5, reactions=1, volume='10 µL', min_volume='6 µL')
+  -
+    extra: Extra(fraction=0.5, reactions=1, volume='5 µL', min_volume='6 µL').fork(min_volume='8 µL')
+    expected: Extra(fraction=0.5, reactions=1, volume='5 µL', min_volume='8 µL')
+
+test_extra_increase_scale:
   -
     extra: Extra()
     scale: 2
     expected: 2
   -
-    extra: Extra().fork()
-    scale: 2
-    expected: 2
-  -
     extra: Extra(fraction=0.1)
-    scale: 2
-    expected: 2.2
-  -
-    extra: Extra().fork(fraction=0.1)
     scale: 2
     expected: 2.2
   -
@@ -2148,16 +2317,7 @@ test_extra:
     expected: 2.2
     expected_repr: Extra(fraction=0.1)
   -
-    extra: Extra().fork(percent=10)
-    scale: 2
-    expected: 2.2
-    expected_repr: Extra(fraction=0.1)
-  -
     extra: Extra(reactions=1)
-    scale: 2
-    expected: 3
-  -
-    extra: Extra().fork(reactions=1)
     scale: 2
     expected: 3
   -
@@ -2170,25 +2330,7 @@ test_extra:
       > b                 4 µL
     expected: 2.2
   -
-    extra: Extra().fork(volume='2 µL')
-    scale: 2
-    reaction:
-      > Reagent  Stock  Volume
-      > =======  =====  ======
-      > a                 6 µL
-      > b                 4 µL
-    expected: 2.2
-  -
     extra: Extra(min_volume='3 µL')
-    scale: 1
-    reaction:
-      > Reagent  Stock  Volume
-      > =======  =====  ======
-      > a                 3 µL
-      > b                 2 µL
-    expected: 1.5
-  -
-    extra: Extra().fork(min_volume='3 µL')
     scale: 1
     reaction:
       > Reagent  Stock  Volume
@@ -2215,16 +2357,6 @@ test_extra:
       > b                 2 µL
     expected: 4
   -
-    extra: Extra(fraction=0.5, reactions=1, volume='5 µL', min_volume='6 µL').fork(fraction=1)
-    scale: 2
-    reaction:
-      > Reagent  Stock  Volume
-      > =======  =====  ======
-      > a                 3 µL
-      > b                 2 µL
-    expected: 4
-    expected_repr: Extra(fraction=1, reactions=1, volume='5 µL', min_volume='6 µL')
-  -
     extra: Extra(fraction=0.5, reactions=2, volume='5 µL', min_volume='6 µL')
     scale: 2
     reaction:
@@ -2233,16 +2365,6 @@ test_extra:
       > a                 3 µL
       > b                 2 µL
     expected: 4
-  -
-    extra: Extra(fraction=0.5, reactions=1, volume='5 µL', min_volume='6 µL').fork(reactions=2)
-    scale: 2
-    reaction:
-      > Reagent  Stock  Volume
-      > =======  =====  ======
-      > a                 3 µL
-      > b                 2 µL
-    expected: 4
-    expected_repr: Extra(fraction=0.5, reactions=2, volume='5 µL', min_volume='6 µL')
   -
     extra: Extra(fraction=0.5, reactions=1, volume='10 µL', min_volume='6 µL')
     scale: 2
@@ -2253,16 +2375,6 @@ test_extra:
       > b                 2 µL
     expected: 4
   -
-    extra: Extra(fraction=0.5, reactions=1, volume='5 µL', min_volume='6 µL').fork(volume='10 µL')
-    scale: 2
-    reaction:
-      > Reagent  Stock  Volume
-      > =======  =====  ======
-      > a                 3 µL
-      > b                 2 µL
-    expected: 4
-    expected_repr: Extra(fraction=0.5, reactions=1, volume='10 µL', min_volume='6 µL')
-  -
     extra: Extra(fraction=0.5, reactions=1, volume='5 µL', min_volume='8 µL')
     scale: 2
     reaction:
@@ -2271,16 +2383,6 @@ test_extra:
       > a                 3 µL
       > b                 2 µL
     expected: 4
-  -
-    extra: Extra(fraction=0.5, reactions=1, volume='5 µL', min_volume='6 µL').fork(min_volume='8 µL')
-    scale: 2
-    reaction:
-      > Reagent  Stock  Volume
-      > =======  =====  ======
-      > a                 3 µL
-      > b                 2 µL
-    expected: 4
-    expected_repr: Extra(fraction=0.5, reactions=1, volume='5 µL', min_volume='8 µL')
 
 test_reaction_from_docopt:
   -
