@@ -325,7 +325,7 @@ def set_mix_reactions(
                     mix_volume - reagents_volume
             )
 
-        if not solvent_volume:
+        if solvent_volume is None:
             # The solvent volume is only unset for (i) the root mix and (ii) 
             # any mixes that don't contain solvent.  Since we checked for a 
             # solvent above, we will only enter this conditional for the root 

@@ -588,6 +588,28 @@ test_set_mix_reactions:
         > B mix           5 µL
         > c               3 µL
   -
+    id: solvent-0-volume
+    mixes:
+      wb: Mix({'w', 'b'}, name='master')
+      a: Mix({MIXES['wb'], 'a'})
+    reaction:
+      > Reagent   Volume
+      > =======  =======
+      > w        to 3 µL
+      > a           1 µL
+      > b           2 µL
+    expected:
+      wb:
+        > Reagent   Volume
+        > =======  =======
+        > w           0 µL
+        > b           2 µL
+      a:
+        > Reagent     Volume
+        > ==========  ======
+        > master mix    2 µL
+        > a             1 µL
+  -
     id: order
     mixes:
       bd: Mix({'b', 'd'}, name='master')
