@@ -918,6 +918,54 @@ test_main:
     stderr: ^$
     return_code: 0
   -
+    id: swap
+    cmd: sw step A | sw step B | sw swap 2 1
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      > \$ sw step B
+      >
+      > 1. B
+      >
+      > 2. A
+    stderr: ^$
+    return_code: 0
+  -
+    id: swap-middle
+    cmd: sw step A | sw step B | sw step C | sw step D | sw swap 3 2
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      > \$ sw step B
+      > \$ sw step C
+      > \$ sw step D
+      >
+      > 1. A
+      >
+      > 2. C
+      >
+      > 3. B
+      >
+      > 4. D
+    stderr: ^$
+    return_code: 0
+  -
+    id: swap-negative
+    cmd: sw step A | sw step B | sw swap -- -1 -2
+    stdout:
+      > ^{DATE}
+      >
+      > \$ sw step A
+      > \$ sw step B
+      >
+      > 1. B
+      >
+      > 2. A
+    stderr: ^$
+    return_code: 0
+  -
     id: which
     cmd: sw which a
     tmp_files:
