@@ -55,7 +55,7 @@ df[0] = df[0].map(lambda x: x.rstrip(':') + ':')
 
 # Replace hyphens with true minus-signs:
 for c in df.columns[1:]:
-    df[c] = df[c].str.replace(r'^-$', '−')
+    df[c] = df[c].str.replace('-', '−', regex=False)
 
 rows = df.values.tolist()
 align = ['<'] + (len(df.columns) - 1) * ['^']
