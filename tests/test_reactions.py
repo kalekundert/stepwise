@@ -47,7 +47,7 @@ class MixWrapper:
             raise AssertionError(f"expected reagents={self.reagents!r}, got {actual.reagents!r}")
 
         if self.mixes:
-            assert UnorderedList(self.mixes, False) == actual.mixes
+            assert UnorderedList(self.mixes, check_type=False) == actual.mixes
 
         if self.reaction != actual.reaction:
             raise AssertionError(f"expected reaction={self.reaction!r}, got {actual.reaction!r}")
